@@ -11,12 +11,13 @@ import pandas as pd
 
 
 class Distractor(viz.EventClass):
-	def __init__(self, filename, maxtargetnumber):
+	def __init__(self, filename, maxtargetnumber, ppid):
 		viz.EventClass.__init__(self)
 
 		#needs to be an eventclass for timer to work.				
 		
 		##PARAMETERS THAT DO NOT VARY PER TRIAL
+		self.ppid = ppid
 		self.filename = filename		
 		self.AudioList = [] #load once at start. List of audio-files
 		#letters = ['a','b','c','d','e','i','o']#,'f','g']#,'h','i','j','k','l']#,'m','n','o']
@@ -112,8 +113,8 @@ class Distractor(viz.EventClass):
 		self.Trial_targets = np.random.choice(self.Target_pool, size=targetnumber, replace=False)
 			
 		#### CREATE DATA FRAMES ####
-		EndofTrial_datacolumns = [] #columns for end of trial dataframe		
-		WithinTrial_datacolumns = [] #columns for within trial dataframe. 
+		EndofTrial_datacolumns = ['ppid'] #columns for end of trial dataframe		
+		WithinTrial_datacolumns = ['ppid'] #columns for within trial dataframe. 
 		#create columns for dataframe, depending on target number
 		for i in range(1,targetnumber +1):
 			EoTcolumn = 'EoTScore' + str(i)
@@ -124,13 +125,13 @@ class Distractor(viz.EventClass):
 			Targetcolumn = 'Target' + str(i)
 			WithinTrial_datacolumns.append(Targetcolumn) #columns for within trial dataframe. 
 
-		self.EndofTrial_data = pd.DataFrame(columns=EndofTrial_datacolumns) #make new empty EndofTrial data
+		self.EndofTrial_Data = pd.DataFrame(columns=EndofTrial_datacolumns) #make new empty EndofTrial data
 
 		WithinTrial_datacolumns.append('CurrentAudio')
 		WithinTrial_datacolumns.append('RT')
 		WithinTrial_datacolumns.append('ResponseCategory')
 
-		self.WithinTrial_data = pd.DataFrame(columns=WithinTrial_datacolumns) #make new empty EndofTrial data
+		self.WithinTrial_Data = pd.DataFrame(columns=WithinTrial_datacolumns) #make new empty EndofTrial data
 
 		self.EoT_NumberofResponses = 0 # not sure what this logic is for yet.						
 		self.ON = 1
@@ -182,13 +183,20 @@ class Distractor(viz.EventClass):
 		
 		self.ChangeQuestionText()
 				
-		self.EoTScreen.visible(viz.ON)
-		self.Question.visible(viz.ON)
-		self.lblscore.visible(viz.ON)		
+		self.EoTScreen_Visibility(viz.ON)	
 		
 		#tell class it is end of trial. 
 		self.EoTFlag = True	
 		self.ON = 0
+
+	def EoTScreen_Visibility(self, visible = viz.ON):
+
+		"""switches the EoTscreen visibility off or on"""
+	
+		self.EoTScreen.visible(visible)
+		self.Question.visible(visible)
+		self.lblscore.visible(visible)
+
 	
 	def SaveData(self):
 
@@ -197,36 +205,24 @@ class Distractor(viz.EventClass):
 		##save all data to file.
 		
 		#record data					
-		self.ON = 0		
+		self.ON = 0						
+				
+
+		output = self.Trial_EoTscores + self.Trial_targetcounts #makes a list of the correct length
+		output[::2] = self.Trial_EoTscores
+		output[1::2] = self.Trial_targetcounts
+		output = np.concatenate(self.ppid, output)
+
+		self.EndofTrial_Data.loc[0,:] = output #this dataframe is actually just one line. 
 		
-		#add score to end of file.
-		self.DATA_out  = self.DATA_out  + '\n' + str(self.EoTScore1) + '\t' + str(self.Target1Count) + '\t' + str(self.EoTScore2) + '\t' + str(self.Target2Count)
-	
-		fileproper=(self.filename+'_Distractor_' + str(self.TrialCount) + '.dat')
-		# Opens nominated file in write mode
-		path = viz.getOption('viz.publish.path','.')+'/data/'
-		#		SpinCounter = 0 
-		file = open(path + fileproper, 'w') 
-		# Write the string to the output file
-		file.write(self.DATA_out )                                     
-		# Makes sure the file data is really written to the harddrive
-		file.flush()                                        
-		#print DATA_out 
-		file.close()							
-		
-		#reset flags.
-		
-		#Control these in main experiment
-#		self.EoTScreen.visible(viz.OFF)
-#		self.Question.visible(viz.OFF)
-#		self.lblscore.visible(viz.OFF)
+
+		self.EndofTrial_Data.to_csv('//Data//' + str(self.filename) + '_EndofTrial.csv')
+		self.WithinTrial_Data.to_csv('//Data//' + str(self.filename) + '_WithinTrial.csv')
+
+		self.EoTScreen_Visibility(viz.OFF)
 		
 		#tell class it is end of trial. 
-		self.EoTFlag = False
-		
-		self.TrialCount = self.TrialCount + 1
-		self.EoTScore1 = -1
-		self.EoTScore2 = -1		
+		self.EoTFlag = False				
 		
 	def DetectAudioResponse(self):
 
@@ -253,7 +249,7 @@ class Distractor(viz.EventClass):
 				
 		#the row size will change depending on target number.
 		currentresponse = [self.currentaudio, RT, ResponseCategory] 
-		output = np.concatenate(self.Trial_targets, currentresponse)
+		output = np.concatenate(self.ppid, self.Trial_targets, currentresponse)
 		self.WithinTrial_Data.loc[self.Stimuli_Count,:] = output		
 		
 	def SetNewStimuli(self):
@@ -315,9 +311,7 @@ class Distractor(viz.EventClass):
 
 			if self.EoT_NumberofResponses == self.Trial_targetnumber: #if all responses given, save data.
 				self.EoTFlag = False
-				self.SaveData()
-
-			
+				self.SaveData()			
 		
 	def joymove(self,pos):
 		
