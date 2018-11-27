@@ -7,7 +7,6 @@ import math as mt # python library
 import socket
 import time
 import numpy as np # numpy library - such as matrix calculation
-import UDP
 
 JOY_FIRE_BUTTONS = [100, 101, 102]
 JOY_DIR_SWITCH_BUTTON = [5, 6]
@@ -50,18 +49,6 @@ class Driver(viz.EventClass):
 		self.__PAUSE_FLAG = 0 # immediatly pause flag
 		self.__Input_Flag = 0
 		
-		#UDP connection setting for Connection.py
-		# 1024: standby state,         1025: steer initialization
-		# 1026: finishing programme,  other: steering input value
-		self.udpsend1 = UDP.UDP_SEND(50000) # port number
-		self.udpsend1.SEND_DATA(1025)
-		#time.sleep(0.5)
-		
-		#UDP connection setting for Sound.py
-		# 0: standby state,     1: make beep (3 sec)
-		# 2: make beep (1 sec), 3: finishing programme
-		self.udpsend2 = UDP.UDP_SEND(50001) # port number
-		self.udpsend2.SEND_DATA(0)
 		#time.sleep(0.5)
 		self.__soundFlag = 1
 		
@@ -129,34 +116,8 @@ class Driver(viz.EventClass):
 		self.__VehicleCentre_Z = VehicleCentreZ
 
 		self.__absFixationAngle = mt.atan2(self.__RoadCentre_X - self.__VehicleCentre_X, self.__RoadCentre_Z - self.__VehicleCentre_Z)
-		
-	# steering initialization function every trial
-	def function_initialize_steering(self):
-		# 1024: standby state,         1025: steer initialization
-		# 1026: finishing programme,  other: steering input value
-		self.udpsend1.SEND_DATA(1025)
-		time.sleep(1.5) #needs a yield statement when called. 
+
 	
-	# steering finishing function at end of simulation
-	def function_finish_steering(self):
-		# 1024: standby state,         1025: steer initialization
-		# 1026: finishing programme,  other: steering input value
-		self.udpsend1.SEND_DATA(1026)
-		time.sleep(0.5)
-		self.udpsend1.CLOSE()
-		
-	# sound finishing function at end of simulation
-	def function_finish_sound(self):
-		# 0: standby state,     1: make beep (3 sec)
-		# 2: make beep (1 sec), 3: finishing programme
-		self.udpsend2.SEND_DATA(3)
-		time.sleep(0.5)
-		self.udpsend2.CLOSE()
-		
-	# Automation duration setting function
-	def function_AutoDrivingTime(self, time1, time2):
-		self.__DrivingTotalTime = time1
-		self.__AutoDrivingTime = time2
 		
 	# setting trialtype
 	def function_Trialtype(self, type):
@@ -193,7 +154,8 @@ class Driver(viz.EventClass):
 #		#Compute drag
 #		drag = self.__speed / 300.0
 
-		self.__totalTime += elapsedTime
+		self.__totalTime = 0
+		#self.__totalTime += elapsedTime
 		self.__turnrate = 0.0
 		
 		#Update heading
@@ -203,7 +165,6 @@ class Driver(viz.EventClass):
 			self.__soundFlag = 1
 			# 0: standby state,     1: make beep (3 sec)
 			# 2: make beep (1 sec), 3: finishing programme
-			self.udpsend2.SEND_DATA(1)
 		
 		# make beep (1.0 second)
 		# TotalDrivingTime = self.__DrivingTotalTime
@@ -211,7 +172,6 @@ class Driver(viz.EventClass):
 			self.__soundFlag = 2
 			# 0: standby state,     1: make beep (3 sec)
 			# 2: make beep (1 sec), 3: finishing programme
-			self.udpsend2.SEND_DATA(2)
 			
 		if(self.__totalTime < self.__AutoDrivingTime):
 			# automated driving
@@ -267,35 +227,7 @@ class Driver(viz.EventClass):
 				# 1026: finishing programme,  other: steering input value
 				self.udpsend1.SEND_DATA(self.outvalue)
 			"""
-			
-			# We should indicate timing and steering value to match the course situations
-			# 1024: standby state,         1025: steer initialization
-			# 1026: finishing programme,  other: steering input value
-			if self.__TrialType > 0: # right bend
-				if self.__totalTime > 1.0 and self.__Input_Flag == 0:
-					self.udpsend1.SEND_DATA(-400)
-					self.__Input_Flag = 1
-				elif self.__totalTime > 4.5 and self.__Input_Flag == 1:
-					self.udpsend1.SEND_DATA(1025)
-					self.__Input_Flag = 2
-				elif self.__totalTime > 8.0 and self.__Input_Flag == 2:
-					self.udpsend1.SEND_DATA(400)
-					self.__Input_Flag = 3
-			elif self.__TrialType < 0: # left bend
-				if self.__totalTime > 1.0 and self.__Input_Flag == 0:
-					self.udpsend1.SEND_DATA(400)
-					self.__Input_Flag = 1
-				elif self.__totalTime > 4.5 and self.__Input_Flag == 1:
-					self.udpsend1.SEND_DATA(1025)
-					self.__Input_Flag = 2
-				elif self.__totalTime > 8.0 and self.__Input_Flag == 2:
-					self.udpsend1.SEND_DATA(-400)
-					self.__Input_Flag = 3
-
-			# sound initialization
-			# 0: standby state,     1: make beep (3 sec)
-			# 2: make beep (1 sec), 3: finishing programme
-			self.udpsend2.SEND_DATA(0)
+	
 			
 			# difference between input value and real steering wheel angle
 			self.__SteeringBasis = self.__turnrate - self.__dir * (data[0])  * elapsedTime * 35
@@ -309,10 +241,7 @@ class Driver(viz.EventClass):
 			
 			# add bisis value not to connect discontinuously
 			self.__turnrate += self.__SteeringBasis
-			
-			# 1024: standby state,         1025: steer initialization
-			# 1026: finishing programme,  other: steering input value
-			self.udpsend1.SEND_DATA(1024)
+
 
 		self.__heading += self.__turnrate
 		
