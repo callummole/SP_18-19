@@ -85,18 +85,7 @@ def runtrials():
 					yield viztask.waitAny([waitButton1, waitButton2],d)#,waitButton2],d) #need to do this twice
 					pressed += 1
 					print('pressed ' + str(pressed))		
-				Finished = True
-				
-		
-		# distractor.Question.message('\n \n \n \n \n \n \n \n Let Go!')
-		# distractor.lblscore.message('')
-		
-		# yield viztask.waitTime(.5)
-		# distractor.EoTScreen.visible(viz.OFF)
-		# distractor.Question.visible(viz.OFF)
-		# distractor.lblscore.visible(viz.OFF)
-		
-		#viz.play()		
+				Finished = True				
 	else:	
 		
 		viz.quit() ##otherwise keeps writting data onto last file untill ESC
