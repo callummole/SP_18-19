@@ -13,63 +13,63 @@ class Distractor(viz.EventClass):
 	def __init__(self, filename):
 		viz.EventClass.__init__(self)
 
-		#needs to be an eventclass for timer to work.
-		#self.callback(viz.EXIT_EVENT,self.EndTrial)
+		#needs to be an eventclass for timer to work.				
 		
-		##STEP 1: SETUP TASK							
-		self.filename = filename
-		self.ON = 0 #flag denoting whether to record data
-		self.Target1='b' #Target1. Fixed across trials
-		self.Target2='o' #Target2. Fixed across trials
-		self.targetDelay = [] #randomly varies between 1-1.5s
-		self.currenttarget = '-1' #-1 stimuli the pp is listening for
-		self.currentaudio = '-1' # currently heard stimuli
-		self.Target1Count = 0 #appearance count. Max 3 per trial.
-		self.Target2Count = 0 #appearance count. Max 3 per trial.
-
-		self.ResponseStamp = 0	#time of response
-		self.DrawStamp = 0	#time of stimuli presentation
-		
-		self.callback(viz.TIMER_EVENT,self.onTimer)		
-		self.Timer =0
-		
-		self.interval = 0.1 #delay randomly varies between 1 - 1.5 at .1 increments.
-		self.delay = 1.25 #this is how quickly you want items repeated. Changes per stimuli. 
-		
-		self.targetTimer = 0		
-		self.targetInterval = 0
-		self.starttimer(0,self.interval,viz.FOREVER)
-		
-		
-		self.out=""
-		self.QuitFlag = 0
-		
-		self.ppresp = 0 #flag to say that participant has responded.
-		
-		self.EoTFlag = False #set to 1 when it is the EoT screen. 
-		self.EoTResp = 0 #flag to say that pps have recorded.
-		
+		##PARAMETERS THAT DO NOT VARY PER TRIAL
+		self.filename = filename		
 		self.AudioList = [] #load once at start. List of audio-files
 		#letters = ['a','b','c','d','e','i','o']#,'f','g']#,'h','i','j','k','l']#,'m','n','o']
 		#letters = ['a','b','k','h','f','i','o']#,'f','g']#,'h','i','j','k','l']#,'m','n','o'] #don't rhyme.
-		self.letters = ['b','o','a','k','t','h','f','s','i','z','m','n','y','r','j'] #target letters are the front two. Need to be paired with three distractors.
+		self.letters = ['b','o','z','k','t','h','f','s','i','a','m','n','y','r','j'] #target letters are the front two. Need to be paired with three distractors.
 		l = len(self.letters)
 		#self.LetterLength
 		for i in range(l):
 			a = self.letters[i]
 			#self.AudioList.append(viz.addAudio('..\\textures\\audio-numbers\\' + a + '.wav'))		
 			self.AudioList.append(viz.addAudio('..\\textures\\Alphabet_Sounds\\' + a + '.wav'))		
+
+		#PAREMETERS THAT ARE SET AT THE START OF EACH TRIAL
+		self.Trial_audioindexes = [] #empty list that is populated with indexes corresponding to places on the audio list. Targets will be the first N of the letter array, depending on trial number.
+		self.Trial_targetnumber = 0 #trial parameters, target number
+		self.Trial_targetoccurence = 0 #trial parameters, target occurence
+		self.Trial_targetcounts = [] #empty list with self.Trial_targetnumber counts.
+
+		self.EndofTrial_datacolumns = [] #columns for end of trial dataframe
+		self.WithinTrial_datacolumns = [] #columns for within trial dataframe. 
 		
-		self.TrialList = [0,1,2,3,4]
+		# PARAMETERS THAT VARY WITHIN TRIALS
+		self.ON = 0 #flag denoting whether to record data
+		self.targetDelay = [] #randomly varies between 1-1.5s
+		self.currenttarget = '-1' #-1 stimuli the pp is listening for
+		self.currentaudio = '-1' # currently heard stimuli
+		self.ResponseStamp = 0	#time of response
+		self.DrawStamp = 0	#time of stimuli presentation
+		self.delay = 1.25 #this is how quickly you want items repeated. Changes per stimuli. 
+
+		self.callback(viz.TIMER_EVENT,self.onTimer)		
+		self.Timer =0
+		
+		self.interval = 0.1 #delay randomly varies between 1 - 1.5 at .1 increments.		
+		self.targetTimer = 0		
+		self.targetInterval = 0
+		self.starttimer(0,self.interval,viz.FOREVER)
+		
+		self.DATA_out ="" #data file
+		self.QuitFlag = 0
+		
+		self.ppresp = 0 #flag to say that participant has responded.
+		
+		self.EoTFlag = False #set to 1 when it is the EoT screen. 
+		self.EoTResp = 0 #flag to say that pps have recorded their final count.
 						
-		###setup Two End-of-Trials screen.
+		###END OF TRIALS SCREEN
 		self.EoTScreen = viz.addTexQuad(viz.SCREEN)
 		self.EoTScreen.color(viz.BLACK)
 		self.EoTScreen.setPosition(.5,.5)
 		self.EoTScreen.setScale(100,100)
 		self.EoTScreen.visible(viz.OFF)
 
-		self.Question = viz.addText('How many Bs did you hear? \n \n Press the LEFT gear pad to register your count', viz.SCREEN)
+		self.Question = viz.addText('How many Xs did you hear? \n \n Press a single gear pad to register your count', viz.SCREEN)
 		self.Question.color(1,1,0)
 		self.Question.setPosition(0.5,0.75)
 		self.Question.fontSize(36)
@@ -80,8 +80,10 @@ class Distractor(viz.EventClass):
 		self.lblscore.setPosition(0.5,0.4)
 		self.lblscore.fontSize(50)
 		self.lblscore.alignment(viz.TEXT_CENTER_CENTER)
-		self.lblscore.visible(viz.OFF)	
-		
+		self.lblscore.visible(viz.OFF)			
+
+		# cannae remember what these do.
+		self.EoTScores = [] # array of -1s, length of self.Trial_targetoccurence.
 		self.EoTScore1 = -1
 		self.EoTScore2 = -1
 		self.CurrentScore = -1
@@ -90,6 +92,7 @@ class Distractor(viz.EventClass):
 	
 	def PickDistractors(self):
 		
+		"""Assigns targets and distractors from the letter array, depending on target count and target occurence probability of trial"""
 		#first two letters are targets. Routine picks three non-repeated distractors 
 		l = len(self.letters)
 		picked = False		
@@ -220,7 +223,7 @@ class Distractor(viz.EventClass):
 		self.ON = 0		
 		
 		#add score to end of file.
-		self.out = self.out + '\n' + str(self.EoTScore1) + '\t' + str(self.Target1Count) + '\t' + str(self.EoTScore2) + '\t' + str(self.Target2Count)
+		self.DATA_out  = self.DATA_out  + '\n' + str(self.EoTScore1) + '\t' + str(self.Target1Count) + '\t' + str(self.EoTScore2) + '\t' + str(self.Target2Count)
 	
 		fileproper=(self.filename+'_Distractor_' + str(self.TrialCount) + '.dat')
 		# Opens nominated file in write mode
@@ -228,10 +231,10 @@ class Distractor(viz.EventClass):
 		#		SpinCounter = 0 
 		file = open(path + fileproper, 'w') 
 		# Write the string to the output file
-		file.write(self.out)                                     
+		file.write(self.DATA_out )                                     
 		# Makes sure the file data is really written to the harddrive
 		file.flush()                                        
-		#print out
+		#print DATA_out 
 		file.close()							
 		
 		#reset flags.
@@ -248,19 +251,24 @@ class Distractor(viz.EventClass):
 		self.EoTScore1 = -1
 		self.EoTScore2 = -1
 	
-	def StartTrial(self):
+	def StartTrial(self, targetnumber, targetoccurence):
 		
-		###CALL THIS FUNCTION AT THE START OF EACH TRIAL
+		"""Sets parameters at the start of each trial, based on targetoccurence and targetnumber"""
 		
-		##it resets the target count, chooses a new target. Makes sure the target isn't the same as previous trials.
+		self.Trial_targetnumber = targetnumber #trial parameters, target number
+		self.Trial_targetoccurence = targetoccurence #trial parameters, target occurence
+
 		
-		#self.ON = 0 #do not record until target chosen.
+
+		self.EndofTrial_datacolumns = [] #columns for end of trial dataframe
+		self.WithinTrial_datacolumns = [] #columns for within trial dataframe. 
+
 		self.EoTResp = 0
-		#oldtarget = str(self.currenttarget)
-		self.out=""
+		self.DATA_out ="" #reset .dat outstream.
 		self.Target1Count = 0
 		self.Target2Count = 0
-		
+		self.trialdata = pd.DataFrame(columns=self.datacolumns)
+
 		self.PickDistractors() #choose new distractors,
 		
 		##select target
@@ -299,6 +307,8 @@ class Distractor(viz.EventClass):
 		oldaudio = str(self.currentaudio)
 		if self.ON == 1: #only repeat sound if during a trial.
 			
+			#TODO: audio will need to change to be dynamic based on target number. 
+
 			#record response to previous number
 			if self.currentaudio == self.Target1: #correct pairing.
 				self.Target1Count = self.Target1Count + 1 #increment target count.
@@ -324,7 +334,8 @@ class Distractor(viz.EventClass):
 					RT = -1
 					correct = '4' #correct absence of response
 			
-			self.out = self.out + self.Target1 + '\t' + self.Target2 + '\t' + self.currentaudio + '\t' + str(RT) + '\t' + correct + '\t' + '\n'
+			# TODO: saving will need to change to be dynamic based on target number
+			self.DATA_out  = self.DATA_out  + self.Target1 + '\t' + self.Target2 + '\t' + self.currentaudio + '\t' + str(RT) + '\t' + correct + '\t' + '\n'
 		
 		
 			#Playnewsound. Ensure it isn't a repeat.
