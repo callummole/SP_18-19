@@ -32,7 +32,7 @@ class Distractor(viz.EventClass):
 			self.AudioList.append(viz.addAudio('..\\textures\\Alphabet_Sounds\\' + a + '.wav'))		
 
 		self.Target_pool = self.letters[:maxtargetnumber] #returns list up to  maxtargetnumber
-		self.Distractor_pool = self.letters[maxtargetnumber:]
+		self.Distractor_pool = self.letters[maxtargetnumber:]		
 
 		#PAREMETERS THAT ARE SET AT THE START OF EACH TRIAL
 		self.Trial_targets = [] #targets for that particular trial. 
@@ -45,8 +45,8 @@ class Distractor(viz.EventClass):
 		self.Trial_length = 20 #length of trial. Is usually constant.
 		self.Trial_Timer = 0 #keeps track of trial length. 
 
-		self.EndofTrial_Data = [] #end of trial dataframe
-		self.WithinTrial_Data = [] #within trial dataframe. 		
+		self.EndofTrial_Data = pd.DataFrame() #end of trial dataframe
+		self.WithinTrial_Data = pd.DataFrame() #within trial dataframe. 		
 		
 		# PARAMETERS THAT VARY WITHIN TRIALS
 		self.ON = 0 #flag denoting whether to record data
@@ -71,7 +71,7 @@ class Distractor(viz.EventClass):
 		self.ppresp = 0 #flag to say that participant has responded.
 		
 		self.EoTFlag = False #set to 1 when it is the EoT screen. 
-		self.EoTResp = 0 #flag to say that pps have recorded their final count.
+		self.EoT_NumberofResponses = 0 #count to say how many counts have been inputted.
 						
 		###END OF TRIALS SCREEN
 		self.EoTScreen = viz.addTexQuad(viz.SCREEN)
@@ -80,7 +80,8 @@ class Distractor(viz.EventClass):
 		self.EoTScreen.setScale(100,100)
 		self.EoTScreen.visible(viz.OFF)
 
-		self.Question = viz.addText('How many Xs did you hear? \n \n Press a single gear pad to register your count', viz.SCREEN)
+		self.EndofTrial_Question = 'How many Xs did you hear? \n \n Press the RIGHT gear pad to register your count'
+		self.Question = viz.addText(self.EndofTrial_Question, viz.SCREEN)
 		self.Question.color(1,1,0)
 		self.Question.setPosition(0.5,0.75)
 		self.Question.fontSize(36)
@@ -127,11 +128,11 @@ class Distractor(viz.EventClass):
 
 		WithinTrial_datacolumns.append('CurrentAudio')
 		WithinTrial_datacolumns.append('RT')
-		WithinTrial_datacolumns.append('CorrectFlag')
+		WithinTrial_datacolumns.append('ResponseCategory')
 
 		self.WithinTrial_data = pd.DataFrame(columns=WithinTrial_datacolumns) #make new empty EndofTrial data
 
-		self.EoTResp = 0 # not sure what this logic is for yet.						
+		self.EoT_NumberofResponses = 0 # not sure what this logic is for yet.						
 		self.ON = 1
 		self.Stimuli_Timer = 0 #reset inter-presentation timer
 		self.Trial_Timer = 0 #reset trial length to zero 		
@@ -151,25 +152,36 @@ class Distractor(viz.EventClass):
 			self.Trial_Timer = self.Trial_Timer + self.interval #timer to keep track of overall trial length
 			if self.Trial_Timer > self.Trial_length:
 				#here start end of trial screens. 
-				pass 						
+				self.EndofTrial() 						
 	
 	def getFlag(self):
 		#return whether end of trial screen is on.
 		"called get flag"
-		return self.EoTFlag
+		return(self.EoTFlag)
 	
-	def getEoTResp(self):
+	def getEoT_NumberofResponses(self):
 		#return whether ppresponded.
 		"called get response"
-		return self.EoTResp
+		return(self.EoT_NumberofResponses)
+
+	def ChangeQuestionText(self):
+		
+		"""changes self.Question message based on targets in trial and number of responses"""
+		
+		target = str(self.Trial_targets[self.EoT_NumberofResponses])
+		msg = str(self.EndofTrial_Question)
+		msg = msg.replace('X', target)
+		self.lblscore.message('-1')
+
+		self.Question.message(msg)
+
 	
 	def EndofTrial(self):
 		
-		"""Allows recording of counts for N targets"""
-		#throws screen up and waits.
-		#set visible ON.	
-		self.Question.message('How many Bs did you hear? \n \n Press the LEFT gear pad to register your count')
-		self.lblscore.message('-1')
+		"""Throws black screen and wait for gearpads to be pressed"""
+		
+		self.ChangeQuestionText()
+				
 		self.EoTScreen.visible(viz.ON)
 		self.Question.visible(viz.ON)
 		self.lblscore.visible(viz.ON)		
@@ -226,25 +238,23 @@ class Distractor(viz.EventClass):
 			self.Trial_targetcounts[target_index] += 1 #increment target count. 
 			if self.ppresp == 1:
 				RT = self.ResponseStamp-self.Stimuli_PlayedStamp
-				correct = 1 #correctly responded.
+				ResponseCategory = 1 #correctly responded.
 			elif self.ppresp == 0:
 				RT = -1
-				correct = 2 #did not respond when should have.
+				ResponseCategory = 2 #did not respond when should have.
 		
 		elif self.currentaudio_type == 'D': #should NOT have responded.						
 			if self.ppresp == 1:
 				RT = self.ResponseStamp-self.Stimuli_PlayedStamp
-				correct = '3' #responded when shouldn't have.					
+				ResponseCategory = '3' #responded when shouldn't have.					
 			elif self.ppresp == 0:
 				RT = -1
-				correct = '4' #correct absence of response
-		
-		# TODO: saving will need to change to be dynamic based on target number
-	
-		currentresponse = [self.currentaudio, RT, correct] 
+				ResponseCategory = '4' #correct absence of response
+				
+		#the row size will change depending on target number.
+		currentresponse = [self.currentaudio, RT, ResponseCategory] 
 		output = np.concatenate(self.Trial_targets, currentresponse)
-		self.WithinTrial_Data.loc[self.Stimuli_Count,:] = output
-		
+		self.WithinTrial_Data.loc[self.Stimuli_Count,:] = output		
 		
 	def SetNewStimuli(self):
 		
@@ -273,8 +283,12 @@ class Distractor(viz.EventClass):
 		jitter = np.random.randint(0,49)		
 		self.delay = 1.0 + (jitter/100.0)				
 
+
+	#### THE FOLLOWING FUNCTIONS CONTROL THE DRIVER INTERACTING WITH THE WHEEL ######
+
 	def keydown(self,button):
-		#if key == ' ':
+		
+		"""records a button press response to stimuli"""
 		
 		if self.ON == 1:
 			self.ResponseStamp = viz.tick()
@@ -286,31 +300,28 @@ class Distractor(viz.EventClass):
 			
 	def gearpaddown(self,button):
 		
-		#if it is the end of trial then save response
+		"""saves on-screen count"""	
 
 		#TODO: change to accommodate multiple target iterations.
 
-		print "Button: " + str(button) #6 is left. 5 is right 
+		print "Button: " + str(button) #6 is left. 5 is right. Participants can press any button for the response.
+		
 		if self.EoTFlag:
-			
-			if self.EoTResp == 0 and button==6: #if it's the first response make sure it is left
-				self.EoTResp = 1
-				self.EoTScore1 = self.CurrentScore
-				print "Recorded T1"
-				
-				self.Question.message('How many Os did you hear? \n \n Press the RIGHT gear pad to register your count')
-				self.lblscore.message('-1')
-			
-			elif self.EoTResp == 1 and button==5: #if it is the second response make sure it is right.
-			
-				self.EoTResp = 2
-				self.EoTScore2 = self.CurrentScore
-				print "Recorded T2"
+
+			self.Trial_EoTscores[self.EoT_NumberofResponses] = self.CurrentScore 				
+			self.EoT_NumberofResponses += 1
+			print("Recorded Count" + str(self.EoT_NumberofResponses))				
+			self.ChangeQuestionText()														
+
+			if self.EoT_NumberofResponses == self.Trial_targetnumber: #if all responses given, save data.
+				self.EoTFlag = False
 				self.SaveData()
+
 			
 		
 	def joymove(self,pos):
 		
+		"""translates steering wheel movement to movement of the label text"""
 		#if it is end of trial update score
 		if self.EoTFlag:
 			
@@ -330,9 +341,7 @@ class Distractor(viz.EventClass):
 			
 			self.lblscore.message(str(clamppos))
 										
-			#print "score: " + str(self.EoTScore)
-			
-				
+			#print "score: " + str(self.EoTScore)							
 			
 def PlaySound(myaudio):
 	"""plays sound"""
