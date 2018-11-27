@@ -4,6 +4,7 @@ import vizmat
 import transform
 import math
 import viztask
+import pandas as pd
 
 #import vizjoy
 #Each trial should be an independent class. 
@@ -34,8 +35,10 @@ class Distractor(viz.EventClass):
 		self.Trial_targetoccurence = 0 #trial parameters, target occurence
 		self.Trial_targetcounts = [] #empty list with self.Trial_targetnumber counts.
 
-		self.EndofTrial_datacolumns = [] #columns for end of trial dataframe
-		self.WithinTrial_datacolumns = [] #columns for within trial dataframe. 
+		self.EndofTrial_Data = [] #end of trial dataframe
+		self.WithinTrial_Data = [] #within trial dataframe. 
+
+		
 		
 		# PARAMETERS THAT VARY WITHIN TRIALS
 		self.ON = 0 #flag denoting whether to record data
@@ -53,8 +56,7 @@ class Distractor(viz.EventClass):
 		self.targetTimer = 0		
 		self.targetInterval = 0
 		self.starttimer(0,self.interval,viz.FOREVER)
-		
-		self.DATA_out ="" #data file
+				
 		self.QuitFlag = 0
 		
 		self.ppresp = 0 #flag to say that participant has responded.
@@ -93,6 +95,9 @@ class Distractor(viz.EventClass):
 	def PickDistractors(self):
 		
 		"""Assigns targets and distractors from the letter array, depending on target count and target occurence probability of trial"""
+
+		#TODO: change routine.
+
 		#first two letters are targets. Routine picks three non-repeated distractors 
 		l = len(self.letters)
 		picked = False		
@@ -148,6 +153,9 @@ class Distractor(viz.EventClass):
 	def gearpaddown(self,button):
 		
 		#if it is the end of trial then save response
+
+		#TODO: change to accommodate multiple target iterations.
+
 		print "Button: " + str(button) #6 is left. 5 is right 
 		if self.EoTFlag:
 			
@@ -257,43 +265,33 @@ class Distractor(viz.EventClass):
 		
 		self.Trial_targetnumber = targetnumber #trial parameters, target number
 		self.Trial_targetoccurence = targetoccurence #trial parameters, target occurence
+		self.Trial_targetcounts = [None] * targetnumber #empty list with self.Trial_targetnumber counts
 
-		
+		#self.Trial_audioindexes is set in self.PickDistractors()
+		self.PickDistractors() #choose new distractors,		
+			
+		#### CREATE DATA FRAMES ####
+		EndofTrial_datacolumns = [] #columns for end of trial dataframe		
+		WithinTrial_datacolumns = [] #columns for within trial dataframe. 
+		#create columns for dataframe, depending on target number
+		for i in range(1,targetnumber +1):
+			EoTcolumn = 'EoTScore' + str(i)
+			EndofTrial_datacolumns.append(EoTcolumn) 
+			TargetCountcolumn = 'TargetCount' + str(i)
+			EndofTrial_datacolumns.append(TargetCountcolumn) #columns for end of trial dataframe
 
-		self.EndofTrial_datacolumns = [] #columns for end of trial dataframe
-		self.WithinTrial_datacolumns = [] #columns for within trial dataframe. 
+			Targetcolumn = 'Target' + str(i)
+			WithinTrial_datacolumns.append(Targetcolumn) #columns for within trial dataframe. 
 
-		self.EoTResp = 0
-		self.DATA_out ="" #reset .dat outstream.
-		self.Target1Count = 0
-		self.Target2Count = 0
-		self.trialdata = pd.DataFrame(columns=self.datacolumns)
+		self.EndofTrial_data = pd.DataFrame(columns=EndofTrial_datacolumns) #make new empty EndofTrial data
 
-		self.PickDistractors() #choose new distractors,
-		
-		##select target
-#		#ChangeDisplayedNumber
-#		picked = False
-#		nums = [1,2,3,4,5]#,6,7,8,9] 
-#		while not picked:			
-#			#self.currenttarget = str(np.random.randint(1,10))			
-#			self.currenttarget = str(np.random.randint(1,5))			
-#			if  self.currenttarget <> oldtarget:
-#					picked = True					
-		
-		#sound1 = self.AudioList[int(self.currenttarget[0])-1]
-		#print 'choose sound: ' + str(sound1) 
-		
-		#viz.waittime(2.0)
-		#sound1.volume(.5)
-		#sound1.volume(2)
-		#sound1.setTime(.25)		
-		#sound1.setTime(0)		
-		#sound1.stoptime(.6)
-		#sound1.stoptime()
-		#viz.director(PlayDirector,sound1)
-		#sound1.play()
-				
+		WithinTrial_datacolumns.append('CurrentAudio')
+		WithinTrial_datacolumns.append('RT')
+		WithinTrial_datacolumns.append('CorrectFlag')
+
+		self.WithinTrial_data = pd.DataFrame(columns=WithinTrial_datacolumns) #make new empty EndofTrial data
+
+		self.EoTResp = 0 # not sure what this logic is for yet.						
 		self.ON = 1
 		self.Timer = 0
 		
