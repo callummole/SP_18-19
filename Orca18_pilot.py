@@ -57,7 +57,7 @@ TotalN = NCndts * TrialsPerCondition
 TRIALSEQ = range(0,NCndts)*TrialsPerCondition
 np.random.shuffle(TRIALSEQ)
 
-Distractor = Count_Adjustable.Distractor(file_prefix, max(FACTOR_targetnumber))
+Distractor = Count_Adjustable.Distractor(file_prefix, max(FACTOR_targetnumber), pname)
 
 TrialTime = 20 #including delay (3sec) for initializing steer
 
