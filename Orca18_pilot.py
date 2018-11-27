@@ -10,12 +10,13 @@ sys.path.append(rootpath)
 #Experiment name: Orca18
 
 import viz # vizard library
+import vizact # vizard library for timers
 import numpy as np # numpy library - such as matrix calculation
 import random # python library
-import vizdriver_Distractor_director as vizdriver_Distractor # vizard library
+import vizdriver_Orca18 as vizdriver # vizard library
 import viztask # vizard library
 import math as mt # python library
-import AudioDistractor_Sparrow as AudioDistractor #distractor task
+import Count_Adjustable #distractor task
 
 viz.go()
 
@@ -26,30 +27,29 @@ pname = viz.input('Participant code: ')
 file_prefix = str(ExpID) + "_" + str(pname)
 
 ####SETUP DRIVER ######
-
-driver = vizdriver_Distractor.Driver() #initialise driver
+driver = vizdriver.Driver() #initialise driver
 
 global waitButton1, waitButton2
 #wait for a gear pad press.
 driverjoy = driver.getJoy()		#Set joystick gear pad callbacks
-waitButton1 = vizdriver_Distractor.waitJoyButtonDown(5,driverjoy)
-waitButton2 = vizdriver_Distractor.waitJoyButtonDown(6,driverjoy)
+waitButton1 = vizdriver.waitJoyButtonDown(5,driverjoy)
+waitButton2 = vizdriver.waitJoyButtonDown(6,driverjoy)
 
 #### ORDER TRIALS #####
 
 ##Create array of trials.
 TrialsPerCondition = 3 #how many trials do we want with this? 
-FACTOR_targetoccurence = [.2, .4, .6] #probability of response frequency
+FACTOR_targetoccurence_prob = [.2, .4, .6] #probability of response frequency
 FACTOR_targetnumber = [1, 2, 3] #number of targets to keep count of.
 
-NCndts = len(FACTOR_targetoccurence) * len(FACTOR_targetnumber)	
+NCndts = len(FACTOR_targetoccurence_prob) * len(FACTOR_targetnumber)	
 ConditionList = range(NCndts) 
 
 #automatically generate factor lists so you can adjust levels using the FACTOR variables
-ConditionList_targetoccurence = np.repeat(FACTOR_targetoccurence, len(FACTOR_targetnumber)	)
-ConditionList_targetnumber = np.tile(FACTOR_targetnumber, len(FACTOR_targetoccurence)	)
+ConditionList_targetoccurence_prob = np.repeat(FACTOR_targetoccurence_prob, len(FACTOR_targetnumber)	)
+ConditionList_targetnumber = np.tile(FACTOR_targetnumber, len(FACTOR_targetoccurence_prob)	)
 
-print (ConditionList_targetoccurence)
+print (ConditionList_targetoccurence_prob)
 print (ConditionList_targetnumber)
 
 TotalN = NCndts * TrialsPerCondition
@@ -57,33 +57,36 @@ TotalN = NCndts * TrialsPerCondition
 TRIALSEQ = range(0,NCndts)*TrialsPerCondition
 np.random.shuffle(TRIALSEQ)
 
+Distractor = Count_Adjustable.Distractor(file_prefix, max(FACTOR_targetnumber))
+
 TrialTime = 20 #including delay (3sec) for initializing steer
 
 def runtrials():	
 
 	for i in TRIALSEQ:	
 		
-		trial_targetoccurence = ConditionList_targetoccurence[TRIALSEQ[i]] #set occurence parameter for the trial.
+		trial_targetoccurence_prob = ConditionList_targetoccurence_prob[TRIALSEQ[i]] #set occurence parameter for the trial.
 		trial_targetnumber = ConditionList_targetnumber[TRIALSEQ[i]] #set target number for the trial.
 		
 
-		Distractor.StartTrial(trial_targetoccurence, trial_targetnumber, fname = file_prefix + "_" + i, TrialTime = TrialTime)		
+		Distractor.StartTrial(trial_targetoccurence_prob, trial_targetnumber, trialn = i, triallength = TrialTime)	#starts trial
 
 		def EndTrial():
 			"""checks whether distraction task is finished, then waits for input"""
-			END = Distractor.GetState()			
+			END = Distractor.getFlag()			
 			if END:						
+				
+				pressed
+				while pressed < trial_targetnumber:
+					
+					#keep looking for gearpad presses until pressed reaches trial_targetnumber
+					d = viz.Data
+					yield viztask.waitAny([waitButton1, waitButton2],d)#,waitButton2],d) #need to do this twice
+					pressed += 1
+					print('pressed ' + str(pressed)		
 
-				# the following code should be flexible, depending on the amount of targets. 
-				d = viz.Data
-				yield viztask.waitAny([waitButton2],d)#,waitButton2],d) #need to do this twice
-				print 'pressed once'		
 
-				e = viz.Data
-				yield viztask.waitAny([waitButton1],e)#,waitButton2],e) #need to do this twice
-				print 'pressed twice'
-
-		vizact.ontimer((1.0/30.0),QuitViz)
+		vizact.ontimer((1.0/30.0),EndTrial)
 		
 		# distractor.Question.message('\n \n \n \n \n \n \n \n Let Go!')
 		# distractor.lblscore.message('')
