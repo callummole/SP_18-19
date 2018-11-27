@@ -30,7 +30,7 @@ class Distractor(viz.EventClass):
 		for i in range(l):
 			a = self.letters[i]
 			#self.AudioList.append(viz.addAudio('..\\textures\\audio-numbers\\' + a + '.wav'))		
-			self.AudioList.append(viz.addAudio('..\\textures\\Alphabet_Sounds\\' + a + '.wav'))		
+			self.AudioList.append(viz.addAudio('C:\\VENLAB data\\shared_modules\\textures\\Alphabet_Sounds\\' + a + '.wav'))		
 
 		self.Target_pool = self.letters[:maxtargetnumber] #returns list up to  maxtargetnumber
 		self.Distractor_pool = self.letters[maxtargetnumber:]		
@@ -57,7 +57,7 @@ class Distractor(viz.EventClass):
 		self.ResponseStamp = 0	#time of response
 		self.Stimuli_PlayedStamp = 0	#time of stimuli presentation
 		self.delay = 1.25 #this is how quickly you want items repeated. Changes per stimuli. 
-		self.Stimuli_Count = -1
+		self.Stimuli_Count = 0
 
 		self.callback(viz.TIMER_EVENT,self.onTimer)		
 		self.Stimuli_Timer =0 #between - presentation timer. 
@@ -106,11 +106,11 @@ class Distractor(viz.EventClass):
 		
 		self.Trial_targetoccurence_prob = targetoccurence_prob #trial parameters, target occurence probability
 		self.Trial_targetnumber = targetnumber #trial parameters, target number		
-		self.Trial_targetcounts = [None] * targetnumber #empty list with self.Trial_targetnumber counts
+		self.Trial_targetcounts = [0] * targetnumber #empty list with self.Trial_targetnumber counts
 		self.Trial_EoTscores = [-1] * targetnumber
 		self.Trial_filename = self.filename + "_" + str(trialn)
 		self.Trial_length = triallength
-		self.Trial_targets = np.random.choice(self.Target_pool, size=targetnumber, replace=False)
+		self.Trial_targets = list(np.random.choice(self.Target_pool, size=targetnumber, replace=False))
 			
 		#### CREATE DATA FRAMES ####
 		EndofTrial_datacolumns = ['ppid'] #columns for end of trial dataframe		
@@ -145,8 +145,11 @@ class Distractor(viz.EventClass):
 		#need to only play files sequentially.
 			if self.Stimuli_Timer > self.delay:
 				choice = np.random.randint(0,2)
-				if choice == 1:			
-					self.DetectAudioResponse() #function that sets target, with delay parameters		
+				if choice == 1:	
+					if self.Stimuli_Count < 1: 
+						self.SetNewStimuli()
+					else:
+						self.DetectAudioResponse() #function that sets target, with delay parameters		
 			
 			self.Stimuli_Timer = self.Stimuli_Timer+self.interval	
 			
@@ -211,7 +214,7 @@ class Distractor(viz.EventClass):
 		output = self.Trial_EoTscores + self.Trial_targetcounts #makes a list of the correct length
 		output[::2] = self.Trial_EoTscores
 		output[1::2] = self.Trial_targetcounts
-		output = np.concatenate(self.ppid, output)
+		output.insert(0,self.ppid)
 
 		self.EndofTrial_Data.loc[0,:] = output #this dataframe is actually just one line. 
 		
@@ -226,11 +229,16 @@ class Distractor(viz.EventClass):
 		
 	def DetectAudioResponse(self):
 
-		"""Function determines whether there has been an appropriate response"""							
-		self.Stimuli_Count += 1
-				
+		"""Function determines whether there has been an appropriate response"""									
+
+		print ("DetectAudioResponse called")
+		
+		print ("currentaudio_type", self.currentaudio_type)
+
 		if self.currentaudio_type == 'T': #should have responded.
+
 			target_index = self.Trial_targets.index(self.currentaudio) #retrieve index of target within current trial
+
 			self.Trial_targetcounts[target_index] += 1 #increment target count. 
 			if self.ppresp == 1:
 				RT = self.ResponseStamp-self.Stimuli_PlayedStamp
@@ -249,15 +257,20 @@ class Distractor(viz.EventClass):
 				
 		#the row size will change depending on target number.
 		currentresponse = [self.currentaudio, RT, ResponseCategory] 
-		output = np.concatenate(self.ppid, self.Trial_targets, currentresponse)
-		self.WithinTrial_Data.loc[self.Stimuli_Count,:] = output		
+		output = self.Trial_targets + list(currentresponse)
+		output.insert(0,self.ppid)
+		self.WithinTrial_Data.loc[self.Stimuli_Count-1,:] = output		
+
+		self.SetNewStimuli()
 		
 	def SetNewStimuli(self):
 		
 		"""Sets the delay and target for the next stimuli, based on the target occurence and current pool"""
 		
+		print ("SetNewStimuli called")
+
 		choices = ['T','D']
-		probabilities = [self.Trial_targetoccurence_probs, 1-self.Trial_targetoccurence_probs]
+		probabilities = [self.Trial_targetoccurence_prob, 1-self.Trial_targetoccurence_prob]
 		self.currentaudio_type = np.random.choice(choices, p = probabilities)
 
 		if self.currentaudio_type == 'T':
@@ -278,6 +291,8 @@ class Distractor(viz.EventClass):
 		##set new delay. Random between 1-1.5
 		jitter = np.random.randint(0,49)		
 		self.delay = 1.0 + (jitter/100.0)				
+
+		self.Stimuli_Count += 1
 
 
 	#### THE FOLLOWING FUNCTIONS CONTROL THE DRIVER INTERACTING WITH THE WHEEL ######
