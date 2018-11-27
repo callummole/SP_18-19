@@ -11,7 +11,7 @@ import pandas as pd
 
 
 class Distractor(viz.EventClass):
-	def __init__(self, filename):
+	def __init__(self, filename, maxtargetnumber):
 		viz.EventClass.__init__(self)
 
 		#needs to be an eventclass for timer to work.				
@@ -21,7 +21,9 @@ class Distractor(viz.EventClass):
 		self.AudioList = [] #load once at start. List of audio-files
 		#letters = ['a','b','c','d','e','i','o']#,'f','g']#,'h','i','j','k','l']#,'m','n','o']
 		#letters = ['a','b','k','h','f','i','o']#,'f','g']#,'h','i','j','k','l']#,'m','n','o'] #don't rhyme.
-		self.letters = ['b','o','z','k','t','h','f','s','i','a','m','n','y','r','j'] #target letters are the front two. Need to be paired with three distractors.
+
+		self.letters = ['b','o','z','k','t','h','f','s','i','a','m','n','y','r','j'] #target letters are the front two. Need to be paired with three distractors.		
+
 		l = len(self.letters)
 		#self.LetterLength
 		for i in range(l):
@@ -29,28 +31,34 @@ class Distractor(viz.EventClass):
 			#self.AudioList.append(viz.addAudio('..\\textures\\audio-numbers\\' + a + '.wav'))		
 			self.AudioList.append(viz.addAudio('..\\textures\\Alphabet_Sounds\\' + a + '.wav'))		
 
+		self.Target_pool = self.letters[:maxtargetnumber] #returns list up to  maxtargetnumber
+		self.Distractor_pool = self.letters[maxtargetnumber:]
+
 		#PAREMETERS THAT ARE SET AT THE START OF EACH TRIAL
+		self.Trial_targets = [] #targets for that particular trial. 
 		self.Trial_audioindexes = [] #empty list that is populated with indexes corresponding to places on the audio list. Targets will be the first N of the letter array, depending on trial number.
-		self.Trial_targetnumber = 0 #trial parameters, target number
-		self.Trial_targetoccurence = 0 #trial parameters, target occurence
-		self.Trial_targetcounts = [] #empty list with self.Trial_targetnumber counts.
+		self.Trial_targetoccurence_prob = 0 #trial parameters, target occurence
+		self.Trial_targetnumber = 0 #trial parameters, target number		
+		self.Trial_targetcounts = [] #empty list with actual self.Trial_targetnumber counts.
+		self.Trial_EoTscores = [] #empty list with self.Trial_targetnumber user inputted counts.
+		self.Trial_filename = "" #filename + trialN
+		self.Trial_length = 20 #length of trial. Is usually constant.
+		self.Trial_Timer = 0 #keeps track of trial length. 
 
 		self.EndofTrial_Data = [] #end of trial dataframe
-		self.WithinTrial_Data = [] #within trial dataframe. 
-
-		
+		self.WithinTrial_Data = [] #within trial dataframe. 		
 		
 		# PARAMETERS THAT VARY WITHIN TRIALS
 		self.ON = 0 #flag denoting whether to record data
 		self.targetDelay = [] #randomly varies between 1-1.5s
-		self.currenttarget = '-1' #-1 stimuli the pp is listening for
-		self.currentaudio = '-1' # currently heard stimuli
+		self.currentaudio = None # currently heard stimuli
+		self.currentaudio_type = None # currently heard stimuli
 		self.ResponseStamp = 0	#time of response
-		self.DrawStamp = 0	#time of stimuli presentation
+		self.Stimuli_PlayedStamp = 0	#time of stimuli presentation
 		self.delay = 1.25 #this is how quickly you want items repeated. Changes per stimuli. 
 
 		self.callback(viz.TIMER_EVENT,self.onTimer)		
-		self.Timer =0
+		self.Stimuli_Timer =0 #between - presentation timer. 
 		
 		self.interval = 0.1 #delay randomly varies between 1 - 1.5 at .1 increments.		
 		self.targetTimer = 0		
@@ -84,60 +92,75 @@ class Distractor(viz.EventClass):
 		self.lblscore.alignment(viz.TEXT_CENTER_CENTER)
 		self.lblscore.visible(viz.OFF)			
 
-		# cannae remember what these do.
-		self.EoTScores = [] # array of -1s, length of self.Trial_targetoccurence.
-		self.EoTScore1 = -1
-		self.EoTScore2 = -1
-		self.CurrentScore = -1
+		# cannae remember what these do.				
+		self.CurrentScore = -1 
 		#self.TargetCount = 0
 		self.TrialCount = 0
 	
-	def PickDistractors(self):
+	def StartTrial(self, targetoccurence_prob, targetnumber, trialn, triallength):
 		
-		"""Assigns targets and distractors from the letter array, depending on target count and target occurence probability of trial"""
+		"""Sets parameters at the start of each trial, based on targetoccurence_prob and targetnumber"""
+		
+		self.Trial_targetoccurence_prob = targetoccurence_prob #trial parameters, target occurence probability
+		self.Trial_targetnumber = targetnumber #trial parameters, target number		
+		self.Trial_targetcounts = [None] * targetnumber #empty list with self.Trial_targetnumber counts
+		self.Trial_EoTscores = [-1] * targetnumber
+		self.Trial_filename = self.filename + "_" + str(trialn)
+		self.Trial_length = triallength
+		self.Trial_targets = np.random.choice(self.Target_pool, size=targetnumber, replace=False)
+			
+		#### CREATE DATA FRAMES ####
+		EndofTrial_datacolumns = [] #columns for end of trial dataframe		
+		WithinTrial_datacolumns = [] #columns for within trial dataframe. 
+		#create columns for dataframe, depending on target number
+		for i in range(1,targetnumber +1):
+			EoTcolumn = 'EoTScore' + str(i)
+			EndofTrial_datacolumns.append(EoTcolumn) 
+			TargetCountcolumn = 'TargetCount' + str(i)
+			EndofTrial_datacolumns.append(TargetCountcolumn) #columns for end of trial dataframe
 
-		#TODO: change routine.
+			Targetcolumn = 'Target' + str(i)
+			WithinTrial_datacolumns.append(Targetcolumn) #columns for within trial dataframe. 
 
-		#first two letters are targets. Routine picks three non-repeated distractors 
-		l = len(self.letters)
-		picked = False		
-		d1 = 0
-		d2 = 0
-		d3 = 0
-		while not picked:
-			d = np.random.randint(2,l)
-			if d1== 0:
-				d1 = d #on the first step set d1
-			elif d2 == 0 and d != d1: 
-				d2 = d #on the second step set d2 if it is not repeated
-			elif d3 == 0 and d != d1 and d != d2:
-				d3 = d
-				picked = True
-		
-		self.TrialList = [0,1,d1,d2,d3]
-		
+		self.EndofTrial_data = pd.DataFrame(columns=EndofTrial_datacolumns) #make new empty EndofTrial data
+
+		WithinTrial_datacolumns.append('CurrentAudio')
+		WithinTrial_datacolumns.append('RT')
+		WithinTrial_datacolumns.append('CorrectFlag')
+
+		self.WithinTrial_data = pd.DataFrame(columns=WithinTrial_datacolumns) #make new empty EndofTrial data
+
+		self.EoTResp = 0 # not sure what this logic is for yet.						
+		self.ON = 1
+		self.Stimuli_Timer = 0 #reset inter-presentation timer
+		self.Trial_Timer = 0 #reset trial length to zero 		
 		
 	def onTimer(self,num):							
 				
 #		if self.ON == 1:
-		#print "self.Timer: " + str(self.Timer)
+		#print "self.Stimuli_Timer: " + str(self.Stimuli_Timer)
 		#need to only play files sequentially.
-		if self.Timer > self.delay:
+		if self.Stimuli_Timer > self.delay:
 			choice = np.random.randint(0,2)
 			if choice == 1:			
 				self.PlaySound() #function that sets target, with delay parameters		
 		
-		self.Timer = self.Timer+self.interval
+		self.Stimuli_Timer = self.Stimuli_Timer+self.interval
 		
+		
+		self.Trial_Timer = self.Trial_Timer + self.interval #timer to keep track of overall trial length
+		if self.Trial_Timer > self.Trial_length:
+			#here start end of trial screens. 
+			pass 
+			
 #		elif self.ON == 0:
-#			if self.Timer > 2: #start delay
+#			if self.Stimuli_Timer > 2: #start delay
 #				sound1 = self.AudioList[int(self.currenttarget[0])-1]
 #				print 'choose sound: ' + str(sound1) 				
 #				sound1.volume(.5)
 #				sound1.setTime(.25)		
 #				sound1.stoptime(.6)
-#				sound1.play()
-			
+#				sound1.play()			
 		
 	def keydown(self,button):
 		#if key == ' ':
@@ -172,7 +195,7 @@ class Distractor(viz.EventClass):
 				self.EoTResp = 2
 				self.EoTScore2 = self.CurrentScore
 				print "Recorded T2"
-				self.EndTrial()
+				self.SaveData()
 			
 		
 	def joymove(self,pos):
@@ -211,6 +234,7 @@ class Distractor(viz.EventClass):
 	
 	def EndofTrial(self):
 		
+		"""Allows recording of counts for N targets"""
 		#throws screen up and waits.
 		#set visible ON.	
 		self.Question.message('How many Bs did you hear? \n \n Press the LEFT gear pad to register your count')
@@ -223,11 +247,13 @@ class Distractor(viz.EventClass):
 		self.EoTFlag = True	
 		self.ON = 0
 	
-	def EndTrial(self):
+	def SaveData(self):
+
+		"""Call after all responses are recorded to save data to file"""
+
 		##save all data to file.
 		
-		#record data			
-		
+		#record data					
 		self.ON = 0		
 		
 		#add score to end of file.
@@ -259,44 +285,11 @@ class Distractor(viz.EventClass):
 		self.EoTScore1 = -1
 		self.EoTScore2 = -1
 	
-	def StartTrial(self, targetnumber, targetoccurence):
+	
 		
-		"""Sets parameters at the start of each trial, based on targetoccurence and targetnumber"""
-		
-		self.Trial_targetnumber = targetnumber #trial parameters, target number
-		self.Trial_targetoccurence = targetoccurence #trial parameters, target occurence
-		self.Trial_targetcounts = [None] * targetnumber #empty list with self.Trial_targetnumber counts
+	def DectectAudioResponse(self):
 
-		#self.Trial_audioindexes is set in self.PickDistractors()
-		self.PickDistractors() #choose new distractors,		
-			
-		#### CREATE DATA FRAMES ####
-		EndofTrial_datacolumns = [] #columns for end of trial dataframe		
-		WithinTrial_datacolumns = [] #columns for within trial dataframe. 
-		#create columns for dataframe, depending on target number
-		for i in range(1,targetnumber +1):
-			EoTcolumn = 'EoTScore' + str(i)
-			EndofTrial_datacolumns.append(EoTcolumn) 
-			TargetCountcolumn = 'TargetCount' + str(i)
-			EndofTrial_datacolumns.append(TargetCountcolumn) #columns for end of trial dataframe
-
-			Targetcolumn = 'Target' + str(i)
-			WithinTrial_datacolumns.append(Targetcolumn) #columns for within trial dataframe. 
-
-		self.EndofTrial_data = pd.DataFrame(columns=EndofTrial_datacolumns) #make new empty EndofTrial data
-
-		WithinTrial_datacolumns.append('CurrentAudio')
-		WithinTrial_datacolumns.append('RT')
-		WithinTrial_datacolumns.append('CorrectFlag')
-
-		self.WithinTrial_data = pd.DataFrame(columns=WithinTrial_datacolumns) #make new empty EndofTrial data
-
-		self.EoTResp = 0 # not sure what this logic is for yet.						
-		self.ON = 1
-		self.Timer = 0
-		
-	def PlaySound(self):
-		
+		"""Function Detects whether there has been a response"""	
 		#print "play sound called"
 		
 		##plays sound and records the response if correct (similar to old 'SetSum').
@@ -311,7 +304,7 @@ class Distractor(viz.EventClass):
 			if self.currentaudio == self.Target1: #correct pairing.
 				self.Target1Count = self.Target1Count + 1 #increment target count.
 				if self.ppresp == 1:
-					RT = self.ResponseStamp-self.DrawStamp
+					RT = self.ResponseStamp-self.Stimuli_PlayedStamp
 					correct = '1' #correctly responded.
 				elif self.ppresp == 0:
 					RT = -1
@@ -319,14 +312,14 @@ class Distractor(viz.EventClass):
 			elif self.currentaudio == self.Target2:
 				self.Target2Count = self.Target2Count + 1 #increment target count.
 				if self.ppresp == 1:
-					RT = self.ResponseStamp-self.DrawStamp
+					RT = self.ResponseStamp-self.Stimuli_PlayedStamp
 					correct = '1' #correctly responded.
 				elif self.ppresp == 0:
 					RT = -1
 					correct = '2' #did not respond when should have.
 			else:
 				if self.ppresp == 1:
-					RT = self.ResponseStamp-self.DrawStamp
+					RT = self.ResponseStamp-self.Stimuli_PlayedStamp
 					correct = '3' #responded when shouldn't have.					
 				elif self.ppresp == 0:
 					RT = -1
@@ -335,44 +328,40 @@ class Distractor(viz.EventClass):
 			# TODO: saving will need to change to be dynamic based on target number
 			self.DATA_out  = self.DATA_out  + self.Target1 + '\t' + self.Target2 + '\t' + self.currentaudio + '\t' + str(RT) + '\t' + correct + '\t' + '\n'
 		
+
+
+
+	def SetNewStimuli(self):
 		
-			#Playnewsound. Ensure it isn't a repeat.
-			#pick from the Trial List.
-			picked = False			
-			l = len(self.TrialList)
-			while not picked:			
-				i = np.random.randint(0,l)				
-				j = self.TrialList[i]
-				self.currentaudio = self.letters[j]
-				if  self.currentaudio != oldaudio:
-					picked = True
-			
-			self.DrawStamp=viz.tick()
-			#print "draw: " + str(viz.tick())
-			print self.currentaudio
-			sound1 = self.AudioList[j]
-			#print 'sound: ' + str(sound1) 
-			#sound1.volume(.5)
-			#sound1.volume(1)
-			#sound1.setTime(.25)		
-			sound1.setTime(0)		
-			#sound1.stoptime(.6)
-			#sound1.stoptime()
-			viz.director(PlayDirector,sound1)
-			#sound1.play()
+		"""Sets the delay and target for the next stimuli, based on the target occurence and current pool"""
 		
-			#sound1.play()
-			
-			self.Timer=0
-			self.ppresp = 0		
-			
-			##set new delay. Random between 1-1.5
-			jitter = np.random.randint(0,49)		
-			self.delay = 1.0 + (jitter/100.0)						
+		choices = ['T','D']
+		probabilities = [self.Trial_targetoccurence_probs, 1-self.Trial_targetoccurence_probs]
+		self.currentaudio_type = np.random.choice(choices, p = probabilities)
+
+		if self.currentaudio_type == 'T':
+			self.currentaudio = np.random.choice(self.Trial_targets)
+		elif self.currentaudio_type == 'D':
+			self.currentaudio = np.random.choice(self.Distractor_pool)		
+							
+		self.Stimuli_PlayedStamp=viz.tick()
+		
+		print(self.currentaudio)
+		sound1 = self.AudioList[self.letters.index(self.currentaudio)] #retrieve loaded sound file from list.		
+		sound1.setTime(0)		
+		viz.director(PlaySound,sound1)		
+					
+		self.Stimuli_Timer=0
+		self.ppresp = 0		
+		
+		##set new delay. Random between 1-1.5
+		jitter = np.random.randint(0,49)		
+		self.delay = 1.0 + (jitter/100.0)						
+
 			
 
-def PlayDirector(myaudio):
-	
+def PlaySound(myaudio):
+	"""plays sound"""
 	#print 'director:'
 	myaudio.volume(1)
 	myaudio.play()
