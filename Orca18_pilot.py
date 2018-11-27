@@ -6,7 +6,7 @@ rootpath = 'C:\VENLAB data\shared_modules'
 sys.path.append(rootpath)
 
 #Purpose of File is to pilot cognitive load task. 
-#File interfaces with module 'Count_Adjustable'
+#File interfaces with module 'Count_Adjustable', which serves to load a trial at a time. 
 #Experiment name: Orca18
 
 import viz # vizard library
@@ -27,7 +27,7 @@ file_prefix = str(ExpID) + "_" + str(pname)
 
 ####SETUP DRIVER ######
 
-driver = vizdriver_Distractor.Driver(distractor) #initialise driver
+driver = vizdriver_Distractor.Driver() #initialise driver
 
 global waitButton1, waitButton2
 #wait for a gear pad press.
@@ -57,7 +57,7 @@ TotalN = NCndts * TrialsPerCondition
 TRIALSEQ = range(0,NCndts)*TrialsPerCondition
 np.random.shuffle(TRIALSEQ)
 
-TotalDrivingTime = 20 #including delay (3sec) for initializing steer
+TrialTime = 20 #including delay (3sec) for initializing steer
 
 def runtrials():	
 
@@ -67,42 +67,33 @@ def runtrials():
 		trial_targetnumber = ConditionList_targetnumber[TRIALSEQ[i]] #set target number for the trial.
 		
 
-		#### at here! Need to recode the distraction module so that each trial is a class.		
+		Distractor.StartTrial(trial_targetoccurence, trial_targetnumber, fname = file_prefix + "_" + i, TrialTime = TrialTime)		
 
-		viz.pause()
-		
-		d = viz.Data
-		yield viztask.waitAny([waitButton2],d)#,waitButton2],d) #need to do this twice
-		print 'pressed once'
-		
-		e = viz.Data
-		yield viztask.waitAny([waitButton1],e)#,waitButton2],e) #need to do this twice
-		print 'pressed twice'
-		
-		distractor.Question.message('\n \n \n \n \n \n \n \n Let Go!')
-		distractor.lblscore.message('')
-		
-		yield viztask.waitTime(.5)
-		distractor.EoTScreen.visible(viz.OFF)
-		distractor.Question.visible(viz.OFF)
-		distractor.lblscore.visible(viz.OFF)
-		
-		viz.play()
-				
-		
-		if edge == 1:
-			inside_edge.remove()
-			outside_edge.remove()
-		
-		fixation_change_flag = 0 # initialization of fixation cross flag for near-far condition
-		
-		groundplane.endAction() # end spinaction.
-		yield driver.function_initialize_steering()
+		def EndTrial():
+			"""checks whether distraction task is finished, then waits for input"""
+			END = Distractor.GetState()			
+			if END:						
 
+				# the following code should be flexible, depending on the amount of targets. 
+				d = viz.Data
+				yield viztask.waitAny([waitButton2],d)#,waitButton2],d) #need to do this twice
+				print 'pressed once'		
+
+				e = viz.Data
+				yield viztask.waitAny([waitButton1],e)#,waitButton2],e) #need to do this twice
+				print 'pressed twice'
+
+		vizact.ontimer((1.0/30.0),QuitViz)
 		
-		#addfix()   # fixation setting
-		driver.reset() #reset pause counter
+		# distractor.Question.message('\n \n \n \n \n \n \n \n Let Go!')
+		# distractor.lblscore.message('')
 		
+		# yield viztask.waitTime(.5)
+		# distractor.EoTScreen.visible(viz.OFF)
+		# distractor.Question.visible(viz.OFF)
+		# distractor.lblscore.visible(viz.OFF)
+		
+		#viz.play()		
 	else:	
 		
 		viz.quit() ##otherwise keeps writting data onto last file untill ESC
