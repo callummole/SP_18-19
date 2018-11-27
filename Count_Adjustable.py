@@ -56,6 +56,7 @@ class Distractor(viz.EventClass):
 		self.ResponseStamp = 0	#time of response
 		self.Stimuli_PlayedStamp = 0	#time of stimuli presentation
 		self.delay = 1.25 #this is how quickly you want items repeated. Changes per stimuli. 
+		self.Stimuli_Count = -1
 
 		self.callback(viz.TIMER_EVENT,self.onTimer)		
 		self.Stimuli_Timer =0 #between - presentation timer. 
@@ -137,91 +138,21 @@ class Distractor(viz.EventClass):
 		
 	def onTimer(self,num):							
 				
-#		if self.ON == 1:
+		if self.ON == 1:
 		#print "self.Stimuli_Timer: " + str(self.Stimuli_Timer)
 		#need to only play files sequentially.
-		if self.Stimuli_Timer > self.delay:
-			choice = np.random.randint(0,2)
-			if choice == 1:			
-				self.PlaySound() #function that sets target, with delay parameters		
-		
-		self.Stimuli_Timer = self.Stimuli_Timer+self.interval
-		
-		
-		self.Trial_Timer = self.Trial_Timer + self.interval #timer to keep track of overall trial length
-		if self.Trial_Timer > self.Trial_length:
-			#here start end of trial screens. 
-			pass 
+			if self.Stimuli_Timer > self.delay:
+				choice = np.random.randint(0,2)
+				if choice == 1:			
+					self.DetectAudioResponse() #function that sets target, with delay parameters		
 			
-#		elif self.ON == 0:
-#			if self.Stimuli_Timer > 2: #start delay
-#				sound1 = self.AudioList[int(self.currenttarget[0])-1]
-#				print 'choose sound: ' + str(sound1) 				
-#				sound1.volume(.5)
-#				sound1.setTime(.25)		
-#				sound1.stoptime(.6)
-#				sound1.play()			
-		
-	def keydown(self,button):
-		#if key == ' ':
-		
-		if self.ON == 1:
-			self.ResponseStamp = viz.tick()
-
-			#can press any button for response		
-			self.ppresp = 1			
+			self.Stimuli_Timer = self.Stimuli_Timer+self.interval	
 			
-			#print "responded: " + str(viz.tick())
-			
-	def gearpaddown(self,button):
-		
-		#if it is the end of trial then save response
-
-		#TODO: change to accommodate multiple target iterations.
-
-		print "Button: " + str(button) #6 is left. 5 is right 
-		if self.EoTFlag:
-			
-			if self.EoTResp == 0 and button==6: #if it's the first response make sure it is left
-				self.EoTResp = 1
-				self.EoTScore1 = self.CurrentScore
-				print "Recorded T1"
-				
-				self.Question.message('How many Os did you hear? \n \n Press the RIGHT gear pad to register your count')
-				self.lblscore.message('-1')
-			
-			elif self.EoTResp == 1 and button==5: #if it is the second response make sure it is right.
-			
-				self.EoTResp = 2
-				self.EoTScore2 = self.CurrentScore
-				print "Recorded T2"
-				self.SaveData()
-			
-		
-	def joymove(self,pos):
-		
-		#if it is end of trial update score
-		if self.EoTFlag:
-			
-			pos = pos[0]
-			
-			pos = (pos * 10) + 5 #wheelpos is between -1,1
-			scale = 1
-			scalepos = pos * scale
-			
-			roundpos = round(scalepos)							
-			
-			#print "round pos: " + str(roundpos)
-			
-			clamppos = viz.clamp(roundpos, 0, 10)
-			
-			self.CurrentScore = clamppos
-			
-			self.lblscore.message(str(clamppos))
-										
-			#print "score: " + str(self.EoTScore)
-			
-		
+			self.Trial_Timer = self.Trial_Timer + self.interval #timer to keep track of overall trial length
+			if self.Trial_Timer > self.Trial_length:
+				#here start end of trial screens. 
+				pass 						
+	
 	def getFlag(self):
 		#return whether end of trial screen is on.
 		"called get flag"
@@ -283,54 +214,38 @@ class Distractor(viz.EventClass):
 		
 		self.TrialCount = self.TrialCount + 1
 		self.EoTScore1 = -1
-		self.EoTScore2 = -1
+		self.EoTScore2 = -1		
+		
+	def DetectAudioResponse(self):
+
+		"""Function determines whether there has been an appropriate response"""							
+		self.Stimuli_Count += 1
+				
+		if self.currentaudio_type == 'T': #should have responded.
+			target_index = self.Trial_targets.index(self.currentaudio) #retrieve index of target within current trial
+			self.Trial_targetcounts[target_index] += 1 #increment target count. 
+			if self.ppresp == 1:
+				RT = self.ResponseStamp-self.Stimuli_PlayedStamp
+				correct = 1 #correctly responded.
+			elif self.ppresp == 0:
+				RT = -1
+				correct = 2 #did not respond when should have.
+		
+		elif self.currentaudio_type == 'D': #should NOT have responded.						
+			if self.ppresp == 1:
+				RT = self.ResponseStamp-self.Stimuli_PlayedStamp
+				correct = '3' #responded when shouldn't have.					
+			elif self.ppresp == 0:
+				RT = -1
+				correct = '4' #correct absence of response
+		
+		# TODO: saving will need to change to be dynamic based on target number
 	
-	
+		currentresponse = [self.currentaudio, RT, correct] 
+		output = np.concatenate(self.Trial_targets, currentresponse)
+		self.WithinTrial_Data.loc[self.Stimuli_Count,:] = output
 		
-	def DectectAudioResponse(self):
-
-		"""Function Detects whether there has been a response"""	
-		#print "play sound called"
 		
-		##plays sound and records the response if correct (similar to old 'SetSum').
-		##function needs to select a new sound which is different to the old sound. and also detect the response time.
-		
-		oldaudio = str(self.currentaudio)
-		if self.ON == 1: #only repeat sound if during a trial.
-			
-			#TODO: audio will need to change to be dynamic based on target number. 
-
-			#record response to previous number
-			if self.currentaudio == self.Target1: #correct pairing.
-				self.Target1Count = self.Target1Count + 1 #increment target count.
-				if self.ppresp == 1:
-					RT = self.ResponseStamp-self.Stimuli_PlayedStamp
-					correct = '1' #correctly responded.
-				elif self.ppresp == 0:
-					RT = -1
-					correct = '2' #did not respond when should have.
-			elif self.currentaudio == self.Target2:
-				self.Target2Count = self.Target2Count + 1 #increment target count.
-				if self.ppresp == 1:
-					RT = self.ResponseStamp-self.Stimuli_PlayedStamp
-					correct = '1' #correctly responded.
-				elif self.ppresp == 0:
-					RT = -1
-					correct = '2' #did not respond when should have.
-			else:
-				if self.ppresp == 1:
-					RT = self.ResponseStamp-self.Stimuli_PlayedStamp
-					correct = '3' #responded when shouldn't have.					
-				elif self.ppresp == 0:
-					RT = -1
-					correct = '4' #correct absence of response
-			
-			# TODO: saving will need to change to be dynamic based on target number
-			self.DATA_out  = self.DATA_out  + self.Target1 + '\t' + self.Target2 + '\t' + self.currentaudio + '\t' + str(RT) + '\t' + correct + '\t' + '\n'
-		
-
-
-
 	def SetNewStimuli(self):
 		
 		"""Sets the delay and target for the next stimuli, based on the target occurence and current pool"""
@@ -350,16 +265,75 @@ class Distractor(viz.EventClass):
 		sound1 = self.AudioList[self.letters.index(self.currentaudio)] #retrieve loaded sound file from list.		
 		sound1.setTime(0)		
 		viz.director(PlaySound,sound1)		
-					
+
 		self.Stimuli_Timer=0
 		self.ppresp = 0		
 		
 		##set new delay. Random between 1-1.5
 		jitter = np.random.randint(0,49)		
-		self.delay = 1.0 + (jitter/100.0)						
+		self.delay = 1.0 + (jitter/100.0)				
 
+	def keydown(self,button):
+		#if key == ' ':
+		
+		if self.ON == 1:
+			self.ResponseStamp = viz.tick()
+
+			#can press any button for response		
+			self.ppresp = 1			
 			
+			#print "responded: " + str(viz.tick())
+			
+	def gearpaddown(self,button):
+		
+		#if it is the end of trial then save response
 
+		#TODO: change to accommodate multiple target iterations.
+
+		print "Button: " + str(button) #6 is left. 5 is right 
+		if self.EoTFlag:
+			
+			if self.EoTResp == 0 and button==6: #if it's the first response make sure it is left
+				self.EoTResp = 1
+				self.EoTScore1 = self.CurrentScore
+				print "Recorded T1"
+				
+				self.Question.message('How many Os did you hear? \n \n Press the RIGHT gear pad to register your count')
+				self.lblscore.message('-1')
+			
+			elif self.EoTResp == 1 and button==5: #if it is the second response make sure it is right.
+			
+				self.EoTResp = 2
+				self.EoTScore2 = self.CurrentScore
+				print "Recorded T2"
+				self.SaveData()
+			
+		
+	def joymove(self,pos):
+		
+		#if it is end of trial update score
+		if self.EoTFlag:
+			
+			pos = pos[0]
+			
+			pos = (pos * 10) + 5 #wheelpos is between -1,1
+			scale = 1
+			scalepos = pos * scale
+			
+			roundpos = round(scalepos)							
+			
+			#print "round pos: " + str(roundpos)
+			
+			clamppos = viz.clamp(roundpos, 0, 10)
+			
+			self.CurrentScore = clamppos
+			
+			self.lblscore.message(str(clamppos))
+										
+			#print "score: " + str(self.EoTScore)
+			
+				
+			
 def PlaySound(myaudio):
 	"""plays sound"""
 	#print 'director:'
