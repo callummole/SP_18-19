@@ -71,22 +71,22 @@ def runtrials():
 
 		Distractor.StartTrial(trial_targetoccurence_prob, trial_targetnumber, trialn = i, triallength = TrialTime)	#starts trial
 
-		def EndTrial():
+		Finished = False
+		while not Finished:
 			"""checks whether distraction task is finished, then waits for input"""
-			END = Distractor.getFlag()			
+			END = Distractor.getFlag() # True if it's the end of the trial
 			if END:						
 				
-				pressed
+				pressed = 0
 				while pressed < trial_targetnumber:
 					
 					#keep looking for gearpad presses until pressed reaches trial_targetnumber
 					d = viz.Data
 					yield viztask.waitAny([waitButton1, waitButton2],d)#,waitButton2],d) #need to do this twice
 					pressed += 1
-					print('pressed ' + str(pressed)		
-
-
-		vizact.ontimer((1.0/30.0),EndTrial)
+					print('pressed ' + str(pressed))		
+				Finished = True
+				
 		
 		# distractor.Question.message('\n \n \n \n \n \n \n \n Let Go!')
 		# distractor.lblscore.message('')
