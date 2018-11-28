@@ -49,7 +49,12 @@ TRIALSEQ = range(0,NCndts)*TrialsPerCondition
 np.random.shuffle(TRIALSEQ)
 
 #### SETUP DRIVER & DISTRACTOR MODULES ######
-Distractor = Count_Adjustable.Distractor(file_prefix, max(FACTOR_targetnumber), pname)
+
+TrialTime = 20 #including delay (3sec) for initializing steer
+StartScreenTime = 2
+TotalTrialTime = TrialTime+StartScreenTime
+
+Distractor = Count_Adjustable.Distractor(file_prefix, max(FACTOR_targetnumber), pname, startscreentime = StartScreenTime)
 driver = vizdriver.Driver(Distractor) #initialise driver
 
 global waitButton1, waitButton2
@@ -58,10 +63,7 @@ driverjoy = driver.getJoy()		#Set joystick gear pad callbacks
 waitButton1 = vizdriver.waitJoyButtonDown(5,driverjoy)
 waitButton2 = vizdriver.waitJoyButtonDown(6,driverjoy)
 
-TrialTime = 20 #including delay (3sec) for initializing steer
-
 def runtrials():	
-
 	
 	for i, trialtype in enumerate(TRIALSEQ):	
 		
@@ -77,7 +79,8 @@ def runtrials():
 		Distractor.StartTrial(trial_targetoccurence_prob, trial_targetnumber, trialn = i, triallength = TrialTime)	#starts trial
 
 		print ("Called Start Trial, now waiting")
-		yield viztask.waitTime(TrialTime+.5) #this should always wait a little longer than the TrialTime, allowing the EndOfTrial function to get called in Count_Adjustable.
+		
+		yield viztask.waitTime(TotalTrialTime+.5) #this should always wait a little longer than the TrialTime, allowing the EndOfTrial function to get called in Count_Adjustable.
 		
 		Finished = False
 		while not Finished:
