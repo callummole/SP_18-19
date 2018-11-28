@@ -371,11 +371,9 @@ class Distractor(viz.EventClass):
 			self.Trial_EoTscores[self.EoT_NumberofResponses] = self.CurrentScore 				
 			self.EoT_NumberofResponses += 1
 			print("Recorded Count" + str(self.EoT_NumberofResponses))				
-			self.ChangeQuestionText()														
 
-			### Saving data is now called in main file after the while loop.
-			# if self.EoT_NumberofResponses == self.Trial_targetnumber: #if all responses given, save data.				
-			# 	self.SaveData()			
+			if self.EoT_NumberofResponses < self.Trial_targetnumber:
+				self.ChangeQuestionText()														
 		
 	def joymove(self,pos):
 		
