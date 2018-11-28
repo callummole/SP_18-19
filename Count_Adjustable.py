@@ -179,12 +179,12 @@ class Distractor(viz.EventClass):
 				#here start end of trial screens. 
 				self.EndofTrial() 						
 		else:
-			if self.StartScreenTimer > self.StartScreen_DisplayTime:
+			if self.StartScreen_Timer > self.StartScreen_DisplayTime:
 				#remove startscreen and start recording.
 				self.StartScreen_Visibility(viz.OFF)
 				self.ON = 1
 			else:
-				self.StartScreenTimer += self.interval #increment StartScreenTimer by Timer interval
+				self.StartScreen_Timer += self.interval #increment StartScreenTimer by Timer interval
 
 	
 	def getFlag(self):
