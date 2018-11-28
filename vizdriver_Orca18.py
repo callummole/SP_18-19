@@ -292,9 +292,10 @@ class Driver(viz.EventClass):
 			#if buttons are left or right, call distractor task.
 		if e.button in [8,7,21,23,20,22]:
 			self.__Distractor.keydown(e.button)
-		
-		if e.button in [5,6]: #gearpads are 5&6
-			self.__Distractor.gearpaddown()
+
+		#only call the gearpaddown() function in the main program when I want to		
+		# if e.button in [5,6]: #gearpads are 5&6
+		# 	self.__Distractor.gearpaddown()
 			
 	def joymove(self,e):
 		
