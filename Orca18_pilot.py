@@ -80,28 +80,32 @@ def runtrials():
 
 		print ("Called Start Trial, now waiting")
 		
-		yield viztask.waitTime(TotalTrialTime+.5) #this should always wait a little longer than the TrialTime, allowing the EndOfTrial function to get called in Count_Adjustable.
+		#yield viztask.waitTime(TotalTrialTime+.5) #this should always wait a little longer than the TrialTime, allowing the EndOfTrial function to get called in Count_Adjustable.
 		
-		Finished = False
-		while not Finished:
-			"""checks whether distraction task is finished, then waits for input"""
 
-			print ("in Finished loop")
-			END = Distractor.getFlag() # True if it's the end of the trial
-			if END:						
-				
-				pressed = 0
-				while pressed < trial_targetnumber:
-					
-					#keep looking for gearpad presses until pressed reaches trial_targetnumber
-					d = viz.Data
-					print ("waiting for gear pressed")
-					yield viztask.waitAny([waitButton1, waitButton2],d)#,waitButton2],d) #need to do this twice
-					pressed += 1
-					print('pressed ' + str(pressed))		
-					#Distractor.EoTScreen_Visibility(viz.OFF)
-				Distractor.SaveData()
-				Finished = True				
+		def MonitorDistactor():
+			"""will return true if it is the end of trial"""
+			EoTFlag = Distractor.getFlag() # True if it's the end of the trial
+			return (EoTFlag)
+
+		yield viztask.waitTrue(MonitorDistactor)				
+
+
+		###interface with End of Trial Screen		
+		pressed = 0
+		while pressed < trial_targetnumber:
+			
+			#keep looking for gearpad presses until pressed reaches trial_targetnumber
+			print ("waiting for gear press")
+			d = yield viztask.waitAny([waitButton1, waitButton2])
+			pressed += 1
+			print('pressed ' + str(pressed))		
+			Distractor.gearpaddown(d.condition) #call gearpaddown. 
+
+			yield viztask.waitTime(.5)
+			#Distractor.EoTScreen_Visibility(viz.OFF)
+		Distractor.SaveData()
+		#Finished = True				
 	else:	
 		
 		viz.quit() ##otherwise keeps writting data onto last file untill ESC
