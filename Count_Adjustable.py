@@ -120,6 +120,7 @@ class Distractor(viz.EventClass):
 		
 		"""Sets parameters at the start of each trial, based on targetoccurence_prob and targetnumber"""
 		
+		print("Called StartTrial")
 		self.Trial_targetoccurence_prob = targetoccurence_prob #trial parameters, target occurence probability
 		self.Trial_targetnumber = targetnumber #trial parameters, target number		
 		self.Trial_targetcounts = [0] * targetnumber #empty list with self.Trial_targetnumber counts
@@ -179,12 +180,13 @@ class Distractor(viz.EventClass):
 				#here start end of trial screens. 
 				self.EndofTrial() 						
 		else:
-			if self.StartScreen_Timer > self.StartScreen_DisplayTime:
-				#remove startscreen and start recording.
-				self.StartScreen_Visibility(viz.OFF)
-				self.ON = 1
-			else:
-				self.StartScreen_Timer += self.interval #increment StartScreenTimer by Timer interval
+			if not self.EoTFlag:
+				if self.StartScreen_Timer > self.StartScreen_DisplayTime:
+					#remove startscreen and start recording.
+					self.StartScreen_Visibility(viz.OFF)
+					self.ON = 1
+				else:
+					self.StartScreen_Timer += self.interval #increment StartScreenTimer by Timer interval
 
 	
 	def getFlag(self):
@@ -215,7 +217,7 @@ class Distractor(viz.EventClass):
 		#add targets msg string
 		msg = str(self.Start_msg)
 		for target in self.Trial_targets:
-			msg = target.upper() + '   '
+			msg = msg + target.upper() + '   '
 		
 		self.Starttxt.message(msg)
 	
@@ -356,7 +358,7 @@ class Distractor(viz.EventClass):
 			
 			#print "responded: " + str(viz.tick())
 			
-	def gearpaddown(self,button):
+	def gearpaddown(self,button=None):
 		
 		"""saves on-screen count"""	
 
