@@ -174,7 +174,7 @@ class Distractor(viz.EventClass):
 		
 		target = str(self.Trial_targets[self.EoT_NumberofResponses])
 		msg = str(self.EndofTrial_Question)
-		msg = msg.replace('X', target)
+		msg = msg.replace('X', target.upper())
 		self.lblscore.message('-1')
 
 		self.Question.message(msg)
@@ -219,13 +219,15 @@ class Distractor(viz.EventClass):
 		self.EndofTrial_Data.loc[0,:] = output #this dataframe is actually just one line. 
 		
 
-		self.EndofTrial_Data.to_csv('//Data//' + str(self.filename) + '_EndofTrial.csv')
-		self.WithinTrial_Data.to_csv('//Data//' + str(self.filename) + '_WithinTrial.csv')
+		self.EndofTrial_Data.to_csv('Data//' + str(self.filename) + '_EndofTrial.csv')
+		self.WithinTrial_Data.to_csv('Data//' + str(self.filename) + '_WithinTrial.csv')
 
 		self.EoTScreen_Visibility(viz.OFF)
 		
 		#tell class it is end of trial. 
-		self.EoTFlag = False				
+		self.EoTFlag = False
+
+		print ("saved data")				
 		
 	def DetectAudioResponse(self):
 
