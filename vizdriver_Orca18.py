@@ -15,7 +15,7 @@ KEY_DIR_SWITCH_BUTTON = viz.KEY_DELETE
 KEY_PAUSE_SWITCH_BUTTON = 'r'
 
 class Driver(viz.EventClass):
-	def __init__(self):
+	def __init__(self, Distractor):
 		viz.EventClass.__init__(self)
 		
 		self.__speed = 0.223 #metres per frame. equates to 13.4 m/s therefore 30mph.
@@ -32,7 +32,7 @@ class Driver(viz.EventClass):
 		
 		self.__P_GAIN = 2.0 # control gain
 		
-		self.__Distractor = [] #placeholder.
+		self.__Distractor = Distractor #placeholder.
 
 		self.__totalTime = 0.0
 		self.__RoadCentre_X = 0.0
