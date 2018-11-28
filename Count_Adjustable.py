@@ -11,7 +11,7 @@ import pandas as pd
 
 
 class Distractor(viz.EventClass):
-	def __init__(self, filename, maxtargetnumber, ppid):
+	def __init__(self, filename, maxtargetnumber, ppid, startscreentime):
 		viz.EventClass.__init__(self)
 
 		#needs to be an eventclass for timer to work.				
@@ -20,6 +20,7 @@ class Distractor(viz.EventClass):
 		self.ppid = ppid
 		self.filename = filename		
 		self.AudioList = [] #load once at start. List of audio-files
+		self.StartScreen_DisplayTime = startscreentime #amount of seconds that the targets for that trial are shown.
 		#letters = ['a','b','c','d','e','i','o']#,'f','g']#,'h','i','j','k','l']#,'m','n','o']
 		#letters = ['a','b','k','h','f','i','o']#,'f','g']#,'h','i','j','k','l']#,'m','n','o'] #don't rhyme.
 
@@ -48,6 +49,8 @@ class Distractor(viz.EventClass):
 
 		self.EndofTrial_Data = pd.DataFrame() #end of trial dataframe
 		self.WithinTrial_Data = pd.DataFrame() #within trial dataframe. 		
+
+		self.StartScreen_Timer = 0
 		
 		# PARAMETERS THAT VARY WITHIN TRIALS
 		self.ON = 0 #flag denoting whether to record data
@@ -74,14 +77,14 @@ class Distractor(viz.EventClass):
 		self.EoTFlag = False #set to 1 when it is the EoT screen. 
 		self.EoT_NumberofResponses = 0 #count to say how many counts have been inputted.
 						
-		###END OF TRIALS SCREEN
+		### END OF TRIALS SCREEN ###
 		self.EoTScreen = viz.addTexQuad(viz.SCREEN)
 		self.EoTScreen.color(viz.BLACK)
 		self.EoTScreen.setPosition(.5,.5)
 		self.EoTScreen.setScale(100,100)
 		self.EoTScreen.visible(viz.OFF)
 
-		self.EndofTrial_Question = 'How many Xs did you hear? \n \n Press the RIGHT gear pad to register your count'
+		self.EndofTrial_Question = 'How many Xs did you hear? \n \n Press a single gear pad to register your count'
 		self.Question = viz.addText(self.EndofTrial_Question, viz.SCREEN)
 		self.Question.color(1,1,0)
 		self.Question.setPosition(0.5,0.75)
@@ -95,10 +98,23 @@ class Distractor(viz.EventClass):
 		self.lblscore.alignment(viz.TEXT_CENTER_CENTER)
 		self.lblscore.visible(viz.OFF)			
 
-		# cannae remember what these do.				
-		self.CurrentScore = -1 
-		#self.TargetCount = 0
-		self.TrialCount = 0
+		self.CurrentScore = -1 #for on-screen score to be submitted as user count.
+
+		### START OF TRIALS SCREEN ####
+		self.StartScreen = viz.addTexQuad(viz.SCREEN)
+		self.StartScreen.color(viz.BLACK)
+		self.StartScreen.setPosition(.5,.5)
+		self.StartScreen.setScale(100,100)
+		self.StartScreen.visible(viz.OFF)
+
+		self.Start_msg = 'Listen out for: \n \n'
+		self.Starttxt = viz.addText(self.Start_msg, viz.SCREEN)
+		self.Starttxt.color(1,1,0)
+		self.Starttxt.setPosition(0.5,0.5)
+		self.Starttxt.fontSize(36)
+		self.Starttxt.alignment(viz.TEXT_CENTER_TOP)
+		self.Starttxt.visible(viz.OFF)
+		
 	
 	def StartTrial(self, targetoccurence_prob, targetnumber, trialn, triallength):
 		
@@ -133,13 +149,18 @@ class Distractor(viz.EventClass):
 
 		self.WithinTrial_Data = pd.DataFrame(columns=WithinTrial_datacolumns) #make new empty EndofTrial data
 
+		#show start screen. 
+		self.ChangeStartMsg()
+		self.StartScreen_Visibility(viz.ON)
+
 		self.EoT_NumberofResponses = 0 # not sure what this logic is for yet.						
-		self.ON = 1
+		
+		self.StartScreen_Timer = 0 #reset start screen timer
 		self.Stimuli_Timer = 0 #reset inter-presentation timer
 		self.Trial_Timer = 0 #reset trial length to zero 		
 		
 	def onTimer(self,num):							
-				
+								
 		if self.ON == 1:
 		#print "self.Stimuli_Timer: " + str(self.Stimuli_Timer)
 		#need to only play files sequentially.
@@ -157,6 +178,14 @@ class Distractor(viz.EventClass):
 			if self.Trial_Timer > self.Trial_length:
 				#here start end of trial screens. 
 				self.EndofTrial() 						
+		else:
+			if self.StartScreenTimer > self.StartScreen_DisplayTime:
+				#remove startscreen and start recording.
+				self.StartScreen_Visibility(viz.OFF)
+				self.ON = 1
+			else:
+				self.StartScreenTimer += self.interval #increment StartScreenTimer by Timer interval
+
 	
 	def getFlag(self):
 		#return whether end of trial screen is on.
@@ -179,6 +208,16 @@ class Distractor(viz.EventClass):
 
 		self.Question.message(msg)
 
+	def ChangeStartMsg(self):
+		
+		"""changes self.Start_msg based on self.Trial_targets"""
+
+		#add targets msg string
+		msg = str(self.Start_msg)
+		for target in self.Trial_targets:
+			msg = target.upper() + '   '
+		
+		self.Starttxt.message(msg)
 	
 	def EndofTrial(self):
 		
@@ -200,6 +239,13 @@ class Distractor(viz.EventClass):
 		self.Question.visible(visible)
 		self.lblscore.visible(visible)
 
+	def StartScreen_Visibility(self, visible = viz.ON):
+
+		"""switches the Start Screen visibility off or on"""
+	
+		self.StartScreen.visible(visible)
+		self.Starttxt.visible(visible)
+
 	
 	def SaveData(self):
 
@@ -210,7 +256,6 @@ class Distractor(viz.EventClass):
 		#record data					
 		self.ON = 0						
 				
-
 		output = self.Trial_EoTscores + self.Trial_targetcounts #makes a list of the correct length
 		output[::2] = self.Trial_EoTscores
 		output[1::2] = self.Trial_targetcounts
@@ -326,9 +371,9 @@ class Distractor(viz.EventClass):
 			print("Recorded Count" + str(self.EoT_NumberofResponses))				
 			self.ChangeQuestionText()														
 
-			if self.EoT_NumberofResponses == self.Trial_targetnumber: #if all responses given, save data.
-				self.EoTFlag = False
-				self.SaveData()			
+			### Saving data is now called in main file after the while loop.
+			# if self.EoT_NumberofResponses == self.Trial_targetnumber: #if all responses given, save data.				
+			# 	self.SaveData()			
 		
 	def joymove(self,pos):
 		

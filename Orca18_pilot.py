@@ -2,7 +2,7 @@ import sys
 import time
 
 ##add path so do not need to replicate sound files
-rootpath = 'C:\VENLAB data\shared_modules'
+rootpath = 'C:\\VENLAB data\\shared_modules'
 sys.path.append(rootpath)
 
 #Purpose of File is to pilot cognitive load task. 
@@ -26,15 +26,6 @@ DEG_SYM = unichr(176).encode("latin-1")
 pname = viz.input('Participant code: ')
 file_prefix = str(ExpID) + "_" + str(pname)
 
-####SETUP DRIVER ######
-driver = vizdriver.Driver() #initialise driver
-
-global waitButton1, waitButton2
-#wait for a gear pad press.
-driverjoy = driver.getJoy()		#Set joystick gear pad callbacks
-waitButton1 = vizdriver.waitJoyButtonDown(5,driverjoy)
-waitButton2 = vizdriver.waitJoyButtonDown(6,driverjoy)
-
 #### ORDER TRIALS #####
 
 ##Create array of trials.
@@ -57,23 +48,42 @@ TotalN = NCndts * TrialsPerCondition
 TRIALSEQ = range(0,NCndts)*TrialsPerCondition
 np.random.shuffle(TRIALSEQ)
 
+#### SETUP DRIVER & DISTRACTOR MODULES ######
 Distractor = Count_Adjustable.Distractor(file_prefix, max(FACTOR_targetnumber), pname)
+driver = vizdriver.Driver(Distractor) #initialise driver
+
+global waitButton1, waitButton2
+#wait for a gear pad press.
+driverjoy = driver.getJoy()		#Set joystick gear pad callbacks
+waitButton1 = vizdriver.waitJoyButtonDown(5,driverjoy)
+waitButton2 = vizdriver.waitJoyButtonDown(6,driverjoy)
 
 TrialTime = 20 #including delay (3sec) for initializing steer
 
 def runtrials():	
 
-	for i in TRIALSEQ:	
+	
+	for i, trialtype in enumerate(TRIALSEQ):	
 		
-		trial_targetoccurence_prob = ConditionList_targetoccurence_prob[TRIALSEQ[i]] #set occurence parameter for the trial.
-		trial_targetnumber = ConditionList_targetnumber[TRIALSEQ[i]] #set target number for the trial.
+		print("Trial: ", str(i))
+		print("TrialType: ", str(i))
+
+		trial_targetoccurence_prob = ConditionList_targetoccurence_prob[trialtype] #set occurence parameter for the trial.
+		trial_targetnumber = ConditionList_targetnumber[trialtype] #set target number for the trial.
+
+		print(str([trial_targetoccurence_prob, trial_targetnumber]))
 		
 
 		Distractor.StartTrial(trial_targetoccurence_prob, trial_targetnumber, trialn = i, triallength = TrialTime)	#starts trial
 
+		print ("Called Start Trial, now waiting")
+		yield viztask.waitTime(TrialTime+.5) #this should always wait a little longer than the TrialTime, allowing the EndOfTrial function to get called in Count_Adjustable.
+		
 		Finished = False
 		while not Finished:
 			"""checks whether distraction task is finished, then waits for input"""
+
+			print ("in Finished loop")
 			END = Distractor.getFlag() # True if it's the end of the trial
 			if END:						
 				
@@ -82,9 +92,12 @@ def runtrials():
 					
 					#keep looking for gearpad presses until pressed reaches trial_targetnumber
 					d = viz.Data
+					print ("waiting for gear pressed")
 					yield viztask.waitAny([waitButton1, waitButton2],d)#,waitButton2],d) #need to do this twice
 					pressed += 1
 					print('pressed ' + str(pressed))		
+					#Distractor.EoTScreen_Visibility(viz.OFF)
+				Distractor.SaveData()
 				Finished = True				
 	else:	
 		
