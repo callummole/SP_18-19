@@ -62,7 +62,8 @@ class Distractor(viz.EventClass):
 		self.ResponseStamp = 0	#time of response
 		self.Stimuli_PlayedStamp = 0	#time of stimuli presentation
 		self.delay = 1.25 #this is how quickly you want items repeated. Changes per stimuli. 
-		self.Stimuli_Index = 0 #count for number of stimuli, to index response dataframe.
+		self.Overall_Stimuli_Index = 0 #count for number of stimuli, to index response dataframe.
+		self.Trial_Stimuli_Index = 0 #count for number of stimuli, to index response dataframe.
 
 		self.callback(viz.TIMER_EVENT,self.onTimer)		
 		self.Stimuli_Timer =0 #between - presentation timer. 
@@ -82,7 +83,7 @@ class Distractor(viz.EventClass):
 		### END OF TRIALS SCREEN ###
 		self.EoTScreen = viz.addTexQuad(viz.SCREEN)
 		self.EoTScreen.color(viz.BLACK)
-		self.EoTScreen.setPosition(.5,.5)
+		self.EoTScreen.setPosition(.5,.6)
 		self.EoTScreen.setScale(100,100)
 		self.EoTScreen.visible(viz.OFF)
 
@@ -157,6 +158,8 @@ class Distractor(viz.EventClass):
 		self.Trial_length = triallength
 		self.Trial_targets = list(np.random.choice(self.Target_pool, size=targetnumber, replace=False))
 
+		print("Trial targets: ", self.Trial_targets)
+
 		#show start screen. 
 		self.ChangeStartMsg()
 		self.StartScreen_Visibility(viz.ON)
@@ -166,6 +169,7 @@ class Distractor(viz.EventClass):
 		self.StartScreen_Timer = 0 #reset start screen timer
 		self.Stimuli_Timer = 0 #reset inter-presentation timer
 		self.Trial_Timer = 0 #reset trial length to zero 		
+		self.Trial_Stimuli_Index = 0
 		
 	def onTimer(self,num):							
 								
@@ -175,7 +179,7 @@ class Distractor(viz.EventClass):
 			if self.Stimuli_Timer > self.delay:
 				choice = np.random.randint(0,2)
 				if choice == 1:	
-					if self.Stimuli_Index < 1: 
+					if self.Trial_Stimuli_Index < 1: 
 						self.SetNewStimuli()
 					else:
 						self.DetectAudioResponse() #function that sets target, with delay parameters		
@@ -265,11 +269,11 @@ class Distractor(viz.EventClass):
 		#Adds 'Nones' so that rows match with columns.
 		Trial_EoTscores_output = list(self.Trial_EoTscores)
 		while len(Trial_EoTscores_output) < self.MaxTargetNumber:
-			Trial_EoTscores_output.append([None])
+			Trial_EoTscores_output.append(None)
 
 		Trial_targetcounts_output = list(self.Trial_targetcounts)	
 		while len(Trial_targetcounts_output) < self.MaxTargetNumber:
-			Trial_targetcounts_output.append([None])
+			Trial_targetcounts_output.append(None)
 
 		output = Trial_EoTscores_output + Trial_targetcounts_output #makes a list of the correct length
 		output[::2] = Trial_EoTscores_output
@@ -332,11 +336,11 @@ class Distractor(viz.EventClass):
 
 		Trial_targets_outputlist = list(self.Trial_targets)
 		while len(Trial_targets_outputlist) < self.MaxTargetNumber:
-			Trial_targets_outputlist.append([None])
+			Trial_targets_outputlist.append(None)
 
 		output = list(trialinfo) + list(currentresponse) + Trial_targets_outputlist
 		
-		self.WithinTrial_Data.loc[self.Stimuli_Index-1,:] = output		
+		self.WithinTrial_Data.loc[self.Overall_Stimuli_Index-1,:] = output		
 
 		self.SetNewStimuli()
 		
@@ -369,7 +373,8 @@ class Distractor(viz.EventClass):
 		jitter = np.random.randint(0,49)		
 		self.delay = 1.0 + (jitter/100.0)				
 
-		self.Stimuli_Index += 1
+		self.Overall_Stimuli_Index += 1
+		self.Trial_Stimuli_Index += 1
 
 
 	#### THE FOLLOWING FUNCTIONS CONTROL THE DRIVER INTERACTING WITH THE WHEEL ######
