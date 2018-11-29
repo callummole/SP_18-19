@@ -15,7 +15,7 @@ class Distractor(viz.EventClass):
 		viz.EventClass.__init__(self)
 
 		#needs to be an eventclass for timer to work.				
-		viz.callback(viz.EXIT_EVENT,self.SaveData) #if exited, save the data. 
+		self.callback(viz.EXIT_EVENT,self.SaveData) #if exited, save the data. 
 
 		##PARAMETERS THAT DO NOT VARY PER TRIAL
 		self.ppid = ppid
@@ -117,7 +117,7 @@ class Distractor(viz.EventClass):
 		self.Starttxt.alignment(viz.TEXT_CENTER_TOP)
 		self.Starttxt.visible(viz.OFF)
 	
-	def BuildDataFrame(self, maxtargetnumber):
+	def BuildDataFrames(self, maxtargetnumber):
 		"""Builds EoT_Dataframe and WithinTrial_DataFrame"""
 
 		#add info for individual trials
@@ -263,7 +263,7 @@ class Distractor(viz.EventClass):
 		trialinfo = [self.ppid, self.Trial_targetoccurence_prob, self.Trial_targetnumber, self.Trial_N]		
 
 		#Adds 'Nones' so that rows match with columns.
-		Trial_EoTscores_output = list(self.Trial_EoTScores)
+		Trial_EoTscores_output = list(self.Trial_EoTscores)
 		while len(Trial_EoTscores_output) < self.MaxTargetNumber:
 			Trial_EoTscores_output.append([None])
 
