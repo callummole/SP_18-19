@@ -104,7 +104,7 @@ def runtrials():
 
 			yield viztask.waitTime(.5)
 			#Distractor.EoTScreen_Visibility(viz.OFF)
-		Distractor.SaveData()
+		Distractor.RecordCounts()
 		#Finished = True				
 	else:	
 		
