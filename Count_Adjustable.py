@@ -15,7 +15,8 @@ class Distractor(viz.EventClass):
 		viz.EventClass.__init__(self)
 
 		#needs to be an eventclass for timer to work.				
-		
+		viz.callback(viz.EXIT_EVENT,self.SaveData) #if exited, save the data. 
+
 		##PARAMETERS THAT DO NOT VARY PER TRIAL
 		self.ppid = ppid
 		self.filename = filename		
@@ -34,23 +35,24 @@ class Distractor(viz.EventClass):
 			self.AudioList.append(viz.addAudio('C:\\VENLAB data\\shared_modules\\textures\\Alphabet_Sounds\\' + a + '.wav'))		
 
 		self.Target_pool = self.letters[:maxtargetnumber] #returns list up to  maxtargetnumber
-		self.Distractor_pool = self.letters[maxtargetnumber:]		
+		self.Distractor_pool = self.letters[maxtargetnumber:]
 
-		#PAREMETERS THAT ARE SET AT THE START OF EACH TRIAL
+		self.EndofTrial_Data, self.WithinTrial_Data = self.BuildDataFrames(maxtargetnumber)		
+		self.MaxTargetNumber = maxtargetnumber
+
+		#PARAMETERS THAT ARE SET AT THE START OF EACH TRIAL
 		self.Trial_targets = [] #targets for that particular trial. 
 		self.Trial_audioindexes = [] #empty list that is populated with indexes corresponding to places on the audio list. Targets will be the first N of the letter array, depending on trial number.
 		self.Trial_targetoccurence_prob = 0 #trial parameters, target occurence
 		self.Trial_targetnumber = 0 #trial parameters, target number		
 		self.Trial_targetcounts = [] #empty list with actual self.Trial_targetnumber counts.
-		self.Trial_EoTscores = [] #empty list with self.Trial_targetnumber user inputted counts.
-		self.Trial_filename = "" #filename + trialN
+		self.Trial_EoTscores = [] #empty list with self.Trial_targetnumber user inputted counts.	
+		self.Trial_N = 0	
 		self.Trial_length = 20 #length of trial. Is usually constant.
-		self.Trial_Timer = 0 #keeps track of trial length. 
-
-		self.EndofTrial_Data = pd.DataFrame() #end of trial dataframe
-		self.WithinTrial_Data = pd.DataFrame() #within trial dataframe. 		
+		self.Trial_Timer = 0 #keeps track of trial length. 		
 
 		self.StartScreen_Timer = 0
+		#self.Trial_Index = 0 #count for number of Trails, to index Trial dataframe. Isn't needed as Trial_N gets passed on StartTrial. 
 		
 		# PARAMETERS THAT VARY WITHIN TRIALS
 		self.ON = 0 #flag denoting whether to record data
@@ -60,7 +62,7 @@ class Distractor(viz.EventClass):
 		self.ResponseStamp = 0	#time of response
 		self.Stimuli_PlayedStamp = 0	#time of stimuli presentation
 		self.delay = 1.25 #this is how quickly you want items repeated. Changes per stimuli. 
-		self.Stimuli_Count = 0
+		self.Stimuli_Index = 0 #count for number of stimuli, to index response dataframe.
 
 		self.callback(viz.TIMER_EVENT,self.onTimer)		
 		self.Stimuli_Timer =0 #between - presentation timer. 
@@ -114,41 +116,46 @@ class Distractor(viz.EventClass):
 		self.Starttxt.fontSize(36)
 		self.Starttxt.alignment(viz.TEXT_CENTER_TOP)
 		self.Starttxt.visible(viz.OFF)
-		
+	
+	def BuildDataFrame(self, maxtargetnumber):
+		"""Builds EoT_Dataframe and WithinTrial_DataFrame"""
+
+		#add info for individual trials
+		#EndofTrial_Data has columns: ['ppid', 'targetoccurence','targetnumber','trialn', 'EoTScore1','TargetCount1'...'EoTScoreN','TargetCountN']
+		#WithinTrial_Data has columns: ['ppid', 'targetoccurence','targetnumber','trialn', 'CurrentAudio','RT','ResponseCategory', 'Target1',...'TargetN']
+
+		trialinfo_columns = ['ppid', 'targetoccurence','targetnumber','trialn']
+
+		EoTcolumns = trialinfo_columns
+		WithinTrialcolumns = trialinfo_columns + ['CurrentAudio','RT','ResponseCategory']
+		for i in range(1,maxtargetnumber +1):
+
+			EoTcolumn = 'EoTScore' + str(i)
+			EoTcolumns.append(EoTcolumn) 
+			TargetCountcolumn = 'TargetCount' + str(i)
+			EoTcolumns.append(TargetCountcolumn) #columns for end of trial dataframe
+
+			Targetcolumn = 'Target' + str(i)
+			WithinTrialcolumns.append(Targetcolumn) #columns for within trial dataframe. 
+
+		EndofTrial_Data = pd.DataFrame(columns=EoTcolumns) #make new empty EndofTrial data
+		WithinTrial_Data = pd.DataFrame(columns=WithinTrialcolumns) #make new empty EndofTrial data
+
+		return (EndofTrial_Data, WithinTrial_Data)
 	
 	def StartTrial(self, targetoccurence_prob, targetnumber, trialn, triallength):
 		
 		"""Sets parameters at the start of each trial, based on targetoccurence_prob and targetnumber"""
 		
 		print("Called StartTrial")
+
 		self.Trial_targetoccurence_prob = targetoccurence_prob #trial parameters, target occurence probability
 		self.Trial_targetnumber = targetnumber #trial parameters, target number		
 		self.Trial_targetcounts = [0] * targetnumber #empty list with self.Trial_targetnumber counts
 		self.Trial_EoTscores = [-1] * targetnumber
-		self.Trial_filename = self.filename + "_" + str(trialn)
+		self.Trial_N = trialn
 		self.Trial_length = triallength
 		self.Trial_targets = list(np.random.choice(self.Target_pool, size=targetnumber, replace=False))
-			
-		#### CREATE DATA FRAMES ####
-		EndofTrial_datacolumns = ['ppid'] #columns for end of trial dataframe		
-		WithinTrial_datacolumns = ['ppid'] #columns for within trial dataframe. 
-		#create columns for dataframe, depending on target number
-		for i in range(1,targetnumber +1):
-			EoTcolumn = 'EoTScore' + str(i)
-			EndofTrial_datacolumns.append(EoTcolumn) 
-			TargetCountcolumn = 'TargetCount' + str(i)
-			EndofTrial_datacolumns.append(TargetCountcolumn) #columns for end of trial dataframe
-
-			Targetcolumn = 'Target' + str(i)
-			WithinTrial_datacolumns.append(Targetcolumn) #columns for within trial dataframe. 
-
-		self.EndofTrial_Data = pd.DataFrame(columns=EndofTrial_datacolumns) #make new empty EndofTrial data
-
-		WithinTrial_datacolumns.append('CurrentAudio')
-		WithinTrial_datacolumns.append('RT')
-		WithinTrial_datacolumns.append('ResponseCategory')
-
-		self.WithinTrial_Data = pd.DataFrame(columns=WithinTrial_datacolumns) #make new empty EndofTrial data
 
 		#show start screen. 
 		self.ChangeStartMsg()
@@ -168,7 +175,7 @@ class Distractor(viz.EventClass):
 			if self.Stimuli_Timer > self.delay:
 				choice = np.random.randint(0,2)
 				if choice == 1:	
-					if self.Stimuli_Count < 1: 
+					if self.Stimuli_Index < 1: 
 						self.SetNewStimuli()
 					else:
 						self.DetectAudioResponse() #function that sets target, with delay parameters		
@@ -248,33 +255,48 @@ class Distractor(viz.EventClass):
 		self.StartScreen.visible(visible)
 		self.Starttxt.visible(visible)
 
+	def RecordCounts(self):
+		"""save End of Trial counts to dataframe"""
+
+		#do not record data					
+		self.ON = 0		
+		trialinfo = [self.ppid, self.Trial_targetoccurence_prob, self.Trial_targetnumber, self.Trial_N]		
+
+		#Adds 'Nones' so that rows match with columns.
+		Trial_EoTscores_output = list(self.Trial_EoTScores)
+		while len(Trial_EoTscores_output) < self.MaxTargetNumber:
+			Trial_EoTscores_output.append([None])
+
+		Trial_targetcounts_output = list(self.Trial_targetcounts)	
+		while len(Trial_targetcounts_output) < self.MaxTargetNumber:
+			Trial_targetcounts_output.append([None])
+
+		output = Trial_EoTscores_output + Trial_targetcounts_output #makes a list of the correct length
+		output[::2] = Trial_EoTscores_output
+		output[1::2] = Trial_targetcounts_output
+		output = list(trialinfo) + output
+		
+		#Trial N gets incremented anyway.
+		self.EndofTrial_Data.loc[self.Trial_N,:] = output #this dataframe is actually just one line. 		
+
+		self.EoTScreen_Visibility(viz.OFF)
+		
+		#tell class it is end of trial. 
+		self.EoTFlag = False
+		
+		print ("recorded counts")			
+
 	
 	def SaveData(self):
 
 		"""Call after all responses are recorded to save data to file"""
 
 		##save all data to file.
-		
-		#record data					
-		self.ON = 0						
-				
-		output = self.Trial_EoTscores + self.Trial_targetcounts #makes a list of the correct length
-		output[::2] = self.Trial_EoTscores
-		output[1::2] = self.Trial_targetcounts
-		output.insert(0,self.ppid)
-
-		self.EndofTrial_Data.loc[0,:] = output #this dataframe is actually just one line. 
-		
 
 		self.EndofTrial_Data.to_csv('Data//' + str(self.filename) + '_EndofTrial.csv')
 		self.WithinTrial_Data.to_csv('Data//' + str(self.filename) + '_WithinTrial.csv')
 
-		self.EoTScreen_Visibility(viz.OFF)
-		
-		#tell class it is end of trial. 
-		self.EoTFlag = False
-
-		print ("saved data")				
+		print ("Saved Data")
 		
 	def DetectAudioResponse(self):
 
@@ -305,10 +327,16 @@ class Distractor(viz.EventClass):
 				ResponseCategory = '4' #correct absence of response
 				
 		#the row size will change depending on target number.
+		trialinfo = [self.ppid, self.Trial_targetoccurence_prob, self.Trial_targetnumber, self.Trial_N]		
 		currentresponse = [self.currentaudio, RT, ResponseCategory] 
-		output = self.Trial_targets + list(currentresponse)
-		output.insert(0,self.ppid)
-		self.WithinTrial_Data.loc[self.Stimuli_Count-1,:] = output		
+
+		Trial_targets_outputlist = list(self.Trial_targets)
+		while len(Trial_targets_outputlist) < self.MaxTargetNumber:
+			Trial_targets_outputlist.append([None])
+
+		output = list(trialinfo) + list(currentresponse) + Trial_targets_outputlist
+		
+		self.WithinTrial_Data.loc[self.Stimuli_Index-1,:] = output		
 
 		self.SetNewStimuli()
 		
@@ -341,7 +369,7 @@ class Distractor(viz.EventClass):
 		jitter = np.random.randint(0,49)		
 		self.delay = 1.0 + (jitter/100.0)				
 
-		self.Stimuli_Count += 1
+		self.Stimuli_Index += 1
 
 
 	#### THE FOLLOWING FUNCTIONS CONTROL THE DRIVER INTERACTING WITH THE WHEEL ######
