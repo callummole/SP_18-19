@@ -19,6 +19,8 @@ import math as mt # python library
 import Count_Adjustable #distractor task
 
 viz.go()
+viz.window.setFullscreenMonitor(2)		
+viz.window.setFullscreen(viz.ON)
 
 # Prompt for filename
 ExpID = "Orca18_Pilot"
