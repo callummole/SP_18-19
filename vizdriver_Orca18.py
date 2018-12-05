@@ -276,8 +276,9 @@ class Driver(viz.EventClass):
 		if button == KEY_DIR_SWITCH_BUTTON:
 			self.toggleDir()
 		elif button == viz.KEY_ESCAPE:
-			self.udpsend1.SEND_DATA(1026)
-			self.udpsend2.SEND_DATA(3)
+			pass
+			#self.udpsend1.SEND_DATA(1026)
+			#self.udpsend2.SEND_DATA(3)
 		elif button == KEY_PAUSE_SWITCH_BUTTON:
 			self.__PAUSE_FLAG = 1
 		
