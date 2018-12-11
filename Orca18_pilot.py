@@ -30,10 +30,23 @@ file_prefix = str(ExpID) + "_" + str(pname)
 
 #### ORDER TRIALS #####
 
+
+
+
+#### HEY, KIDS! ####
+
+#previous data was 40%, 2 targets
+
 ##Create array of trials.
 TrialsPerCondition = 3 #how many trials do we want with this? 
-FACTOR_targetoccurence_prob = [.2, .4, .6] #probability of response frequency
+FACTOR_targetoccurence_prob = [.2, .4, .6, .8] #probability of response frequency
 FACTOR_targetnumber = [1, 2, 3] #number of targets to keep count of.
+
+###################
+
+
+
+
 
 NCndts = len(FACTOR_targetoccurence_prob) * len(FACTOR_targetnumber)	
 ConditionList = range(NCndts) 
