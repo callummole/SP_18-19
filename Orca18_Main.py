@@ -93,57 +93,45 @@ def setStage():
 	
 	"""Creates grass textured groundplane"""
 	
-	# background color
-	viz.clearcolor(viz.SKYBLUE)
 	
-	#CODE UP TILE-WORK WITH GROUNDPLANE.	
-	##should set this up so it builds new tiles if you are reaching the boundary.
-	fName = 'textures\\strong_edge.bmp'
-	gtexture = viz.addTexture(fName)
-	gtexture.wrap(viz.WRAP_T, viz.REPEAT)
-	gtexture.wrap(viz.WRAP_S, viz.REPEAT)
-	#add groundplane (wrap mode)
-###UNCOMMENT FOR TILING
-# Tiling saves memory by using two groundplane tiles instead of a massive groundplane. Since the drivers are essentially driving linearly forward, they cover a lot of distance across the z axis.
-	gplane1 = viz.addTexQuad() ##
-	tilesize = 1000 #half a km wide
-	#planesize = tilesize/5
-	planesize = tilesize/5.0
-	gplane1.setScale(tilesize, tilesize*2, tilesize)
-	gplane1.setEuler((0, 90, 0),viz.REL_LOCAL)
+	###should set this hope so it builds new tiles if you are reaching the boundary.
+	fName = 'C:/VENLAB data/shared_modules/textures/strong_edge.bmp'
+	
+	# add groundplane (wrap mode)
+	groundtexture = viz.addTexture(fName)
+	groundtexture.wrap(viz.WRAP_T, viz.REPEAT)	
+	groundtexture.wrap(viz.WRAP_S, viz.REPEAT)	
+	
+	groundplane = viz.addTexQuad() ##ground for right bends (tight)
+	tilesize = 500
+	planesize = tilesize/5
+	groundplane.setScale(tilesize, tilesize, tilesize)
+	groundplane.setEuler((0, 90, 0),viz.REL_LOCAL)
 	#groundplane.setPosition((0,0,1000),viz.REL_LOCAL) #move forward 1km so don't need to render as much.
 	matrix = vizmat.Transform()
-	matrix.setScale( planesize, planesize*2, planesize )
-	gplane1.texmat( matrix )
-	#gplane1.texture(gtexture)
-	gplane1.texture(gtexture)
-	gplane1.visible(1)
-
-	return gplane1
+	matrix.setScale( planesize, planesize, planesize )
+	groundplane.texmat( matrix )
+	groundplane.texture(groundtexture)
+	groundplane.visible(1)	
+	
+	viz.clearcolor(viz.SKYBLUE)
+	
+	return groundplane
 	
 def BendMaker(radlist):
 	
 	"""makes left and right roads  for for a given radii and return them in a list"""
 	
-	#needs to work with an array of radii
-
-	rdsize = 500 # Hz size for curve length	
-	#left_array= np.arange(0.0, np.pi*1000)/1000
-	left_array= np.linspace(0.0, np.pi,rdsize)
-	#right_array = np.arange(np.pi*1000, 0.0, -1)/1000  ##arange(start,stop,step). Array with 3142(/1000) numbers
-	right_array = np.linspace(np.pi, 0.0, rdsize)  ##arange(start,stop,step). Array with 3142(/1000) numbers
-		
 	leftbendlist = []
 	rightbendlist = []
-	grey = [.8,.8,.8]
-	startpos = [0,0,0]
+	grey = [.8,.8,.8]	
 
 	for r in radlist:
-		rightbend = Bend(startpos = startpos, size = rdsize, rads = r, array = right_array, sign = 1, colour = grey)
+		rightbend = Bend(startpos = [0,0], rads = r, x_dir = 1, colour = viz.RED)
 			
 		rightbendlist.append(rightbend)
 
-		leftbend = Bend(startpos = startpos, size = rdsize, rads = r, array = left_array, sign = -1, colour = grey)
+		leftbend = Bend(startpos = [0,0], rads = r, x_dir = -1, colour = viz.BLUE)
 			
 		leftbendlist.append(leftbend)
 	
@@ -168,6 +156,11 @@ class myExperiment(viz.EventClass):
 		#### PERSPECTIVE CORRECT ######
 		self.caveview = LoadCave() #this module includes viz.go()
 
+		# #BirdsEye
+		# self.caveview.setPosition([0,100,0])
+		# self.caveview.setEuler([0,90,0])
+
+
 		##### SET CONDITION VALUES #####
 		self.FACTOR_radiiPool = [40,80] # A sharp and gradual bend
 		self.FACTOR_YawRate_offsets = [0, .5, 1] #6 yawrate offsets, specified in degrees per second.
@@ -179,7 +172,7 @@ class myExperiment(viz.EventClass):
 		self.ConditionList_YawRate_offsets = cl_yawrates
 
 		##### ADD GRASS TEXTURE #####
-		[gplane1] = setStage()
+		gplane1 = setStage()
 		self.gplane1 = gplane1		
 
 		##### MAKE BEND OBJECTS #####
@@ -191,7 +184,7 @@ class myExperiment(viz.EventClass):
 		self.starttimer(0,0,viz.FOREVER) #self.update position label is called every frame.
 		
 		####### DATA SAVING ######
-		datacolumns = ['ppid', 'radius','occlusion','trialn','timestamp','trialtype_signed','World_x','World_z','WorldYaw','SWA','YawRate_seconds','TurnAngle_frames','Distance_frames','dt']
+		datacolumns = ['ppid', 'radius','yawrate_offset','trialn','timestamp','trialtype_signed','World_x','World_z','WorldYaw','SWA','YawRate_seconds','TurnAngle_frames','Distance_frames','dt']
 		self.Output = pd.DataFrame(columns=datacolumns) #make new empty EndofTrial data
 
 		### parameters that are set at the start of each trial ####
