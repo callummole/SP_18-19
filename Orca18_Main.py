@@ -1,9 +1,5 @@
 """
-Script to run threshold vs accumulator experiment. The participant experiences vection across a textured ground-plane. 
-After a few seconds a straight road appears with a experimentally controlled deflection angle. The participants task is to steer so as to try and stay on the straight road.
-A further few seconds elapses. The road disapears. The participant experiences a few seconds of vection without a road, then a new straight appears with a different deflection angle.
-
-The main script to run the experiment is Ben-Lui_beta_tiles_road.py
+Script to run silent failure paradigm, with cognitive load. Every trial begins with a period of automation. 
 
 The Class myExperiment handles execution of the experiment.
 
@@ -28,7 +24,7 @@ sys.path.append(rootpath)
 import viz # vizard library
 import numpy as np # numpy library - such as matrix calculation
 import random # python library
-import vizdriver_BenLui as vizdriver # vizard library
+import vizdriver_Orca18 as vizdriver # vizard library
 import viztask # vizard library
 import math as mt # python library
 import vizshape
@@ -66,18 +62,18 @@ def LoadCave():
 	caveview = cave.getCaveView()
 	return (caveview)
 
-def GenerateConditionLists(FACTOR_radiiPool, FACTOR_occlPool, TrialsPerCondition):
+def GenerateConditionLists(FACTOR_radiiPool, FACTOR_YawRate_offsets, TrialsPerCondition):
 	"""Based on two factor lists and TrialsPerCondition, create a factorial design and return trialarray and condition lists"""
 
-	NCndts = len(FACTOR_radiiPool) * len(FACTOR_occlPool)	
+	NCndts = len(FACTOR_radiiPool) * len(FACTOR_YawRate_offsets)	
 #	ConditionList = range(NCndts) 
 
 	#automatically generate factor lists so you can adjust levels using the FACTOR variables
-	ConditionList_radii = np.repeat(FACTOR_radiiPool, len(FACTOR_occlPool)	)
-	ConditionList_occl = np.tile(FACTOR_occlPool, len(FACTOR_radiiPool)	)
+	ConditionList_radii = np.repeat(FACTOR_radiiPool, len(FACTOR_YawRate_offsets)	)
+	ConditionList_YawRate_offsets = np.tile(FACTOR_YawRate_offsets, len(FACTOR_radiiPool)	)
 
 	print (ConditionList_radii)
-	print (ConditionList_occl)
+	print (ConditionList_YawRate_offsets)
 
 	TotalN = NCndts * TrialsPerCondition
 
@@ -89,7 +85,7 @@ def GenerateConditionLists(FACTOR_radiiPool, FACTOR_occlPool, TrialsPerCondition
 
 	TRIALSEQ_signed = np.array(direc)*np.array(TRIALSEQ)
 
-	return (TRIALSEQ_signed, ConditionList_radii, ConditionList_occl)
+	return (TRIALSEQ_signed, ConditionList_radii, ConditionList_YawRate_offsets)
 
 # ground texture setting
 def setStage(TILING = True):
@@ -173,17 +169,88 @@ def setStage(TILING = True):
 #	dots = viz.endLayer()
 #	dots.setPosition(0,0,0)
 #	dots.visible(1)
+class Bend():
+	def __init__(self, startpos, size, rads, array, sign = 1, colour = viz.WHITE, primitive = viz.QUAD_STRIP, primitive_width=None, road_width = 3.0):
+		"""Returns a  bend of a specific road width, with functions to set the visibility, position, or Euler of both edges at once"""	
 
+		#make sign -1 if you want a left bend.
+		#improve to have a flag if it's a quad, and the quad width.
+
+		self.RoadOrigin = startpos
+		self.RoadSize_Pts = size
+		self.RoadWidth = road_width		
+		self.HalfRoadWidth = road_width/2.0		
+		self.Rads = rads
+		self.RoadArray = array 
+		self.BendDirection = sign #left or right [-1,1]
+		self.colour = colour
+		self.primitive = primitive
+		self.primitive_width = primitive_width
+		
+		self.InsideEdge_Rads = self.Rads-(self.HalfRoadWidth)
+		self.InsideEdge_Origin = [self.RoadOrigin[0]-self.HalfRoadWidth,.1, self.RoadOrigin[2]] 
+
+		self.OutsideEdge_Rads = self.Rads+(self.RoadWidth/2.0)
+		self.OutsideEdge_Origin = [self.RoadOrigin[0]+self.HalfRoadWidth,.1, self.RoadOrigin[2]]
+
+
+		#put default widths if not given
+		if primitive_width is None:
+			if primitive == viz.QUAD_STRIP:
+				primitive_width = .05
+				self.primitive_width = primitive_width 
+					
+			elif primitive == viz.LINE_STRIP:
+				self.primitive_width = 2
+				viz.linewidth(self.primitive_width)
+				primitive_width = 0 #so I can use the same code below for both primitive types.		
+
+		self.InsideEdge = self.EdgeMaker(self.InsideEdge_Origin, self.InsideEdge_Rads, primitive_width)
+		self.OutsideEdge = self.EdgeMaker(self.OutsideEdge_Origin, self.OutsideEdge_Rads, primitive_width)
+
+		#make it so both edges have the same center. The setCenter is in local coordinates
+		self.InsideEdge.setCenter([-self.HalfRoadWidth, 0, 0])
+		self.OutsideEdge.setCenter([+self.HalfRoadWidth, 0, 0])		
+
+	def EdgeMaker(self, startpos, rads, primitive_width):
+		"""function returns a bend edge"""
+		i = 0
+		viz.startlayer(self.primitive) 	
+		
+		viz.vertex(startpos[0], .1, startpos[2]) #start at end of straight
+		while i < self.RoadSize_Pts:			
+			x1 = ((rads-primitive_width)*np.cos(self.RoadArray[i])) #+ BendRadius
+			z1 = self.BendDirection*((rads-primitive_width)*np.sin(self.RoadArray[i])) + startpos[2]
+			
+			#print (z1[i])			
+			viz.vertex(x1, .1, z1)				
+			viz.vertexcolor(self.colour)
+
+			if self.primitive == viz.QUAD_STRIP:
+				x2 = ((rads+primitive_width)*np.cos(self.RoadArray[i])) #+ BendRadius
+				z2 = self.BendDirection*((rads+primitive_width)*np.sin(self.RoadArray[i])) + startpos[2]
+				viz.vertex(x2, .1, z2)				
+				viz.vertexcolor(self.colour)
+
+			i += 1
+			
+		Bend = viz.endlayer()
+
+		return Bend
+
+	def ToggleVisibility(self, visible = viz.ON):
+		"""switches bends off or on"""
+
+		self.InsideEdge.visible(visible)
+		self.OutsideEdge.visible(visible)
 	
-# function to make Bends.
 def BendMaker(radlist):
 	
-	"""makes left and right road edges for for a given radii and return them in a list"""
+	"""makes left and right roads  for for a given radii and return them in a list"""
 	
 	#needs to work with an array of radii
 
-	rdsize = 500 # Hz size for curve length
-	
+	rdsize = 500 # Hz size for curve length	
 	#left_array= np.arange(0.0, np.pi*1000)/1000
 	left_array= np.linspace(0.0, np.pi,rdsize)
 	#right_array = np.arange(np.pi*1000, 0.0, -1)/1000  ##arange(start,stop,step). Array with 3142(/1000) numbers
@@ -192,79 +259,16 @@ def BendMaker(radlist):
 	leftbendlist = []
 	rightbendlist = []
 	grey = [.8,.8,.8]
-	for r in radlist:
-		x1 = np.zeros(rdsize)
-		z1 = np.zeros(rdsize)
-		x2 = np.zeros(rdsize)
-		z2 = np.zeros(rdsize)	
-			
-		i = 0
+	startpos = [0,0,0]
 
-		##try using quad-strip for roads.
-		viz.startLayer(viz.QUAD_STRIP)
-		width = .1 #road width/2
-		if r > 0:	#r=-1 means it is a straight.
-			while i < rdsize:			
-				#need two vertices at each point to form quad vertices
-				#inside edge
-				x1[i] = ((r-width)*np.cos(right_array[i])) + r
-				z1[i] = ((r-width)*np.sin(right_array[i]))
-				#print (z1[i])
-				viz.vertexColor(grey)
-				viz.vertex(x1[i], .1, z1[i] )		
-				
-				#outside edge. #does it matter if it's overwritten? 
-				x1[i] = ((r+width)*np.cos(right_array[i])) + r
-				z1[i] = ((r+width)*np.sin(right_array[i]))
-				#print (z1[i])
-				viz.vertexColor(grey)
-				viz.vertex(x1[i], .1, z1[i] )	
-				i += 1
-		else:
-			viz.vertexColor(grey)
-			viz.vertex(0+width,.1,0)
-			viz.vertex(0-width,.1,0)
-			viz.vertex(0+width,.1,100.0) #100m straight
-			viz.vertex(0-width,.1,100.0) #100m straight
+	for r in radlist:
+		rightbend = Bend(startpos = startpos, size = rdsize, rads = r, array = right_array, sign = 1, colour = grey)
 			
-		rightbend = viz.endlayer()
-		rightbend.visible(0)
-		rightbend.dynamic()
-			
-		i=0
-		viz.startLayer(viz.QUAD_STRIP)
-		width = .1 #road width/2
-		if r > 0:	#r=-1 means it is a straight.
-			while i < rdsize:			
-				#need two vertices at each point to form quad vertices
-				#inside edge
-				x2[i] = ((r-width)*np.cos(left_array[i])) - r
-				z2[i] = ((r-width)*np.sin(left_array[i]))
-				#print (z1[i])
-				viz.vertexColor(grey)
-				viz.vertex(x2[i], .1, z2[i] )		
-				
-				#outside edge. #does it matter if it's overwritten? 
-				x1[2] = ((r+width)*np.cos(left_array[i])) - r
-				z1[2] = ((r+width)*np.sin(left_array[i]))
-				#print (z1[i])
-				viz.vertexColor(grey)
-				viz.vertex(x1[2], .1, z2[i] )	
-				i += 1
-		else:
-			viz.vertexColor(grey)
-			viz.vertex(0+width,.1,0)
-			viz.vertex(0-width,.1,0)
-			viz.vertex(0+width,.1,100.0) #100m straight
-			viz.vertex(0-width,.1,100.0) #100m straight
-		
-		leftbend = viz.endlayer()	
-		leftbend.visible(0)
-		leftbend.dynamic()
+		rightbendlist.append(rightbend)
+
+		leftbend = Bend(startpos = startpos, size = rdsize, rads = r, array = left_array, sign = -1, colour = grey)
 			
 		leftbendlist.append(leftbend)
-		rightbendlist.append(rightbend)
-	
 	
 	return leftbendlist,rightbendlist 
 
@@ -290,13 +294,13 @@ class myExperiment(viz.EventClass):
 
 		##### SET CONDITION VALUES #####
 		self.FACTOR_radiiPool = [300, 600, 900, 1200, 1500, 1800, 2100, 2400, 2700, 3000, 3300, 3600,-1] #13 radii conditions. 300m steps.
-		self.FACTOR_occlPool = [0, .5, 1] #3 occlusion conditions
+		self.FACTOR_YawRate_offsets = [0, .5, 1] #3 occlusion conditions
 		self.TrialsPerCondition = 10	
-		[trialsequence_signed, cl_radii, cl_occl]  = GenerateConditionLists(self.FACTOR_radiiPool, self.FACTOR_occlPool, self.TrialsPerCondition)
+		[trialsequence_signed, cl_radii, cl_occl]  = GenerateConditionLists(self.FACTOR_radiiPool, self.FACTOR_YawRate_offsets, self.TrialsPerCondition)
 
 		self.TRIALSEQ_signed = trialsequence_signed #list of trialtypes in a randomised order. -ve = leftwards, +ve = rightwards.
 		self.ConditionList_radii = cl_radii
-		self.ConditionList_occl = cl_occl
+		self.ConditionList_YawRate_offsets = cl_occl
 
 		##### ADD GRASS TEXTURE #####
 		[gplane1, gplane2] = setStage(TILING)
@@ -368,7 +372,7 @@ class myExperiment(viz.EventClass):
 			trialtype = abs(trialtype_signed)
 
 			trial_radii = self.ConditionList_radii[trialtype] #set radii for that trial
-			trial_occl = self.ConditionList_occl[trialtype] #set target number for the trial.
+			trial_occl = self.ConditionList_YawRate_offsets[trialtype] #set target number for the trial.
 
 			print(str([trial_radii, trial_occl]))
 
@@ -547,12 +551,12 @@ if __name__ == '__main__':
 	EYETRACKING = True
 	PRACTICE = True
 	TILING = False
-	EXP_ID = "BenLui17"
+	EXP_ID = "Orca18"
 
 	if PRACTICE == True: # HACK
 		EYETRACKING = False 
 
-	myExp = myExperiment(EYETRACKING, PRACTICE, TILING, EXP_ID)
+	myExp = myExperiment(EYETRACKING, PRACTICE, EXP_ID)
 
 	viz.callback(viz.EXIT_EVENT,CloseConnections, myExp.EYETRACKING)
 
