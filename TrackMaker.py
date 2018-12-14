@@ -1,7 +1,6 @@
 
 import viz
 import numpy as np
-
 class Bend():
 	def __init__(self, startpos, size, rads, array, sign = 1, colour = viz.WHITE, primitive = viz.QUAD_STRIP, primitive_width=None, road_width = 3.0):
 		"""Returns a  bend of a specific road width, with functions to set the visibility, position, or Euler of both edges at once"""	
@@ -44,6 +43,17 @@ class Bend():
 		#make it so both edges have the same center. The setCenter is in local coordinates
 		self.InsideEdge.setCenter([-self.HalfRoadWidth, 0, 0])
 		self.OutsideEdge.setCenter([+self.HalfRoadWidth, 0, 0])		
+
+        #make midline
+        i=0
+        self.midline = np.zeros((int(self.RoadSize_Pts),2))
+        while i < self.RoadSize_Pts:
+            x = self.Rads*np.cos(self.RoadArray)
+            z = self.Rads*np.sin(self.RoadArray)
+            self.midline[i,0] = x
+            self.midline[i,1] = z		    		
+            i += 1
+    
 
 	def EdgeMaker(self, startpos, rads, primitive_width):
 		"""function returns a bend edge"""
