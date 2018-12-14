@@ -9,6 +9,7 @@ class Bend():
 
         #make sign -1 if you want a left bend.
         #improve to have a flag if it's a quad, and the quad width.
+        print ("Creating a Bend")
 
         self.RoadStart = startpos
         self.RoadSize_Pts = size
@@ -26,16 +27,13 @@ class Bend():
         self.colour = colour
         self.primitive = primitive
         self.primitive_width = primitive_width
-        self.CurveOrigin = self.RoadStart + ([self.Rads, 0] * self.X_direction)
 
         self.InsideEdge_Rads = self.Rads-(self.HalfRoadWidth)
         self.InsideEdge_Start = [self.RoadStart[0]-self.HalfRoadWidth,.1, self.RoadStart[1]] 
 
         self.OutsideEdge_Rads = self.Rads+(self.RoadWidth/2.0)
         self.OutsideEdge_Start = [self.RoadStart[0]+self.HalfRoadWidth,.1, self.RoadStart[1]]
-
-
-        #put default widths if not given
+        
         if primitive_width is None:
             if primitive == viz.QUAD_STRIP:
                 primitive_width = .05
@@ -54,14 +52,30 @@ class Bend():
         self.OutsideEdge.setCenter([+self.HalfRoadWidth, 0, 0])		
         self.midline = self.MidlineMaker()
 
+        
+        #CurveOrigin always starts at zero. We need to make it so curve origin equals the following.
+        translate = self.Rads * self.X_direction
+        self.CurveOrigin = np.add(self.RoadStart, [translate,0])
+        print ("CurveOrigin: ", self.CurveOrigin)
+
+        #this requires translating the bend position and the midline by the radius, in the opposite direction of X_direction.
+        
+        self.InsideEdge.setPosition([translate, 0, 0], mode = viz.REL_LOCAL)
+        self.OutsideEdge.setPosition([translate, 0, 0], mode = viz.REL_LOCAL)
+        self.midline[:,0] = np.add(self.midline[:,0], translate)
+        
+
+        #put default widths if not given
+
+        
+
     def EdgeMaker(self, startpos, rads, primitive_width):
         """function returns a bend edge"""
         i = 0
         viz.startlayer(self.primitive) 	
-
-        viz.vertex(startpos[0], .1, startpos[1]) 
+        
         while i < self.RoadSize_Pts:			
-            x1 = ((rads-primitive_width)*np.cos(self.RoadArray[i])) #+ BendRadius
+            x1 = ((rads-primitive_width)*np.cos(self.RoadArray[i])) 
             z1 = self.Z_direction*((rads-primitive_width)*np.sin(self.RoadArray[i])) + startpos[2]
 
             #print (z1[i])			
@@ -69,7 +83,7 @@ class Bend():
             viz.vertexcolor(self.colour)
 
             if self.primitive == viz.QUAD_STRIP:
-                x2 = ((rads+primitive_width)*np.cos(self.RoadArray[i])) #+ BendRadius
+                x2 = ((rads+primitive_width)*np.cos(self.RoadArray[i]))
                 z2 = self.Z_direction*((rads+primitive_width)*np.sin(self.RoadArray[i])) + startpos[2]
                 viz.vertex(x2, .1, z2)				
                 viz.vertexcolor(self.colour)
@@ -82,15 +96,11 @@ class Bend():
 
     def MidlineMaker(self):
         """returns midline"""
-        #make midline
-        i=0
+        #make midline        
         midline = np.zeros((int(self.RoadSize_Pts),2))
-        while i < self.RoadSize_Pts:
-            x = self.Rads*np.cos(self.RoadArray)
-            z = self.Rads*np.sin(self.RoadArray)
-            midline[i,0] = x
-            midline[i,1] = z		    		
-            i += 1
+        midline[:,0] = self.Rads*np.cos(self.RoadArray)
+        midline[:,1] = self.Rads*np.sin(self.RoadArray)
+            
         return midline
 
     def ToggleVisibility(self, visible = viz.ON):
