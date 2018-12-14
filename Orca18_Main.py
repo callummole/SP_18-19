@@ -32,6 +32,7 @@ import vizact
 import vizmat
 import myCave
 import pandas as pd
+from TrackMaker import Bend
 #import PPinput
 
 def LoadEyetrackingModules():
@@ -118,82 +119,7 @@ def setStage():
 	gplane1.texture(gtexture)
 	gplane1.visible(1)
 
-	return gp1
-#
-class Bend():
-	def __init__(self, startpos, size, rads, array, sign = 1, colour = viz.WHITE, primitive = viz.QUAD_STRIP, primitive_width=None, road_width = 3.0):
-		"""Returns a  bend of a specific road width, with functions to set the visibility, position, or Euler of both edges at once"""	
-
-		#make sign -1 if you want a left bend.
-		#improve to have a flag if it's a quad, and the quad width.
-
-		self.RoadOrigin = startpos
-		self.RoadSize_Pts = size
-		self.RoadWidth = road_width		
-		self.HalfRoadWidth = road_width/2.0		
-		self.Rads = rads
-		self.RoadArray = array 
-		self.BendDirection = sign #left or right [-1,1]
-		self.colour = colour
-		self.primitive = primitive
-		self.primitive_width = primitive_width
-		
-		self.InsideEdge_Rads = self.Rads-(self.HalfRoadWidth)
-		self.InsideEdge_Origin = [self.RoadOrigin[0]-self.HalfRoadWidth,.1, self.RoadOrigin[2]] 
-
-		self.OutsideEdge_Rads = self.Rads+(self.RoadWidth/2.0)
-		self.OutsideEdge_Origin = [self.RoadOrigin[0]+self.HalfRoadWidth,.1, self.RoadOrigin[2]]
-
-
-		#put default widths if not given
-		if primitive_width is None:
-			if primitive == viz.QUAD_STRIP:
-				primitive_width = .05
-				self.primitive_width = primitive_width 
-					
-			elif primitive == viz.LINE_STRIP:
-				self.primitive_width = 2
-				viz.linewidth(self.primitive_width)
-				primitive_width = 0 #so I can use the same code below for both primitive types.		
-
-		self.InsideEdge = self.EdgeMaker(self.InsideEdge_Origin, self.InsideEdge_Rads, primitive_width)
-		self.OutsideEdge = self.EdgeMaker(self.OutsideEdge_Origin, self.OutsideEdge_Rads, primitive_width)
-
-		#make it so both edges have the same center. The setCenter is in local coordinates
-		self.InsideEdge.setCenter([-self.HalfRoadWidth, 0, 0])
-		self.OutsideEdge.setCenter([+self.HalfRoadWidth, 0, 0])		
-
-	def EdgeMaker(self, startpos, rads, primitive_width):
-		"""function returns a bend edge"""
-		i = 0
-		viz.startlayer(self.primitive) 	
-		
-		viz.vertex(startpos[0], .1, startpos[2]) #start at end of straight
-		while i < self.RoadSize_Pts:			
-			x1 = ((rads-primitive_width)*np.cos(self.RoadArray[i])) #+ BendRadius
-			z1 = self.BendDirection*((rads-primitive_width)*np.sin(self.RoadArray[i])) + startpos[2]
-			
-			#print (z1[i])			
-			viz.vertex(x1, .1, z1)				
-			viz.vertexcolor(self.colour)
-
-			if self.primitive == viz.QUAD_STRIP:
-				x2 = ((rads+primitive_width)*np.cos(self.RoadArray[i])) #+ BendRadius
-				z2 = self.BendDirection*((rads+primitive_width)*np.sin(self.RoadArray[i])) + startpos[2]
-				viz.vertex(x2, .1, z2)				
-				viz.vertexcolor(self.colour)
-
-			i += 1
-			
-		Bend = viz.endlayer()
-
-		return Bend
-
-	def ToggleVisibility(self, visible = viz.ON):
-		"""switches bends off or on"""
-
-		self.InsideEdge.visible(visible)
-		self.OutsideEdge.visible(visible)
+	return gplane1
 	
 def BendMaker(radlist):
 	
@@ -237,25 +163,24 @@ class myExperiment(viz.EventClass):
 			LoadEyetrackingModules()
 
 		self.PP_id = ppid
-		self.VisibleRoadTime = 2.5 #length of time that road is visible. Constant throughout experiment
+		self.TrialLength = 15 #length of time that road is visible. Constant throughout experiment
 	
 		#### PERSPECTIVE CORRECT ######
 		self.caveview = LoadCave() #this module includes viz.go()
 
 		##### SET CONDITION VALUES #####
-		self.FACTOR_radiiPool = [300, 600, 900, 1200, 1500, 1800, 2100, 2400, 2700, 3000, 3300, 3600,-1] #13 radii conditions. 300m steps.
-		self.FACTOR_YawRate_offsets = [0, .5, 1] #3 occlusion conditions
-		self.TrialsPerCondition = 10	
-		[trialsequence_signed, cl_radii, cl_occl]  = GenerateConditionLists(self.FACTOR_radiiPool, self.FACTOR_YawRate_offsets, self.TrialsPerCondition)
+		self.FACTOR_radiiPool = [40,80] # A sharp and gradual bend
+		self.FACTOR_YawRate_offsets = [0, .5, 1] #6 yawrate offsets, specified in degrees per second.
+		self.TrialsPerCondition = 6
+		[trialsequence_signed, cl_radii, cl_yawrates]  = GenerateConditionLists(self.FACTOR_radiiPool, self.FACTOR_YawRate_offsets, self.TrialsPerCondition)
 
 		self.TRIALSEQ_signed = trialsequence_signed #list of trialtypes in a randomised order. -ve = leftwards, +ve = rightwards.
 		self.ConditionList_radii = cl_radii
-		self.ConditionList_YawRate_offsets = cl_occl
+		self.ConditionList_YawRate_offsets = cl_yawrates
 
 		##### ADD GRASS TEXTURE #####
-		[gplane1, gplane2] = setStage(TILING)
-		self.gplane1 = gplane1
-		self.gplane2 = gplane2
+		[gplane1] = setStage()
+		self.gplane1 = gplane1		
 
 		##### MAKE BEND OBJECTS #####
 		[leftbends,rightbends] = BendMaker(self.FACTOR_radiiPool)
@@ -352,47 +277,7 @@ class myExperiment(viz.EventClass):
 			self.Trial_occlusion = trial_occl			
 			self.Trial_BendObject = trialbend			
 
-			# Define a function that saves data
-			
-			#translate bend to driver position.
-			driverpos = viz.MainView.getPosition()
-			print driverpos
-			trialbend.setPosition(driverpos[0],0, driverpos[2])
-					
-			#now need to set orientation
-			driverEuler = viz.MainView.getEuler()
-			trialbend.setEuler(driverEuler, viz.ABS_GLOBAL)		
-			
-			#will need to save initial vertex for line origin, and Euler. Is there a nifty way to save the relative position to the road?
-			self.driver.setSWA_invisible()		
-			
-			yield viztask.waitTime(trial_occl) #wait an occlusion period. Will viztask waitime work within a class? 
-			
-			trialbend.visible(1)
-			
-			yield viztask.waitTime(self.VisibleRoadTime-trial_occl) #after the occlusion add the road again. 2.5s to avoid ceiling effects.
-			
-			trialbend.visible(0)
-			#driver.setSWA_visible()
-			
-			def checkCentred():
-				
-				centred = False
-				x = self.driver.getPos()
-				if abs(x) < .5:
-					centred = True						
-				
-				return (centred)
-			
-			##wait a while
-			print "waiting"
-			#TODO: Recentre the wheel on automation.
-
-			yield viztask.waitTrue(checkCentred)
-			print "waited"
-			
-			self.driver.setSWA_visible()
-			yield viztask.waitTime(2) #wait for input .		
+			yield viztask.waitTime(self.TrialLength) #wait for input .		
 	
 		#loop has finished.
 		CloseConnections(self.EYETRACKING)
@@ -416,7 +301,9 @@ class myExperiment(viz.EventClass):
 
 	def updatePositionLabel(self, num):
 		
-		"""Timer function that gets called every frame. Updates parameters for saving and moves groundplane if TILING mode is switched on"""
+		"""Timer function that gets called every frame. Updates parameters for saving"""
+
+		"""Here need to bring in steering bias updating from Trout as well"""
 
 		#print("UpdatingPosition...")	
 		#update driver view.
