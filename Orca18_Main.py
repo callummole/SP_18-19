@@ -88,7 +88,7 @@ def GenerateConditionLists(FACTOR_radiiPool, FACTOR_YawRate_offsets, TrialsPerCo
 	return (TRIALSEQ_signed, ConditionList_radii, ConditionList_YawRate_offsets)
 
 # ground texture setting
-def setStage(TILING = True):
+def setStage():
 	
 	"""Creates grass textured groundplane"""
 	
@@ -117,58 +117,9 @@ def setStage(TILING = True):
 	#gplane1.texture(gtexture)
 	gplane1.texture(gtexture)
 	gplane1.visible(1)
+
+	return gp1
 #
-	if TILING:
-		gplane2 = gplane1.copy() #create duplicate.
-		gplane2.setScale(tilesize, tilesize*2, tilesize)
-		gplane2.setEuler((0, 90, 0),viz.REL_LOCAL)
-		#groundplane.setPosition((0,0,1000),viz.REL_LOCAL) #move forward 1km so don't need to render as much.
-		gplane2.texmat( matrix )
-		#gplane1.texture(gtexture)
-		gplane2.texture(gtexture)
-		gplane2.visible(1)
-		gplane2.setPosition(0,0,tilesize*2)
-		gplane2.zoffset(-1)
-	else:
-		gplane2 = []
-	
-	return(gplane1, gplane2)
-#	##To save CPU I could move a small quad with the person.
-#	gsizex = 50 #groundplane size, metres squared
-#	gsizez = 160 #clipped at 150.
-#	#groundplane = vizshape.addPlane(size=(gsize[0],gsize[1]),axis=vizshape.AXIS_Y,cullFace=True) ##make groundplane
-#	#draw black quad
-#	#groundplane.texture(viz.add('black.bmp')) #make groundplane black
-#	viz.startLayer(viz.QUADS)
-#	viz.vertexColor(viz.BLACK)
-#	viz.vertex(0-gsizex,0,0)	
-#	viz.vertex(0-gsizex,0,+gsizez)
-#	viz.vertex(0+gsizex,0,+gsizez)
-#	viz.vertex(0+gsizex,0,0)
-#	groundplane = viz.endLayer()
-#	groundplane.dynamic()
-#	groundplane.visible(1)
-#	link = viz.link(viz.MainView,groundplane)
-#	link.clampPosY(0)
-#	
-#	
-#	
-##	#NEED TO TILE THIS DOTS & JUST BEYOND
-##
-#	#Build dot plane to cover black groundplane
-#	ndots = 100000 #arbitrarily picked. perhaps we could match dot density to K & W, 2013? 
-#	dsize = 5000
-#	viz.startlayer(viz.POINTS)
-#	viz.vertexColor(viz.WHITE)	
-#	viz.pointSize(2)
-#	for i in range (0,ndots):
-#		x =  (random.random() - .5)  * dsize
-#		z = (random.random() - .5) * dsize
-#		viz.vertex([x,0,z])
-#	
-#	dots = viz.endLayer()
-#	dots.setPosition(0,0,0)
-#	dots.visible(1)
 class Bend():
 	def __init__(self, startpos, size, rads, array, sign = 1, colour = viz.WHITE, primitive = viz.QUAD_STRIP, primitive_width=None, road_width = 3.0):
 		"""Returns a  bend of a specific road width, with functions to set the visibility, position, or Euler of both edges at once"""	
@@ -274,13 +225,12 @@ def BendMaker(radlist):
 
 class myExperiment(viz.EventClass):
 
-	def __init__(self, eyetracking, practice, tiling, exp_id, ppid = 1):
+	def __init__(self, eyetracking, practice, exp_id, ppid = 1):
 
 		viz.EventClass.__init__(self)
 	
 		self.EYETRACKING = eyetracking
-		self.PRACTICE = practice
-		self.TILING = tiling
+		self.PRACTICE = practice		
 		self.EXP_ID = exp_id
 
 		if EYETRACKING == True:	
@@ -496,43 +446,7 @@ class myExperiment(viz.EventClass):
 			self.Current_BendVisibleFlag = None
 
 
-		self.RecordData() #write a line in the dataframe.
-	
-		if self.TILING:
-		
-			#check if groundplane is culled, and update it if it is. 
-			if viz.MainWindow.isCulled(self.gplane1):
-				#if it's not visible, move ahead 50m from the driver.
-				
-				print 'attempting to shift gplane1'
-				#translate bend to driver position.
-				driverpos = viz.MainView.getPosition()
-				self.gplane1.setPosition(driverpos[0],0, driverpos[2],viz.ABS_GLOBAL) #bring to driver pos
-				
-				#now need to set orientation
-				#driverEuler = viz.MainView.getEuler()
-				self.gplane1.setEuler(driverEuler[0],0,0, viz.ABS_GLOBAL)		
-				
-				self.gplane1.setPosition(0,0, 30, viz.REL_LOCAL) #should match up to the tilesize * 3
-				
-				
-				self.gplane1.setEuler(0,90,0, viz.REL_LOCAL) #rotate to ground plane	
-				
-			if viz.MainWindow.isCulled(self.gplane2):
-				#if it's not visible, move ahead 50m from the driver.
-				
-				print 'attempting to shift gplane2'
-				#translate bend to driver position.
-				driverpos = viz.MainView.getPosition()
-				self.gplane2.setPosition(driverpos[0],0, driverpos[2],viz.ABS_GLOBAL) #bring to driver pos
-				
-				#now need to set orientation
-				#driverEuler = viz.MainView.getEuler()
-				self.gplane2.setEuler(driverEuler[0],0,0, viz.ABS_GLOBAL)		
-				
-				self.gplane2.setPosition(0,0, 30, viz.REL_LOCAL) #should match up to the tilesize y size of the other tile.
-				
-				self.gplane2.setEuler(0,90,0, viz.REL_LOCAL) #rotate to ground plane		
+		self.RecordData() #write a line in the dataframe.	
 
 def CloseConnections(EYETRACKING):
 	
