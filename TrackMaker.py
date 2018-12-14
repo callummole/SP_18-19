@@ -70,7 +70,7 @@ class Bend():
 
             if self.primitive == viz.QUAD_STRIP:
                 x2 = ((rads+primitive_width)*np.cos(self.RoadArray[i])) #+ BendRadius
-                z2 = self.Z_Direction*((rads+primitive_width)*np.sin(self.RoadArray[i])) + startpos[2]
+                z2 = self.Z_direction*((rads+primitive_width)*np.sin(self.RoadArray[i])) + startpos[2]
                 viz.vertex(x2, .1, z2)				
                 viz.vertexcolor(self.colour)
 
