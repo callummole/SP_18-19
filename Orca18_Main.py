@@ -191,12 +191,12 @@ class myExperiment(viz.EventClass):
 		self.starttimer(0,0,viz.FOREVER) #self.update position label is called every frame.
 		
 		####### DATA SAVING ######
-		datacolumns = ['ppid', 'radius','occlusion','trialn','timestamp','trialtype_signed','World_x','World_z','WorldYaw','SWA','YawRate_seconds','TurnAngle_frames','Distance_frames','dt', 'BendVisible']
+		datacolumns = ['ppid', 'radius','occlusion','trialn','timestamp','trialtype_signed','World_x','World_z','WorldYaw','SWA','YawRate_seconds','TurnAngle_frames','Distance_frames','dt']
 		self.Output = pd.DataFrame(columns=datacolumns) #make new empty EndofTrial data
 
 		### parameters that are set at the start of each trial ####
 		self.Trial_radius = 0
-		self.Trial_occlusion = 0 				
+		self.Trial_YawRate_Offset = 0 				
 		self.Trial_N = 0
 		self.Trial_trialtype_signed = 0			
 		self.Trial_Timer = 0 #keeps track of trial length. 
@@ -209,7 +209,6 @@ class myExperiment(viz.EventClass):
 		self.Current_SWA = 0
 		self.Current_Time = 0
 		self.Current_RowIndex = 0
-		self.Current_BendVisibleFlag = 0
 		self.Current_YawRate_seconds = 0
 		self.Current_TurnAngle_frames = 0
 		self.Current_distance = 0
@@ -247,9 +246,9 @@ class myExperiment(viz.EventClass):
 			trialtype = abs(trialtype_signed)
 
 			trial_radii = self.ConditionList_radii[trialtype] #set radii for that trial
-			trial_occl = self.ConditionList_YawRate_offsets[trialtype] #set target number for the trial.
+			trial_yawrate_offset = self.ConditionList_YawRate_offsets[trialtype] #set target number for the trial.
 
-			print(str([trial_radii, trial_occl]))
+			print(str([trial_radii, trial_yawrate_offset]))
 
 			txtDir = ""
 			
@@ -266,15 +265,15 @@ class myExperiment(viz.EventClass):
 				txtDir = "L"
 						
 			if trial_radii > 0: #if trial_radii is above zero it is a bend, not a straight 
-				msg = "Radius: " + str(trial_radii) + txtDir + '_' + str(trial_occl)
+				msg = "Radius: " + str(trial_radii) + txtDir + '_' + str(trial_yawrate_offset)
 			else:
-				msg = "Radius: Straight" + txtDir + '_' + str(trial_occl)
+				msg = "Radius: Straight" + txtDir + '_' + str(trial_yawrate_offset)
 			txtCondt.message(msg)	
 
 			#update class#
 			self.Trial_N = i
 			self.Trial_radius = trial_radii
-			self.Trial_occlusion = trial_occl			
+			self.Trial_YawRate_Offset = trial_yawrate_offset			
 			self.Trial_BendObject = trialbend			
 
 			yield viztask.waitTime(self.TrialLength) #wait for input .		
@@ -283,21 +282,33 @@ class myExperiment(viz.EventClass):
 		CloseConnections(self.EYETRACKING)
 		#viz.quit() 
 
+	def getNormalisedEuler(self):
+		"""returns three dimensional euler on 0-360 scale"""
+		
+		euler = self.caveview.getEuler()
+		
+		euler[0] = vizmat.NormAngle(euler[0])
+		euler[1] = vizmat.NormAngle(euler[1])
+		euler[2] = vizmat.NormAngle(euler[2])
+
+		return euler	
+
+
 	def RecordData(self):
 		
 		"""Records Data into Dataframe"""
 
-		#datacolumns = ['ppid', 'radius','occlusion','trialn','timestamp','trialtype_signed','World_x','World_z','WorldYaw','SWA','BendVisible']
-		output = [self.PP_id, self.Trial_radius, self.Trial_occlusion, self.Trial_N, self.Current_Time, self.Trial_trialtype_signed, 
+		#datacolumns = ['ppid', 'radius','occlusion','trialn','timestamp','trialtype_signed','World_x','World_z','WorldYaw','SWA']
+		output = [self.PP_id, self.Trial_radius, self.Trial_YawRate_Offset, self.Trial_N, self.Current_Time, self.Trial_trialtype_signed, 
 		self.Current_pos_x, self.Current_pos_z, self.Current_yaw, self.Current_SWA, self.Current_YawRate_seconds, self.Current_TurnAngle_frames, 
-		self.Current_distance, self.Current_dt, self.Current_BendVisibleFlag] #output array.
+		self.Current_distance, self.Current_dt] #output array.
 		
 		self.Output.loc[self.Current_RowIndex,:] = output #this dataframe is actually just one line. 		
 	
 	def SaveData(self):
 
 		"""Saves Current Dataframe to csv file"""
-		self.Output.to_csv('Data//Pilot.csv')
+		self.Output.to_csv('Data//SteeringPilot.csv')
 
 	def updatePositionLabel(self, num):
 		
@@ -310,10 +321,8 @@ class myExperiment(viz.EventClass):
 		UpdateValues = self.driver.UpdateView() #update view and return values used for update
 		
 		# get head position(x, y, z)
-		pos = viz.get(viz.HEAD_POS)
-		pos[1] = 0.0 # (x, 0, z)
-		# get body orientation
-		ori = viz.get(viz.BODY_ORI)		
+		pos = self.caveview.getPosition()				
+		ori = self.getNormalisedEuler()	
 									
 		### #update Current parameters ####
 		self.Current_pos_x = pos[0]
@@ -326,11 +335,6 @@ class myExperiment(viz.EventClass):
 		self.Current_TurnAngle_frames = UpdateValues[1]
 		self.Current_distance = UpdateValues[2]
 		self.Current_dt = UpdateValues[3]
-
-		if self.Trial_BendObject is not None:
-			self.Current_BendVisibleFlag = self.Trial_BendObject.getVisible()	
-		else:
-			self.Current_BendVisibleFlag = None
 
 
 		self.RecordData() #write a line in the dataframe.	
