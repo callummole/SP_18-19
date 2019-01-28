@@ -1,0 +1,17 @@
+
+- Needs variability in the trajectories.
+
+- Needs variability in the time at yaw-rate offset introduction. 
+
+Thoughts on how to simulate the automation period:
+
+- Use th PID control module from Trout. it's likely that we could tune the pid control to accurate enough (a minimum of corrections) so that we can 'switch off' the PID and introduce an offset without it feeling super weird.
+
+- Simulate a perfect trajectory using the midline; calculate the corresponding steering angle.
+
+- PREFERRED OPTION: Create a mock experiment with only the midline visible. Steer smoothly around this bend 5 times. Randomly select from this pool and replay trajectory using Trout code.
+I think that with option 3 there will be enough variability in the midline trajectories. But also it will be accurate enough at the point of takeover so that the different yaw-rate conditions will be identical.
+This option will then give an open-loop trajectory that we can offset.
+But the method of trajectory re-playing will have to change. Instead of reading the position and euler we could read the yaw rate change, or the SWA. Then we can bias this signal without it being 'reset' every time we pick a new value from the course. 
+Will have to check if this open-loop method is precise enough. 
+
