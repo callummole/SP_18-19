@@ -67,6 +67,7 @@ def GenerateConditionLists(FACTOR_radiiPool, FACTOR_YawRate_offsets, TrialsPerCo
 	"""Based on two factor lists and TrialsPerCondition, create a factorial design and return trialarray and condition lists"""
 
 	NCndts = len(FACTOR_radiiPool) * len(FACTOR_YawRate_offsets)	
+	print ("number of conditiosn", NCndts)
 #	ConditionList = range(NCndts) 
 
 	#automatically generate factor lists so you can adjust levels using the FACTOR variables
@@ -78,13 +79,15 @@ def GenerateConditionLists(FACTOR_radiiPool, FACTOR_YawRate_offsets, TrialsPerCo
 
 	TotalN = NCndts * TrialsPerCondition
 
-	TRIALSEQ = range(0,NCndts)*TrialsPerCondition
+	TRIALSEQ = range(1,NCndts+1)*TrialsPerCondition
 	np.random.shuffle(TRIALSEQ)
 
 	direc = [1,-1]*(TotalN/2) #makes half left and half right.
 	np.random.shuffle(direc) 
 
 	TRIALSEQ_signed = np.array(direc)*np.array(TRIALSEQ)
+	
+	print("TrialSeq_signed", TRIALSEQ_signed)
 
 	return (TRIALSEQ_signed, ConditionList_radii, ConditionList_YawRate_offsets)
 
@@ -163,7 +166,7 @@ class myExperiment(viz.EventClass):
 
 
 		##### SET CONDITION VALUES #####
-		self.FACTOR_radiiPool = [40] # A sharp and gradual bend
+		self.FACTOR_radiiPool = [80] # A sharp and gradual bend
 		self.FACTOR_YawRate_offsets = [0] #6 yawrate offsets, specified in degrees per second.
 		self.TrialsPerCondition = 6
 		[trialsequence_signed, cl_radii, cl_yawrates]  = GenerateConditionLists(self.FACTOR_radiiPool, self.FACTOR_YawRate_offsets, self.TrialsPerCondition)
@@ -183,11 +186,12 @@ class myExperiment(viz.EventClass):
 
 		self.callback(viz.TIMER_EVENT,self.updatePositionLabel)
 		self.starttimer(0,0,viz.FOREVER) #self.update position label is called every frame.
-		self.Pause_Timer = True
+		self.Continue_Timer = False
 		
 		####### DATA SAVING ######
 		datacolumns = ['ppid', 'radius','yawrate_offset','trialn','timestamp','trialtype_signed','World_x','World_z','WorldYaw','SWA','YawRate_seconds','TurnAngle_frames','Distance_frames','dt']
-		self.Output = pd.DataFrame(index = range(self.TrialLength*60), columns=datacolumns) #make new empty EndofTrial data
+		self.datacolumns = datacolumns
+		self.Output = None #dataframe that gets renewed each trial.		
 		#self.Output = pd.DataFrame(columns=datacolumns) #make new empty EndofTrial data
 
 		### parameters that are set at the start of each trial ####
@@ -210,7 +214,7 @@ class myExperiment(viz.EventClass):
 		self.Current_distance = 0
 		self.Current_dt = 0
 
-		self.callback(viz.EXIT_EVENT,self.SaveData) #if exited, save the data. 
+		#self.callback(viz.EXIT_EVENT,self.SaveData) #if exited, save the data. 
 
 	def runtrials(self):
 		"""Loops through the trial sequence"""
@@ -223,8 +227,6 @@ class myExperiment(viz.EventClass):
 
 		self.driver = vizdriver.Driver(self.caveview)	
 		viz.MainScene.visible(viz.ON,viz.WORLD)		
-
-		yield viztask.waitTime(self.TrialLength) #
 						
 
 		#add text to denote conditons.
@@ -233,6 +235,9 @@ class myExperiment(viz.EventClass):
 		txtCondt.fontSize(36)		
 
 		
+		if self.EYETRACKING: 
+			comms.start_trial()
+		
 		for i, trialtype_signed in enumerate(self.TRIALSEQ_signed):
 			#import vizjoy		
 			print("Trial: ", str(i))
@@ -240,8 +245,9 @@ class myExperiment(viz.EventClass):
 			
 			trialtype = abs(trialtype_signed)
 
-			trial_radii = self.ConditionList_radii[trialtype] #set radii for that trial
-			trial_yawrate_offset = self.ConditionList_YawRate_offsets[trialtype] #set target number for the trial.
+			#trialtype is indexed from one. so need to minus one from it.
+			trial_radii = self.ConditionList_radii[trialtype-1] #set radii for that trial
+			trial_yawrate_offset = self.ConditionList_YawRate_offsets[trialtype-1] #set target number for the trial.
 
 			print(str([trial_radii, trial_yawrate_offset]))
 
@@ -273,16 +279,35 @@ class myExperiment(viz.EventClass):
 			self.Trial_YawRate_Offset = trial_yawrate_offset			
 			self.Trial_BendObject = trialbend			
 
-			if self.EYETRACKING:
-				comms.start_trial()
+			#renew data frame.
+			self.Output = pd.DataFrame(index = range(self.TrialLength*60), columns=self.datacolumns) #make new empty EndofTrial data
 
-			self.Pause_Timer = False
+			yield viztask.waitTime(3) #pause at beginning of trial
+
+			#here we need to annotate eyetracking recording.
+
+			self.Continue_Timer = True #
 
 			yield viztask.waitTime(self.TrialLength) #wait for input .	
 
-			self.Pause_Timer = True
+			self.Continue_Timer = False
 			
 			self.Trial_BendObject.ToggleVisibility(viz.OFF)	
+
+			##reset trial. Also need to annotate each eyetracking trial.			
+			
+			trialdata = self.Output.copy()
+			fname = 'Data//Midline_' + str(self.Trial_radius) + '_' + str(self.Trial_N) + '.csv'
+
+			#print (trialdata)
+			#print (fname)
+			viz.director(self.SaveData, trialdata, fname)
+			
+			#reset row index.
+			self.Current_RowIndex = 0
+
+			self.ResetDriverPosition()
+			#self.SaveData(trialdata)
 	
 		#loop has finished.
 		CloseConnections(self.EYETRACKING)
@@ -299,6 +324,9 @@ class myExperiment(viz.EventClass):
 
 		return euler	
 
+	def ResetDriverPosition(self):
+		"""Sets Driver Position and Euler to original start point"""
+		self.driver.reset()
 
 	def RecordData(self):
 		
@@ -315,14 +343,19 @@ class myExperiment(viz.EventClass):
 		#print(output)
 		self.Output.loc[self.Current_RowIndex,:] = output #this dataframe is actually just one line. 		
 	
-	def SaveData(self):
+	# def SaveData(self, data, filename):
+
+	# 	"""Saves Current Dataframe to csv file"""
+
+	# 	data = data.dropna() #drop any trailing space.		
+	# 	data.to_csv(filename)
+
+	def SaveData(self, data, filename):
 
 		"""Saves Current Dataframe to csv file"""
 
-		self.Output = self.Output.dropna() #drop any trailing space.
-
-		fname = 'Data//Midline_' + str(self.Trial_radius) + '_' + str(self.Trial_N) + '.csv'
-		self.Output.to_csv(fname)
+		data = data.dropna() #drop any trailing space.		
+		data.to_csv(filename)
 
 	def updatePositionLabel(self, num):
 		
@@ -331,7 +364,7 @@ class myExperiment(viz.EventClass):
 		"""Here need to bring in steering bias updating from Trout as well"""
 
 
-		if not self.Pause_Timer:
+		if self.Continue_Timer:
 		
 			#print("UpdatingPosition...")	
 			#update driver view.
