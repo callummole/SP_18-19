@@ -32,12 +32,6 @@ class Driver(viz.EventClass):
 		self.callback(viz.KEYDOWN_EVENT,self.keyDown) #enables control with the keyboard
 		self.callback(vizjoy.BUTTONDOWN_EVENT,self.joyDown) 
 		self.callback(vizjoy.MOVE_EVENT,self.joymove)
-		
-		#self.txtSWA = viz.addText("SWA",parent=viz.SCREEN)
-		self.txtSWA = viz.addText("  ",parent=viz.SCREEN)
-		self.txtSWA.setPosition(.45,.4)
-		self.txtSWA.fontSize(36)
-		
 		#self.starttimer(0,0,viz.FOREVER)
 
 		global joy
