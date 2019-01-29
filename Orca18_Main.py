@@ -32,6 +32,7 @@ import vizact
 import vizmat
 import myCave
 import pandas as pd
+import logitech_wheel_threaded
 from TrackMaker import Bend
 #import PPinput
 
@@ -143,14 +144,15 @@ def BendMaker(radlist):
 
 class myExperiment(viz.EventClass):
 
-	def __init__(self, eyetracking, practice, exp_id, mywheel, ppid = 1):
+	def __init__(self, eyetracking, practice, exp_id, autowheel, ppid = 1):
 
 		viz.EventClass.__init__(self)
 	
 		self.EYETRACKING = eyetracking
 		self.PRACTICE = practice		
 		self.EXP_ID = exp_id
-		self.Wheel = mywheel
+		self.AUTOWHEEL = autowheel
+
 
 		if EYETRACKING == True:	
 			LoadEyetrackingModules()
@@ -160,6 +162,21 @@ class myExperiment(viz.EventClass):
 	
 		#### PERSPECTIVE CORRECT ######
 		self.caveview = LoadCave() #this module includes viz.go()
+
+		if self.AUTOWHEEL:
+	
+			handle = viz.window.getHandle()
+			mywheel = logitech_wheel_threaded.steeringWheelThreaded(handle)	
+			mywheel.init() #Initialise the wheel
+			mywheel.start() #Start the wheels thread
+
+			#centre the wheel at start of experiment
+			mywheel.set_position(0) #Set the pd control target
+			mywheel.control_on()
+		else:
+			mywheel = None
+
+		self.Wheel = mywheel
 
 		# #BirdsEye
 		# self.caveview.setPosition([0,100,0])
@@ -441,21 +458,7 @@ if __name__ == '__main__':
 	if PRACTICE == True: # HACK
 		EYETRACKING = False 
 
-	if AUTOWHEEL:
-	
-		import logitech_wheel_threaded
-		handle = viz.window.getHandle()
-		mywheel = logitech_wheel_threaded.steeringWheelThreaded(handle)	
-		mywheel.init() #Initialise the wheel
-		mywheel.start() #Start the wheels thread
-
-		#centre the wheel at start of experiment
-		mywheel.set_position(0) #Set the pd control target
-		mywheel.control_on()
-	else:
-		mywheel = None
-
-	myExp = myExperiment(EYETRACKING, PRACTICE, EXP_ID, mywheel)
+	myExp = myExperiment(EYETRACKING, PRACTICE, EXP_ID, AUTOWHEEL)
 
 	viz.callback(viz.EXIT_EVENT,CloseConnections, myExp.EYETRACKING)
 
