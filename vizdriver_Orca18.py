@@ -164,16 +164,10 @@ class Driver(viz.EventClass):
 	def getPause(self): ###added for flow manipulations
 		return self.__pause
 		
-	def setSWA_visible(self):
-		self.txtSWA.visible(viz.ON)
-	
-	def setSWA_invisible(self):
-		self.txtSWA.visible(viz.OFF)
-		
 	def joymove(self,e):
 	
-		#translate position to SWA.		
+		pass
 	
-		x = e.pos[0]*10		
-		self.txtSWA.message(str(x))
+		#x = e.pos[0]*10		
+		#self.txtSWA.message(str(x))
 			
