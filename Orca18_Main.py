@@ -248,7 +248,7 @@ class myExperiment(viz.EventClass):
 		self.YR_readout = self.playbackdata.get("YawRate_seconds")
 		self.playbacklength = len(self.SWA_readout)		
 
-		#self.callback(viz.EXIT_EVENT,self.SaveData) #if exited, save the data. 
+		self.callback(viz.EXIT_EVENT,self.CloseConnections) #if exited, save the data. 
 
 	def runtrials(self):
 		"""Loops through the trial sequence"""
@@ -459,19 +459,19 @@ class myExperiment(viz.EventClass):
 
 			self.RecordData() #write a line in the dataframe.	
 
-def CloseConnections(EYETRACKING):
-	
-	"""Shuts down EYETRACKING and wheel threads then quits viz"""		
-	
-	print ("Closing connections")
-	if EYETRACKING: 
-	 	comms.stop_trial() #closes recording			
-	
-	#kill automation
-	if AUTOWHEEL:
-		self.Wheel.thread_kill() #This one is mission critical - else the thread will keep going 
-		self.Wheel.shutdown()
-	viz.quit()
+	def CloseConnections(self):
+		
+		"""Shuts down EYETRACKING and wheel threads then quits viz"""		
+		
+		print ("Closing connections")
+		if self.EYETRACKING: 
+			comms.stop_trial() #closes recording			
+		
+		#kill automation
+		if self.AUTOWHEEL:
+			self.Wheel.thread_kill() #This one is mission critical - else the thread will keep going 
+			self.Wheel.shutdown()
+		viz.quit()
 	
 if __name__ == '__main__':
 
@@ -486,7 +486,7 @@ if __name__ == '__main__':
 
 	myExp = myExperiment(EYETRACKING, PRACTICE, EXP_ID, AUTOWHEEL)
 
-	viz.callback(viz.EXIT_EVENT,CloseConnections, myExp.EYETRACKING)
+	#viz.callback(viz.EXIT_EVENT,CloseConnections, myExp.EYETRACKING)
 
 	viztask.schedule(myExp.runtrials())
 
