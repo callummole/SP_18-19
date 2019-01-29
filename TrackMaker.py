@@ -78,6 +78,9 @@ class Bend():
 
         self.midline[:,0] = np.add(self.midline[:,0], translate)
         
+        #ensure all bends start invisible.
+        self.ToggleVisibility(viz.OFF)
+
 
         #put default widths if not given
 
