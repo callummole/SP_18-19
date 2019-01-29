@@ -43,7 +43,7 @@ class Bend():
 
 
         if self.RoadWidth == 0:
-            self.MidlineEdge = self.EdgeMaker([self.RoadStart[0],.1,self.RoadStart[1], self.Rads, primitive_width)
+            self.MidlineEdge = self.EdgeMaker([self.RoadStart[0],.1,self.RoadStart[1]], self.Rads, primitive_width)
             self.InsideEdge = None
             self.OutsideEdge = None
         else:
@@ -70,12 +70,12 @@ class Bend():
         print ("CurveOrigin: ", self.CurveOrigin)
 
         #this requires translating the bend position and the midline by the radius, in the opposite direction of X_direction.
-        if self.RoadWidth == 0
+        if self.RoadWidth == 0:
             self.MidlineEdge.setPosition([translate, 0, 0], mode = viz.REL_LOCAL)    
         else:
             self.InsideEdge.setPosition([translate, 0, 0], mode = viz.REL_LOCAL)
             self.OutsideEdge.setPosition([translate, 0, 0], mode = viz.REL_LOCAL)
-            
+
         self.midline[:,0] = np.add(self.midline[:,0], translate)
         
 
@@ -120,5 +120,8 @@ class Bend():
     def ToggleVisibility(self, visible = viz.ON):
         """switches bends off or on"""
 
-        self.InsideEdge.visible(visible)
-        self.OutsideEdge.visible(visible)
+        if self.RoadWidth == 0:
+            self.MidlineEdge.visible(visible)
+        else:
+            self.InsideEdge.visible(visible)
+            self.OutsideEdge.visible(visible)

@@ -127,11 +127,11 @@ def BendMaker(radlist):
 	grey = [.8,.8,.8]	
 
 	for r in radlist:
-		rightbend = Bend(startpos = [0,0], rads = r, x_dir = 1, colour = viz.RED, road_width=0)
+		rightbend = Bend(startpos = [0,0], rads = r, x_dir = 1, colour = grey, road_width=0)
 			
 		rightbendlist.append(rightbend)
 
-		leftbend = Bend(startpos = [0,0], rads = r, x_dir = -1, colour = viz.BLUE, road_width=0)
+		leftbend = Bend(startpos = [0,0], rads = r, x_dir = -1, colour = grey, road_width=0)
 		
 			
 		leftbendlist.append(leftbend)
@@ -148,7 +148,7 @@ class myExperiment(viz.EventClass):
 		self.PRACTICE = practice		
 		self.EXP_ID = exp_id
 
-		if EYETRACKING == False:	
+		if EYETRACKING == True:	
 			LoadEyetrackingModules()
 
 		self.PP_id = ppid
@@ -183,10 +183,11 @@ class myExperiment(viz.EventClass):
 
 		self.callback(viz.TIMER_EVENT,self.updatePositionLabel)
 		self.starttimer(0,0,viz.FOREVER) #self.update position label is called every frame.
+		self.Pause_Timer = True
 		
 		####### DATA SAVING ######
 		datacolumns = ['ppid', 'radius','yawrate_offset','trialn','timestamp','trialtype_signed','World_x','World_z','WorldYaw','SWA','YawRate_seconds','TurnAngle_frames','Distance_frames','dt']
-		self.Output = pd.DataFrame(columns=datacolumns) #make new empty EndofTrial data
+		self.Output = pd.DataFrame(index = range(self.TrialLength*60), columns=datacolumns) #make new empty EndofTrial data
 
 		### parameters that are set at the start of each trial ####
 		self.Trial_radius = 0
@@ -220,6 +221,7 @@ class myExperiment(viz.EventClass):
 			yield run_accuracy(comms, filename)		
 
 		self.driver = vizdriver.Driver(self.caveview)	
+		self.Pause_Timer = False
 
 		
 		viz.MainScene.visible(viz.ON,viz.WORLD)		
@@ -297,13 +299,18 @@ class myExperiment(viz.EventClass):
 		self.Current_pos_x, self.Current_pos_z, self.Current_yaw, self.Current_SWA, self.Current_YawRate_seconds, self.Current_TurnAngle_frames, 
 		self.Current_distance, self.Current_dt] #output array.
 		
-		self.Output.loc[self.Current_RowIndex,:] = output #this dataframe is actually just one line. 		
+		print ("length of output: ", len(output))
+		print ("size of self.Output: ", self.Output.shape)
+
+		self.Output.loc[self.Current_RowIndex,:] = np.array(output) #this dataframe is actually just one line. 		
 	
 	def SaveData(self):
 
 		"""Saves Current Dataframe to csv file"""
 
-		fname = 'Data//Midline_' + self.Trial_radius + '_' + self.Trial_N + '.csv'
+		self.Output = self.Output.dropna() #drop any trailing space.
+
+		fname = 'Data//Midline_' + str(self.Trial_radius) + '_' + str(self.Trial_N) + '.csv'
 		self.Output.to_csv(fname)
 
 	def updatePositionLabel(self, num):
@@ -312,28 +319,31 @@ class myExperiment(viz.EventClass):
 
 		"""Here need to bring in steering bias updating from Trout as well"""
 
-		#print("UpdatingPosition...")	
-		#update driver view.
-		UpdateValues = self.driver.UpdateView() #update view and return values used for update
+
+		if not self.Pause_Timer:
 		
-		# get head position(x, y, z)
-		pos = self.caveview.getPosition()				
-		ori = self.getNormalisedEuler()	
-									
-		### #update Current parameters ####
-		self.Current_pos_x = pos[0]
-		self.Current_pos_z = pos[2]
-		self.Current_SWA = UpdateValues[4]
-		self.Current_yaw = ori
-		self.Current_RowIndex += 1
-		self.Current_Time = viz.tick()
-		self.Current_YawRate_seconds = UpdateValues[0]
-		self.Current_TurnAngle_frames = UpdateValues[1]
-		self.Current_distance = UpdateValues[2]
-		self.Current_dt = UpdateValues[3]
+			#print("UpdatingPosition...")	
+			#update driver view.
+			UpdateValues = self.driver.UpdateView() #update view and return values used for update
+			
+			# get head position(x, y, z)
+			pos = self.caveview.getPosition()				
+			ori = self.getNormalisedEuler()	
+										
+			### #update Current parameters ####
+			self.Current_pos_x = pos[0]
+			self.Current_pos_z = pos[2]
+			self.Current_SWA = UpdateValues[4]
+			self.Current_yaw = ori
+			self.Current_RowIndex += 1
+			self.Current_Time = viz.tick()
+			self.Current_YawRate_seconds = UpdateValues[0]
+			self.Current_TurnAngle_frames = UpdateValues[1]
+			self.Current_distance = UpdateValues[2]
+			self.Current_dt = UpdateValues[3]
 
 
-		self.RecordData() #write a line in the dataframe.	
+			self.RecordData() #write a line in the dataframe.	
 
 def CloseConnections(EYETRACKING):
 	
@@ -349,7 +359,7 @@ def CloseConnections(EYETRACKING):
 if __name__ == '__main__':
 
 	###### SET EXPERIMENT OPTIONS ######	
-	EYETRACKING = True
+	EYETRACKING = False
 	PRACTICE = True
 	TILING = False
 	EXP_ID = "Orca18"
