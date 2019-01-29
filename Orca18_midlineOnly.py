@@ -188,6 +188,7 @@ class myExperiment(viz.EventClass):
 		####### DATA SAVING ######
 		datacolumns = ['ppid', 'radius','yawrate_offset','trialn','timestamp','trialtype_signed','World_x','World_z','WorldYaw','SWA','YawRate_seconds','TurnAngle_frames','Distance_frames','dt']
 		self.Output = pd.DataFrame(index = range(self.TrialLength*60), columns=datacolumns) #make new empty EndofTrial data
+		#self.Output = pd.DataFrame(columns=datacolumns) #make new empty EndofTrial data
 
 		### parameters that are set at the start of each trial ####
 		self.Trial_radius = 0
@@ -299,10 +300,11 @@ class myExperiment(viz.EventClass):
 		self.Current_pos_x, self.Current_pos_z, self.Current_yaw, self.Current_SWA, self.Current_YawRate_seconds, self.Current_TurnAngle_frames, 
 		self.Current_distance, self.Current_dt] #output array.
 		
-		print ("length of output: ", len(output))
-		print ("size of self.Output: ", self.Output.shape)
+		#print ("length of output: ", len(output))
+		#print ("size of self.Output: ", self.Output.shape)
 
-		self.Output.loc[self.Current_RowIndex,:] = np.array(output) #this dataframe is actually just one line. 		
+		#print(output)
+		self.Output.loc[self.Current_RowIndex,:] = output #this dataframe is actually just one line. 		
 	
 	def SaveData(self):
 
@@ -334,7 +336,7 @@ class myExperiment(viz.EventClass):
 			self.Current_pos_x = pos[0]
 			self.Current_pos_z = pos[2]
 			self.Current_SWA = UpdateValues[4]
-			self.Current_yaw = ori
+			self.Current_yaw = ori[0]
 			self.Current_RowIndex += 1
 			self.Current_Time = viz.tick()
 			self.Current_YawRate_seconds = UpdateValues[0]
