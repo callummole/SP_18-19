@@ -222,18 +222,16 @@ class myExperiment(viz.EventClass):
 			yield run_accuracy(comms, filename)		
 
 		self.driver = vizdriver.Driver(self.caveview)	
-		self.Pause_Timer = False
-
-		
 		viz.MainScene.visible(viz.ON,viz.WORLD)		
-	
+
+		yield viztask.waitTime(self.TrialLength) #
+						
+
 		#add text to denote conditons.
 		txtCondt = viz.addText("Condition",parent = viz.SCREEN)
 		txtCondt.setPosition(.7,.2)
 		txtCondt.fontSize(36)		
 
-		if self.EYETRACKING:
-			comms.start_trial()
 		
 		for i, trialtype_signed in enumerate(self.TRIALSEQ_signed):
 			#import vizjoy		
@@ -249,7 +247,7 @@ class myExperiment(viz.EventClass):
 
 			txtDir = ""
 			
-			print ("Length of bend array:", len(self.rightbends))
+			#print ("Length of bend array:", len(self.rightbends))
 
 			radius_index = self.FACTOR_radiiPool.index(trial_radii)
 
@@ -260,6 +258,8 @@ class myExperiment(viz.EventClass):
 			else:
 				trialbend = self.leftbends[radius_index]
 				txtDir = "L"
+
+			trialbend.ToggleVisibility(viz.ON)
 						
 			if trial_radii > 0: #if trial_radii is above zero it is a bend, not a straight 
 				msg = "Radius: " + str(trial_radii) + txtDir + '_' + str(trial_yawrate_offset)
@@ -273,7 +273,16 @@ class myExperiment(viz.EventClass):
 			self.Trial_YawRate_Offset = trial_yawrate_offset			
 			self.Trial_BendObject = trialbend			
 
-			yield viztask.waitTime(self.TrialLength) #wait for input .		
+			if self.EYETRACKING:
+				comms.start_trial()
+
+			self.Pause_Timer = False
+
+			yield viztask.waitTime(self.TrialLength) #wait for input .	
+
+			self.Pause_Timer = True
+			
+			self.Trial_BendObject.ToggleVisibility(viz.OFF)	
 	
 		#loop has finished.
 		CloseConnections(self.EYETRACKING)
