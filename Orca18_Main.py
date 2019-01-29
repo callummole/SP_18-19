@@ -32,7 +32,6 @@ import vizact
 import vizmat
 import myCave
 import pandas as pd
-import logitech_wheel_threaded
 from TrackMaker import Bend
 #import PPinput
 
@@ -63,6 +62,23 @@ def LoadCave():
 	cave = myCave.initCave()
 	caveview = cave.getCaveView()
 	return (caveview)
+
+def LoadAutomationModules():
+
+	"""Loads automation modules and initialises automation thread"""
+
+	import logitech_wheel_threaded
+	
+	handle = viz.window.getHandle()
+	mywheel = logitech_wheel_threaded.steeringWheelThreaded(handle)	
+	mywheel.init() #Initialise the wheel
+	mywheel.start() #Start the wheels thread
+
+	#centre the wheel at start of experiment
+	mywheel.set_position(0) #Set the pd control target
+	mywheel.control_on()
+
+	return(mywheel)
 
 def GenerateConditionLists(FACTOR_radiiPool, FACTOR_YawRate_offsets, TrialsPerCondition):
 	"""Based on two factor lists and TrialsPerCondition, create a factorial design and return trialarray and condition lists"""
@@ -96,7 +112,6 @@ def GenerateConditionLists(FACTOR_radiiPool, FACTOR_YawRate_offsets, TrialsPerCo
 def setStage():
 	
 	"""Creates grass textured groundplane"""
-	
 	
 	###should set this hope so it builds new tiles if you are reaching the boundary.
 	fName = 'C:/VENLAB data/shared_modules/textures/strong_edge.bmp'
@@ -163,20 +178,11 @@ class myExperiment(viz.EventClass):
 		#### PERSPECTIVE CORRECT ######
 		self.caveview = LoadCave() #this module includes viz.go()
 
+		
 		if self.AUTOWHEEL:
-	
-			handle = viz.window.getHandle()
-			mywheel = logitech_wheel_threaded.steeringWheelThreaded(handle)	
-			mywheel.init() #Initialise the wheel
-			mywheel.start() #Start the wheels thread
-
-			#centre the wheel at start of experiment
-			mywheel.set_position(0) #Set the pd control target
-			mywheel.control_on()
+			self.Wheel = LoadAutomationModules()
 		else:
-			mywheel = None
-
-		self.Wheel = mywheel
+			self.Wheel = None		
 
 		# #BirdsEye
 		# self.caveview.setPosition([0,100,0])
