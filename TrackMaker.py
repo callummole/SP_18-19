@@ -5,7 +5,7 @@ import numpy as np
 class Bend():
 
     def __init__(self, startpos, rads, size = 500,  x_dir = 1, z_dir = 1, colour = viz.WHITE, primitive = viz.QUAD_STRIP, primitive_width=None, road_width = 3.0):
-        """Returns a  bend of a specific road width, with functions to set the visibility, position, or Euler of both edges at once"""	
+        """Returns a  bend of a specific road width, with functions to set the visibility, position, or Euler of both edges at once. Put road_width to 0 for single edge"""	
 
         #make sign -1 if you want a left bend.
         #improve to have a flag if it's a quad, and the quad width.
@@ -14,7 +14,10 @@ class Bend():
         self.RoadStart = startpos
         self.RoadSize_Pts = size
         self.RoadWidth = road_width		
-        self.HalfRoadWidth = road_width/2.0		
+        if self.RoadWidth == 0:
+            self.HalfRoadWidth = 0
+        else:
+            self.HalfRoadWidth = road_width/2.0		
         self.Rads = rads
         self.X_direction = x_dir
 
@@ -27,12 +30,6 @@ class Bend():
         self.colour = colour
         self.primitive = primitive
         self.primitive_width = primitive_width
-
-        self.InsideEdge_Rads = self.Rads-(self.HalfRoadWidth)
-        self.InsideEdge_Start = [self.RoadStart[0]-self.HalfRoadWidth,.1, self.RoadStart[1]] 
-
-        self.OutsideEdge_Rads = self.Rads+(self.RoadWidth/2.0)
-        self.OutsideEdge_Start = [self.RoadStart[0]+self.HalfRoadWidth,.1, self.RoadStart[1]]
         
         if primitive_width is None:
             if primitive == viz.QUAD_STRIP:
@@ -44,14 +41,28 @@ class Bend():
                 viz.linewidth(self.primitive_width)
                 primitive_width = 0 #so I can use the same code below for both primitive types.		
 
-        self.InsideEdge = self.EdgeMaker(self.InsideEdge_Start, self.InsideEdge_Rads, primitive_width)
-        self.OutsideEdge = self.EdgeMaker(self.OutsideEdge_Start, self.OutsideEdge_Rads, primitive_width)
 
-        #make it so both edges have the same center. The setCenter is in local coordinates
-        self.InsideEdge.setCenter([-self.HalfRoadWidth, 0, 0])
-        self.OutsideEdge.setCenter([+self.HalfRoadWidth, 0, 0])		
+        if self.RoadWidth == 0:
+            self.MidlineEdge = self.EdgeMaker([self.RoadStart[0],.1,self.RoadStart[1], self.Rads, primitive_width)
+            self.InsideEdge = None
+            self.OutsideEdge = None
+        else:
+            self.InsideEdge_Rads = self.Rads-(self.HalfRoadWidth)
+            self.InsideEdge_Start = [self.RoadStart[0]-self.HalfRoadWidth,.1, self.RoadStart[1]] 
+
+            self.OutsideEdge_Rads = self.Rads+(self.RoadWidth/2.0)
+            self.OutsideEdge_Start = [self.RoadStart[0]+self.HalfRoadWidth,.1, self.RoadStart[1]]
+
+            self.InsideEdge = self.EdgeMaker(self.InsideEdge_Start, self.InsideEdge_Rads, primitive_width)
+            self.OutsideEdge = self.EdgeMaker(self.OutsideEdge_Start, self.OutsideEdge_Rads, primitive_width)
+
+            #make it so both edges have the same center. The setCenter is in local coordinates
+            self.InsideEdge.setCenter([-self.HalfRoadWidth, 0, 0])
+            self.OutsideEdge.setCenter([+self.HalfRoadWidth, 0, 0])		
+
+            self.MidlineEdge = None
+        
         self.midline = self.MidlineMaker()
-
         
         #CurveOrigin always starts at zero. We need to make it so curve origin equals the following.
         translate = self.Rads * self.X_direction
@@ -59,9 +70,12 @@ class Bend():
         print ("CurveOrigin: ", self.CurveOrigin)
 
         #this requires translating the bend position and the midline by the radius, in the opposite direction of X_direction.
-        
-        self.InsideEdge.setPosition([translate, 0, 0], mode = viz.REL_LOCAL)
-        self.OutsideEdge.setPosition([translate, 0, 0], mode = viz.REL_LOCAL)
+        if self.RoadWidth == 0
+            self.MidlineEdge.setPosition([translate, 0, 0], mode = viz.REL_LOCAL)    
+        else:
+            self.InsideEdge.setPosition([translate, 0, 0], mode = viz.REL_LOCAL)
+            self.OutsideEdge.setPosition([translate, 0, 0], mode = viz.REL_LOCAL)
+            
         self.midline[:,0] = np.add(self.midline[:,0], translate)
         
 
