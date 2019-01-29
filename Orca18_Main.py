@@ -238,7 +238,6 @@ class myExperiment(viz.EventClass):
 		self.Current_distance = 0
 		self.Current_dt = 0
 
-
 		#playback variables.
 		self.playbackindex = 0 #could use section index for this? 				
 		self.playbackdata = "" #filename.
@@ -246,11 +245,8 @@ class myExperiment(viz.EventClass):
 		self.AUTOMATION = True
 		#for now, for ease use one file.
 		self.SWA_readout = self.playbackdata.get("SWA")
-		self.SWA_readout = len(self.SWA_readout)
-
-		
-		
-
+		self.YR_readout = self.playbackdata.get("YawRate_seconds")
+		self.playbacklength = len(self.SWA_readout)		
 
 		#self.callback(viz.EXIT_EVENT,self.SaveData) #if exited, save the data. 
 
@@ -328,8 +324,19 @@ class myExperiment(viz.EventClass):
 
 			self.UPDATELOOP = True #
 
-			yield viztask.waitTime(self.TrialLength) #wait for input .	
+			def PlaybackReached():
+				"""checks whether playback is reached"""
 
+				end = False
+				if self.playbackindex >= self.playbacklength:
+					end = True
+				return(end)
+
+			yield viztask.waitTrue( PlaybackReached )
+
+
+			##### END TRIAL ######
+			
 			self.UPDATELOOP = False
 			
 			self.Trial_BendObject.ToggleVisibility(viz.OFF)	
@@ -345,6 +352,7 @@ class myExperiment(viz.EventClass):
 			
 			#reset row index.
 			self.Current_RowIndex = 0
+			self.playbackindex = 0
 
 			self.ResetDriverPosition()
 			#self.SaveData(trialdata)
@@ -418,10 +426,19 @@ class myExperiment(viz.EventClass):
 			if self.AUTOMATION:
 				
 				newSWApos = self.SWA_readout[self.playbackindex]
-				self.Wheel.set_position(newSWApos)
-				self.playbackindex += 1
 
-			UpdateValues = self.driver.UpdateView() #update view and return values used for update
+				#print ("Setting SWA position: ", newSWApos)
+				
+				self.Wheel.set_position(newSWApos)				
+				newyawrate = self.YR_readout[self.playbackindex]
+				
+				self.playbackindex += 1
+				
+			else:
+				newyawrate = None
+				
+
+			UpdateValues = self.driver.UpdateView(YR_input = newyawrate) #update view and return values used for update
 			
 			# get head position(x, y, z)
 			pos = self.caveview.getPosition()				
@@ -451,6 +468,9 @@ def CloseConnections(EYETRACKING):
 	 	comms.stop_trial() #closes recording			
 	
 	#kill automation
+	if AUTOWHEEL:
+		self.Wheel.thread_kill() #This one is mission critical - else the thread will keep going 
+		self.Wheel.shutdown()
 	viz.quit()
 	
 if __name__ == '__main__':

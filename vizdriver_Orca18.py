@@ -65,7 +65,7 @@ class Driver(viz.EventClass):
 		
 		gas = data[1]
 
-	def UpdateView(self):
+	def UpdateView(self, YR_input = None):
 		elapsedTime = viz.elapsed()
 
 		yawrate = 0.0
@@ -98,7 +98,10 @@ class Driver(viz.EventClass):
 	#		#Compute drag
 	#		drag = self.__speed / 300.0
 			self.__dir = 1
-			yawrate = self.__dir * SteeringWheelValue  * 35.0 #max wheel lock is 35degrees per s yawrate
+			if YR_input is not None: #provides the opportunity to pass a yaw rate to the driver.
+				yawrate = YR_input
+			else:
+				yawrate = self.__dir * SteeringWheelValue  * 35.0 #max wheel lock is 35degrees per s yawrate
 			turnangle = yawrate * dt
 			self.__heading += turnangle
 		
@@ -139,6 +142,9 @@ class Driver(viz.EventClass):
 			return e.button			
 		if e.button in JOY_FIRE_BUTTONS:
 			button = e.button # do nothing
+
+		print ("Presssed: ", e.button)
+
 
 	def resetHeading(self):
 		self.__heading = 0.0
