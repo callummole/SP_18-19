@@ -31,7 +31,7 @@ class Driver(viz.EventClass):
 		#self.callback(viz.TIMER_EVENT,self.__ontimer)
 		self.callback(viz.KEYDOWN_EVENT,self.keyDown) #enables control with the keyboard
 		self.callback(vizjoy.BUTTONDOWN_EVENT,self.joyDown) 
-		self.callback(vizjoy.MOVE_EVENT,self.joymove)
+		#self.callback(vizjoy.MOVE_EVENT,self.joymove)
 		#self.starttimer(0,0,viz.FOREVER)
 
 		global joy
@@ -49,12 +49,12 @@ class Driver(viz.EventClass):
 		self.__heading = 0.0
 		self.__dir = 1.0
 		turnrate = 0.0
-		self.__view.reset(viz.BODY_ORI) 
-				
-		self.__view = viz.MainView
-		
-		self.__view.reset(viz.HEAD_POS|viz.BODY_ORI)
-		self.__pause = -50
+		#self.__view.reset(viz.BODY_ORI) 
+
+		self.__view.setPosition([0,0,0])
+		self.__view.setEuler([0,0,0])
+
+		self.__pause = 0#-50
 		
 		#self.__view = viz.MainView.setPosition(0,1.20,0) ##CHANGE EYE-HEIGHT FROM HERE
 		# self.__view = viz.MainView.setPosition(0,1.20,0) ##CHANGE EYE-HEIGHT FROM HERE
