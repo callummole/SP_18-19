@@ -159,7 +159,7 @@ def BendMaker(radlist):
 
 class myExperiment(viz.EventClass):
 
-	def __init__(self, eyetracking, practice, exp_id, autowheel, ppid = 1):
+	def __init__(self, eyetracking, practice, exp_id, autowheel, debug, ppid = 1):
 
 		viz.EventClass.__init__(self)
 	
@@ -167,6 +167,7 @@ class myExperiment(viz.EventClass):
 		self.PRACTICE = practice		
 		self.EXP_ID = exp_id
 		self.AUTOWHEEL = autowheel
+		self.DEBUG = debug
 
 
 		if EYETRACKING == True:	
@@ -250,6 +251,14 @@ class myExperiment(viz.EventClass):
 
 		self.callback(viz.EXIT_EVENT,self.CloseConnections) #if exited, save the data. 
 
+
+		if self.DEBUG:
+			#add text to denote status.
+			self.txtStatus = viz.addText("Condition",parent = viz.SCREEN)
+			self.txtStatus.setPosition(.7,.2)
+			self.txtStatus.fontSize(36)		
+			
+
 	def runtrials(self):
 		"""Loops through the trial sequence"""
 		
@@ -261,13 +270,9 @@ class myExperiment(viz.EventClass):
 
 		self.driver = vizdriver.Driver(self.caveview)	
 		viz.MainScene.visible(viz.ON,viz.WORLD)		
-						
-
-		#add text to denote conditons.
-		txtCondt = viz.addText("Condition",parent = viz.SCREEN)
-		txtCondt.setPosition(.7,.2)
-		txtCondt.fontSize(36)		
-
+		
+		if self.DEBUG:
+			self.txtStatus.message("Automation Start")
 		
 		if self.EYETRACKING: 
 			comms.start_trial()
@@ -359,17 +364,28 @@ class myExperiment(viz.EventClass):
 			d = yield viztask.waitAny( [ waitPlayback, waitDisengage ] )		
         
 			if d.condition is waitPlayback:
-				print 'Playback Limit Reached'
+				print ('Playback Limit Reached')
 			elif d.condition is waitDisengage:
-				print 'Automation Disengaged'
-			
-				#if user has disengaged, then switch off the control and wait a wee while.
+				print ('Automation Disengaged')
 
 				#use waitAny again: check for running out of road or taking over.
-				if self.AUTOMATION == False: #the user has disengaged.
-					pass
-			
+				def RoadRunout():
+					"""temporary hack function to check whether the participant has ran out of road"""
 
+					end = False
+					if viz.tick() > 15:
+						end = True
+					
+					return(end)
+
+				waitRoad = viztask.waitTrue (RoadRunout)
+				waitManual = viztask.waitTime(5)
+
+				d = yield viztask.waitAny( [ waitRoad, waitManual ] )
+				if d.condition is waitRoad:
+					print ('Run out of Road')
+				elif d.condition is waitManual:
+					print ('Manual Time Elapsed')
 
 			##### END TRIAL ######
 			
@@ -516,11 +532,12 @@ if __name__ == '__main__':
 	AUTOWHEEL = True
 	PRACTICE = True	
 	EXP_ID = "Orca18"
+	DEBUG = True
 
 	if PRACTICE == True: # HACK
 		EYETRACKING = False 
 
-	myExp = myExperiment(EYETRACKING, PRACTICE, EXP_ID, AUTOWHEEL)
+	myExp = myExperiment(EYETRACKING, PRACTICE, EXP_ID, AUTOWHEEL, DEBUG)
 
 	#viz.callback(viz.EXIT_EVENT,CloseConnections, myExp.EYETRACKING)
 
