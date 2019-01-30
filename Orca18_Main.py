@@ -271,9 +271,7 @@ class myExperiment(viz.EventClass):
 		self.driver = vizdriver.Driver(self.caveview)	
 		viz.MainScene.visible(viz.ON,viz.WORLD)		
 		
-		if self.DEBUG:
-			self.txtStatus.message("Automation Start")
-		
+	
 		if self.EYETRACKING: 
 			comms.start_trial()
 		
@@ -328,6 +326,9 @@ class myExperiment(viz.EventClass):
 			self.driver.setAutomation(True)
 			self.Wheel.control_on()
 
+			if self.DEBUG:
+				self.txtStatus.message("Automation")
+
 			#here we need to annotate eyetracking recording.
 
 			self.UPDATELOOP = True #
@@ -338,7 +339,7 @@ class myExperiment(viz.EventClass):
 				end = False
 
 				#check whether automation has been switched off. 				
-				elif self.playbackindex >= self.playbacklength:
+				if self.playbackindex >= self.playbacklength:
 					end = True
 
 				return(end)
@@ -367,6 +368,9 @@ class myExperiment(viz.EventClass):
 				print ('Playback Limit Reached')
 			elif d.condition is waitDisengage:
 				print ('Automation Disengaged')
+				
+				if self.DEBUG:
+					self.txtStatus.message("Manual")
 
 				#use waitAny again: check for running out of road or taking over.
 				def RoadRunout():
