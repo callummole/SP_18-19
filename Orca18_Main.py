@@ -324,10 +324,11 @@ class myExperiment(viz.EventClass):
 			yield viztask.waitTime(.5) #pause at beginning of trial
 
 			self.driver.setAutomation(True)
+			self.AUTOMATION = True
 			self.Wheel.control_on()
 
 			if self.DEBUG:
-				self.txtStatus.message("Automation")
+				self.txtStatus.message("Automation:" + str(self.AUTOMATION))
 
 			#here we need to annotate eyetracking recording.
 
@@ -370,10 +371,10 @@ class myExperiment(viz.EventClass):
 				print ('Automation Disengaged')
 				
 				if self.DEBUG:
-					self.txtStatus.message("Manual")
+					self.txtStatus.message("Automation:" + str(self.AUTOMATION))
 
 				#use waitAny again: check for running out of road or taking over.
-				def RoadRunout(self):
+				def RoadRunout():
 					"""temporary hack function to check whether the participant has ran out of road"""
 
 					end = False
