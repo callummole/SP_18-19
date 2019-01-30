@@ -80,48 +80,47 @@ class Driver(viz.EventClass):
 		SteeringWheelValue = data[0] # on scale from -1 to 1.
 		gas = data[1]
 
-		if self.__automation:
-			#keep heading up to date.
-			ori = self.__view.getEuler()
-			self.__heading = ori[0]
-
-		elif not self.__automation:
-			if viz.key.isDown(viz.KEY_UP):
-				gas = -5
-			elif viz.key.isDown(viz.KEY_DOWN):
-				gas = 5
-			if viz.key.isDown(viz.KEY_LEFT): #rudimentary control with the left/right arrows. 
-				data[0] = -1
-			elif viz.key.isDown(viz.KEY_RIGHT):
-				data[0] = 1
 		
-	#		#Compute drag
-	#		drag = self.__speed / 300.0
-			self.__dir = 1
-			if YR_input is not None: #provides the opportunity to pass a yaw rate to the driver.
-				yawrate = YR_input
-			else:
-				yawrate = self.__dir * SteeringWheelValue  * 35.0 #max wheel lock is 35degrees per s yawrate
-			turnangle = yawrate * dt
-			self.__heading += turnangle
-		
-			self.__pause = self.__pause+1
-			#Update the viewpoint
-			if self.__pause > 0:
-								
-				distance = self.__speed * dt
+		#keep heading up to date.
+		ori = self.__view.getEuler()
+		self.__heading = ori[0]
 
-				#posnew = (0,0,self.__speed)
-				posnew = (0,0,distance)
-				eulernew = (self.__heading,0,0)
-				
-				self.__view.setPosition(posnew, viz.REL_LOCAL)
-				self.__view.setEuler(eulernew) 
-				
-			else:
-				self.__heading = 0.0
-				self.__dir = 1.0
-				turnangle = 0.0
+		if viz.key.isDown(viz.KEY_UP):
+			gas = -5
+		elif viz.key.isDown(viz.KEY_DOWN):
+			gas = 5
+		if viz.key.isDown(viz.KEY_LEFT): #rudimentary control with the left/right arrows. 
+			data[0] = -1
+		elif viz.key.isDown(viz.KEY_RIGHT):
+			data[0] = 1
+	
+#		#Compute drag
+#		drag = self.__speed / 300.0
+		self.__dir = 1
+		if (YR_input is not None) and (self.__automation == True): #provides the opportunity to pass a yaw rate to the driver.
+			yawrate = YR_input
+		else:
+			yawrate = self.__dir * SteeringWheelValue  * 35.0 #max wheel lock is 35degrees per s yawrate
+		turnangle = yawrate * dt
+		self.__heading += turnangle
+	
+		self.__pause = self.__pause+1
+		#Update the viewpoint
+		if self.__pause > 0:
+							
+			distance = self.__speed * dt
+
+			#posnew = (0,0,self.__speed)
+			posnew = (0,0,distance)
+			eulernew = (self.__heading,0,0)
+			
+			self.__view.setPosition(posnew, viz.REL_LOCAL)
+			self.__view.setEuler(eulernew) 
+			
+		else:
+			self.__heading = 0.0
+			self.__dir = 1.0
+			turnangle = 0.0
 
 		#return the values used in position update
 		UpdateValues = []
@@ -145,6 +144,10 @@ class Driver(viz.EventClass):
 
 		print ("Presssed: ", e.button)
 
+		self.__automation = False
+
+		print ("disengaged from automation")
+
 
 	def resetHeading(self):
 		self.__heading = 0.0
@@ -153,6 +156,11 @@ class Driver(viz.EventClass):
 
 		"""flag to disconnect wheel and visuals"""
 		self.__automation = Auto
+
+	
+	def getAutomation(self):
+		
+		return self.__automation
 
 	def getSpeed(self):
 		return self.__speed
