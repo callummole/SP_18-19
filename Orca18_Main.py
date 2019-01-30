@@ -212,6 +212,11 @@ class myExperiment(viz.EventClass):
 		self.callback(viz.TIMER_EVENT,self.updatePositionLabel)
 		self.starttimer(0,0,viz.FOREVER) #self.update position label is called every frame.
 		self.UPDATELOOP = False
+
+		#add audio files
+		self.manual_audio = viz.addAudio('C:/VENLAB data/shared_modules/textures/490.wav') #high beep to signal change
+		self.manual_audio.stoptime(.2) #cut it short for minimum interference.
+		self.manual_audio.volume(.5)
 		
 		####### DATA SAVING ######
 		datacolumns = ['ppid', 'radius','yawrate_offset','trialn','timestamp','trialtype_signed','World_x','World_z','WorldYaw','SWA','YawRate_seconds','TurnAngle_frames','Distance_frames','dt']
@@ -373,6 +378,7 @@ class myExperiment(viz.EventClass):
 				if self.DEBUG:
 					self.txtStatus.message("Automation:" + str(self.AUTOMATION))
 
+				viz.director(self.SingleBeep)		
 				#use waitAny again: check for running out of road or taking over.
 				def RoadRunout():
 					"""temporary hack function to check whether the participant has ran out of road"""
@@ -517,6 +523,11 @@ class myExperiment(viz.EventClass):
 
 
 			self.RecordData() #write a line in the dataframe.	
+				
+
+	def SingleBeep(self):
+		"""play single beep"""
+		self.manual_audio.play()
 
 	def CloseConnections(self):
 		
