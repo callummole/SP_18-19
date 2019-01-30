@@ -310,7 +310,7 @@ class myExperiment(viz.EventClass):
 				msg = "Radius: " + str(trial_radii) + txtDir + '_' + str(trial_yawrate_offset)
 			else:
 				msg = "Radius: Straight" + txtDir + '_' + str(trial_yawrate_offset)
-			txtCondt.message(msg)	
+#			txtCondt.message(msg)	
 
 			#update class#
 			self.Trial_N = i
@@ -373,11 +373,11 @@ class myExperiment(viz.EventClass):
 					self.txtStatus.message("Manual")
 
 				#use waitAny again: check for running out of road or taking over.
-				def RoadRunout():
+				def RoadRunout(self):
 					"""temporary hack function to check whether the participant has ran out of road"""
 
 					end = False
-					if viz.tick() > 15:
+					if self.Trial_Timer > 15:
 						end = True
 					
 					return(end)
@@ -406,9 +406,10 @@ class myExperiment(viz.EventClass):
 			#print (fname)
 			viz.director(self.SaveData, trialdata, fname)
 			
-			#reset row index.
+			#reset row index. and trial parameters
 			self.Current_RowIndex = 0
 			self.playbackindex = 0
+			self.Trial_Timer = 0 
 
 			self.ResetDriverPosition()
 			#self.SaveData(trialdata)
@@ -473,7 +474,8 @@ class myExperiment(viz.EventClass):
 		"""Timer function that gets called every frame. Updates parameters for saving"""
 
 		"""Here need to bring in steering bias updating from Trout as well"""
-
+		dt = viz.elapsed()
+		self.Trial_Timer = self.Trial_Timer + dt
 
 		if self.UPDATELOOP:
 		
