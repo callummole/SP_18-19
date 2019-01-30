@@ -320,19 +320,55 @@ class myExperiment(viz.EventClass):
 
 			yield viztask.waitTime(.5) #pause at beginning of trial
 
+			self.driver.setAutomation(True)
+			self.Wheel.control_on()
+
 			#here we need to annotate eyetracking recording.
 
 			self.UPDATELOOP = True #
 
 			def PlaybackReached():
-				"""checks whether playback is reached"""
+				"""checks for playback limit or whether automation has been disengaged"""
 
 				end = False
-				if self.playbackindex >= self.playbacklength:
-					end = True
-				return(end)
 
-			yield viztask.waitTrue( PlaybackReached )
+				#check whether automation has been switched off. 				
+				elif self.playbackindex >= self.playbacklength:
+					end = True
+
+				return(end)
+			
+			def CheckDisengage():
+				"""checks automation status of driver class """
+
+				end = False
+				auto = self.driver.getAutomation()
+				if auto == False:
+					
+					self.AUTOMATION = auto
+					#switch wheel control off, because user has disengaged
+					self.Wheel.control_off()
+					end = True
+				
+				return (end)
+
+			#create viztask functions.
+			waitPlayback = viztask.waitTrue( PlaybackReached )
+			waitDisengage = viztask.waitTrue( CheckDisengage )
+
+			d = yield viztask.waitAny( [ waitPlayback, waitDisengage ] )		
+        
+			if d.condition is waitPlayback:
+				print 'Playback Limit Reached'
+			elif d.condition is waitDisengage:
+				print 'Automation Disengaged'
+			
+				#if user has disengaged, then switch off the control and wait a wee while.
+
+				#use waitAny again: check for running out of road or taking over.
+				if self.AUTOMATION == False: #the user has disengaged.
+					pass
+			
 
 
 			##### END TRIAL ######
