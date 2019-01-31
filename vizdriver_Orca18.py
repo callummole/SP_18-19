@@ -155,11 +155,11 @@ class Driver(viz.EventClass):
 		if e.button in JOY_FIRE_BUTTONS:
 			button = e.button # do nothing
 
-		print ("Presssed: ", e.button)
+		print ("Pressed: ", e.button)
 
-		self.__automation = False
-
-		print ("disengaged from automation")
+		if e.button in (5,6):
+			self.__automation = False
+			print ("disengaged from automation")
 
 
 	def resetHeading(self):
