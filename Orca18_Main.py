@@ -33,7 +33,7 @@ import vizact
 import vizmat
 import myCave
 import pandas as pd
-from TrackMaker import Bend
+from TrackMaker import vizBend as Bend
 #import PPinput
 
 def LoadEyetrackingModules():
