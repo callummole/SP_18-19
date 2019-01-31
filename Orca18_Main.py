@@ -13,6 +13,7 @@ For motion through the virtual world - vizdriver.py
 
 """
 import sys
+from timeit import default_timer as timer
 
 rootpath = 'C:\\VENLAB data\\shared_modules\\Logitech_force_feedback'
 sys.path.append(rootpath)
@@ -210,7 +211,7 @@ class myExperiment(viz.EventClass):
 		self.rightbends = rightbends 
 
 		self.callback(viz.TIMER_EVENT,self.updatePositionLabel)
-		self.starttimer(0,0,viz.FOREVER) #self.update position label is called every frame.
+		self.starttimer(0,1.0/60.0,viz.FOREVER) #self.update position label is called every frame.
 		self.UPDATELOOP = False
 
 		#add audio files
@@ -360,7 +361,9 @@ class myExperiment(viz.EventClass):
 					
 					self.AUTOMATION = auto
 					#switch wheel control off, because user has disengaged
+					#begin = timer()
 					self.Wheel.control_off()
+					#print ("WheelControlOff", timer() - begin)
 					end = True
 				
 				return (end)
@@ -369,6 +372,7 @@ class myExperiment(viz.EventClass):
 			waitPlayback = viztask.waitTrue( PlaybackReached )
 			waitDisengage = viztask.waitTrue( CheckDisengage )
 
+			
 			d = yield viztask.waitAny( [ waitPlayback, waitDisengage ] )		
         
 			if d.condition is waitPlayback:
@@ -379,10 +383,13 @@ class myExperiment(viz.EventClass):
 				if self.DEBUG:
 					self.txtStatus.message("Automation:" + str(self.AUTOMATION))
 
-				viz.director(self.SingleBeep)		
+				#begin = timer()
+				viz.director(self.SingleBeep)
+				#print ("SingleBeep: ", timer()-begin)
 				#use waitAny again: check for running out of road or taking over.
+				#begin = timer()
 				def RoadRunout():
-					"""temporary hack function to check whether the participant has ran out of road"""
+					"""temporary HACK function to check whether the participant has ran out of road"""
 
 					end = False
 					if self.Trial_Timer > 15:
@@ -392,6 +399,8 @@ class myExperiment(viz.EventClass):
 
 				waitRoad = viztask.waitTrue (RoadRunout)
 				waitManual = viztask.waitTime(5)
+
+				#print ("Create function: ", timer()- begin)
 
 				d = yield viztask.waitAny( [ waitRoad, waitManual ] )
 				if d.condition is waitRoad:
@@ -484,6 +493,7 @@ class myExperiment(viz.EventClass):
 
 		"""Here need to bring in steering bias updating from Trout as well"""
 		dt = viz.elapsed()
+		print ("elapsed:", dt)
 		self.Trial_Timer = self.Trial_Timer + dt
 
 		if self.UPDATELOOP:
@@ -504,9 +514,9 @@ class myExperiment(viz.EventClass):
 			else:
 				newyawrate = None
 				
-
+			#begin = timer()
 			UpdateValues = self.driver.UpdateView(YR_input = newyawrate) #update view and return values used for update
-			
+			#print ("Update Values: ", timer() - begin)
 			# get head position(x, y, z)
 			pos = self.caveview.getPosition()				
 			ori = self.getNormalisedEuler()	
