@@ -106,7 +106,7 @@ def runSimulation(Course, yawrate_readout, yawrateoffset= 0):
     Car = vehicle(0.0, speed, dt, yawrate_readout, Course)
 
     i = 0
-    onset = 3 #in seconds
+    onset = 0 #in seconds
     crossed = False
     time_til_crossing = -1
     while time < run_time and crossed == False:
@@ -154,7 +154,7 @@ def plotCar(plt, Car):
 if __name__ == '__main__':
     
     #Create Bend
-    myrads = 80
+    myrads = 40
     Course = Bend(startpos = [0,0], rads = myrads, x_dir = 1, road_width=3.0) 
     
     #Plot Bend
