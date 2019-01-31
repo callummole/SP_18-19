@@ -219,7 +219,7 @@ class myExperiment(viz.EventClass):
 		self.manual_audio.volume(.5)
 		
 		####### DATA SAVING ######
-		datacolumns = ['ppid', 'radius','yawrate_offset','trialn','timestamp','trialtype_signed','World_x','World_z','WorldYaw','SWA','YawRate_seconds','TurnAngle_frames','Distance_frames','dt']
+		datacolumns = ['ppid', 'radius','yawrate_offset','trialn','timestamp','trialtype_signed','World_x','World_z','WorldYaw','SWA','YawRate_seconds','TurnAngle_frames','Distance_frames','dt', 'WheelCorrection']
 		self.datacolumns = datacolumns
 		self.Output = None #dataframe that gets renewed each trial.		
 		#self.Output = pd.DataFrame(columns=datacolumns) #make new empty EndofTrial data
@@ -243,6 +243,7 @@ class myExperiment(viz.EventClass):
 		self.Current_TurnAngle_frames = 0
 		self.Current_distance = 0
 		self.Current_dt = 0
+		self.Current_WheelCorrection = 0 # mismatch between virtual yawrate and real wheel angle. 
 
 		#playback variables.
 		self.playbackindex = 0 #could use section index for this? 				
@@ -454,7 +455,7 @@ class myExperiment(viz.EventClass):
 		#datacolumns = ['ppid', 'radius','occlusion','trialn','timestamp','trialtype_signed','World_x','World_z','WorldYaw','SWA']
 		output = [self.PP_id, self.Trial_radius, self.Trial_YawRate_Offset, self.Trial_N, self.Current_Time, self.Trial_trialtype_signed, 
 		self.Current_pos_x, self.Current_pos_z, self.Current_yaw, self.Current_SWA, self.Current_YawRate_seconds, self.Current_TurnAngle_frames, 
-		self.Current_distance, self.Current_dt] #output array.
+		self.Current_distance, self.Current_dt, self.Current_WheelCorrection] #output array.
 		
 		#print ("length of output: ", len(output))
 		#print ("size of self.Output: ", self.Output.shape)
@@ -520,6 +521,7 @@ class myExperiment(viz.EventClass):
 			self.Current_TurnAngle_frames = UpdateValues[1]
 			self.Current_distance = UpdateValues[2]
 			self.Current_dt = UpdateValues[3]
+			self.Current_WheelCorrection = UpdateValues[4]
 
 
 			self.RecordData() #write a line in the dataframe.	
