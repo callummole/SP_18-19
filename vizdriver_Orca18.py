@@ -18,6 +18,8 @@ class Driver(viz.EventClass):
 		self.__speed = 8.0 #m./s
 		self.__heading = 0.0
 		self.__pause = 0#pauses for 50 frames at the start of each trial
+
+		self.__Wheel_yawrate_adjustment = 0 #difference between real steering angle and virtual yaw-rate.
 		
 		self.__view = Cave
 		# self.__view = viz.MainView.setPosition(0,1.20,0) #Grabs the main graphics window
@@ -56,6 +58,8 @@ class Driver(viz.EventClass):
 
 		self.__pause = 0#-50
 		
+		self.__Wheel_yawrate_adjustment = 0
+
 		#self.__view = viz.MainView.setPosition(0,1.20,0) ##CHANGE EYE-HEIGHT FROM HERE
 		# self.__view = viz.MainView.setPosition(0,1.20,0) ##CHANGE EYE-HEIGHT FROM HERE
 		# self.__view = viz.MainView
@@ -99,8 +103,16 @@ class Driver(viz.EventClass):
 		self.__dir = 1
 		if (YR_input is not None) and (self.__automation == True): #provides the opportunity to pass a yaw rate to the driver.
 			yawrate = YR_input
+
+			Wheel_yawrate = self.__dir * SteeringWheelValue  * 35.0 #max wheel lock is 35degrees per s yawrate
+
+			self.__Wheel_yawrate_adjustment = yawrate - Wheel_yawrate #correction for any offset between virtual yawrate and yawrate as specified by the steering wheel angle.
 		else:
 			yawrate = self.__dir * SteeringWheelValue  * 35.0 #max wheel lock is 35degrees per s yawrate
+
+			#add adjustment for smooth take-over.
+			yawrate += self.__Wheel_yawrate_adjustment
+			
 		turnangle = yawrate * dt
 		self.__heading += turnangle
 	
@@ -129,6 +141,7 @@ class Driver(viz.EventClass):
 		UpdateValues.append(distance)
 		UpdateValues.append(dt)
 		UpdateValues.append(SteeringWheelValue)
+		UpdateValues.append(self.__Wheel_yawrate_adjustment)
 
 		return (UpdateValues)
 
