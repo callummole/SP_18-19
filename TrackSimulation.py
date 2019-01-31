@@ -73,6 +73,8 @@ class vehicle:
         y_change = self.speed * self.dt * np.cos(self.yaw)
         
         self.pos = self.pos + np.array([x_change, y_change]) 
+
+        self.currenterror, self.closestpt = self.calculatebias()
         
         self.save_history()
     
@@ -104,7 +106,10 @@ def runSimulation(Course, yawrate_readout, yawrateoffset= 0):
     Car = vehicle(0.0, speed, dt, yawrate_readout, Course)
 
     i = 0
-    while time < run_time:
+    onset = 3 #in seconds
+    crossed = False
+    time_til_crossing = -1
+    while time < run_time and crossed == False:
         
        # print i
         time += dt        
@@ -113,12 +118,16 @@ def runSimulation(Course, yawrate_readout, yawrateoffset= 0):
 
         newyawrate = np.deg2rad(Car.yawrate_readout[i])
         
-        if time > 1:
+        if time > onset:
             newyawrate += yawrateoffset_rads
         
         Car.move_vehicle(newyawrate)           
+        
+        if crossed == False and abs(Car.currenterror) > 1.5:
+            time_til_crossing = time - onset
+            crossed = True
 
-    return Car
+    return Car, time_til_crossing
     
     #RMS = np.sqrt(np.mean(steeringbias**2))
 
@@ -133,38 +142,66 @@ def plotCar(plt, Car):
                         
     steeringbias = np.array(Car.error_history)
 
+    if max(abs(steeringbias)) > 1.5:
+        plt.plot(positions[:,0], positions[:,1], 'ro', markersize=.2)						
+    else:
+        plt.plot(positions[:,0], positions[:,1], 'go', markersize=.2)						
+
+
         
-    plt.plot(positions[:,0], positions[:,1], 'k.')						
+    
     
 if __name__ == '__main__':
-
     
     #Create Bend
-
-    Course = Bend(startpos = [0,0], rads = 40, x_dir = 1, road_width=3.0) 
+    myrads = 80
+    Course = Bend(startpos = [0,0], rads = myrads, x_dir = 1, road_width=3.0) 
     
     #Plot Bend
     plt.figure(1)
-    plt.plot(Course.midline[:,0], Course.midline[:,1], '--b')
+    plt.plot(Course.midline[:,0], Course.midline[:,1], '--k')
     
     xlimits = Course.CurveOrigin[0]*2
         
     plt.xlim([0-5, xlimits+5])
     plt.ylim([-Course.CurveOrigin[0]-5, Course.CurveOrigin[1]*2 + Course.CurveOrigin[0]+5])
-    plt.plot(Course.OutsideLine[:,0], Course.OutsideLine[:,1],'-r')
-    plt.plot(Course.InsideLine[:,0], Course.InsideLine[:,1],'-g')
-    plt.axis('equal')
-    
-
+    plt.plot(Course.OutsideLine[:,0], Course.OutsideLine[:,1],'-k')
+    plt.plot(Course.InsideLine[:,0], Course.InsideLine[:,1],'-k')
+    plt.axis('equal')    
+    plt.title("Radius: " + str(myrads))
 #
-    filename = "Midline_40_4.csv"
+    if myrads == 40:
+        filename = "Midline_40_4.csv" 
+    elif myrads == 80:
+        filename = "Midline_80_3.csv"
+    else:
+        raise Exception('Unrecognised radius')
     playbackdata = pd.read_csv("Data//"+filename) 	
     yawrate_readout = playbackdata.get("YawRate_seconds")
+
+    #yawrateoffsets = [-2, -1, 0, 1, 2] #in degrees per second
+    yawrateoffsets = np.linspace(-10,10,200)
+    simResults = np.empty([len(yawrateoffsets),2])
     
-    Car = runSimulation(Course, yawrate_readout)
+    for i,yr in enumerate(yawrateoffsets):        
+        Car, t = runSimulation(Course, yawrate_readout, yr)
+        #Plot Car
+        plotCar(plt, Car)
 
-    #Plot Car
-    plotCar(plt, Car)
+        simResults[i] = [yr, t]        
+        print ("Yr: ", yr, "Time til Crossing: ", t)
 
-    plt.show()
+    plt.savefig(str(myrads) + '_Trajs.png', dpi=800)
+    #plt.show()
+    
+    #plot yr and time til crossing functions.
+    plt.figure(2)
+    plt.plot(simResults[:,0], simResults[:,1], 'k-')
+    plt.xlabel("Yaw Rate Offset (deg/s)")
+    plt.ylabel("Time from Onset to Lane Crossing (s)")
+    plt.title("Radius: " + str(myrads))
+    plt.savefig(str(myrads) + '_Sims.png', dpi = 300)
+    #plt.show()
+    
+
     
