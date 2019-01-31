@@ -476,6 +476,8 @@ class myExperiment(viz.EventClass):
 		data = data.dropna() #drop any trailing space.		
 		data.to_csv(filename)
 
+		print ("Saved file: ", filename)
+
 	def updatePositionLabel(self, num):
 		
 		"""Timer function that gets called every frame. Updates parameters for saving"""
@@ -520,7 +522,7 @@ class myExperiment(viz.EventClass):
 			self.Current_TurnAngle_frames = UpdateValues[1]
 			self.Current_distance = UpdateValues[2]
 			self.Current_dt = UpdateValues[3]
-			self.Current_WheelCorrection = UpdateValues[4]
+			self.Current_WheelCorrection = UpdateValues[5]
 
 
 			self.RecordData() #write a line in the dataframe.	
