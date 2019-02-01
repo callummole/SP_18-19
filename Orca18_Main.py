@@ -560,9 +560,8 @@ class myExperiment(viz.EventClass):
 				
 				newSWApos = self.Trial_SWA_readout[self.Current_playbackindex]
 
-				#print ("Setting SWA position: ", newSWApos)
-				
-				self.Wheel.set_position(newSWApos)				
+				#print ("Setting SWA position: ", newSWApos)				
+							
 				newyawrate = self.Trial_YR_readout[self.Current_playbackindex]
 				
 				self.Current_playbackindex += 1
@@ -571,11 +570,15 @@ class myExperiment(viz.EventClass):
 				newyawrate = None
 				
 			#add yawrateoffset.
-			newyawrate += self.Trial_YawRate_Offset
+			if self.Trial_Timer > 4: #2 seconds into the bend.
+				newyawrate += self.Trial_YawRate_Offset
 
 			#begin = timer()
 			if self.Trial_trialtype_signed < 0: #left bend
-				newyawrate *= -1 #flip yaw-rate if it's a left bend. 
+				newyawrate *= -1 #flip yaw-rate and swa if it's a left bend. 
+				newSWApos *= -1
+
+			self.Wheel.set_position(newSWApos)	#set steering wheel to position.
 
 			UpdateValues = self.driver.UpdateView(YR_input = newyawrate) #update view and return values used for update
 			#print ("Update Values: ", timer() - begin)
