@@ -34,6 +34,7 @@ import vizmat
 import myCave
 import pandas as pd
 from vizTrackMaker import vizBend as Bend
+import random
 #import PPinput
 
 def LoadEyetrackingModules():
@@ -220,7 +221,7 @@ class myExperiment(viz.EventClass):
 		self.manual_audio.volume(.5)
 		
 		####### DATA SAVING ######
-		datacolumns = ['ppid', 'radius','yawrate_offset','trialn','timestamp','trialtype_signed','World_x','World_z','WorldYaw','SWA','YawRate_seconds','TurnAngle_frames','Distance_frames','dt', 'WheelCorrection', 'AutoFlag']
+		datacolumns = ['ppid', 'radius','yawrate_offset','trialn','timestamp','trialtype_signed','World_x','World_z','WorldYaw','SWA','YawRate_seconds','TurnAngle_frames','Distance_frames','dt', 'WheelCorrection', 'AutoFlag', 'AutoFile']
 		self.datacolumns = datacolumns
 		self.Output = None #dataframe that gets renewed each trial.		
 		#self.Output = pd.DataFrame(columns=datacolumns) #make new empty EndofTrial data
@@ -232,6 +233,11 @@ class myExperiment(viz.EventClass):
 		self.Trial_trialtype_signed = 0			
 		self.Trial_Timer = 0 #keeps track of trial length. 
 		self.Trial_BendObject = None		
+		self.Trial_playbackdata = []
+		self.Trial_YR_readout = []
+		self.Trial_playbacklength = 0
+		self.Trial_playbackfilename = ""
+
 		
 		#### parameters that are updated each timestamp ####
 		self.Current_pos_x = 0
@@ -249,12 +255,14 @@ class myExperiment(viz.EventClass):
 		#playback variables.
 		self.playbackindex = 0 #could use section index for this? 				
 		self.playbackdata = "" #filename.
-		self.OpenTrial("Midline_40_4.csv")
+		self.PlaybackPool40 = ["Midline_40_0.csv","Midline_40_1.csv","Midline_40_2.csv","Midline_40_3.csv","Midline_40_4.csv","Midline_40_5.csv"]
+		self.PlaybackPool80 = ["Midline_80_0.csv","Midline_80_1.csv","Midline_80_2.csv","Midline_80_3.csv","Midline_80_4.csv","Midline_80_5.csv"]
+		#self.OpenTrial("Midline_40_4.csv")
 		self.AUTOMATION = True
 		#for now, for ease use one file.
-		self.SWA_readout = self.playbackdata.get("SWA")
-		self.YR_readout = self.playbackdata.get("YawRate_seconds")
-		self.playbacklength = len(self.SWA_readout)		
+		#self.SWA_readout = self.playbackdata.get("SWA")
+		#self.YR_readout = self.playbackdata.get("YawRate_seconds")
+		#self.playbacklength = len(self.SWA_readout)		
 
 		self.callback(viz.EXIT_EVENT,self.CloseConnections) #if exited, save the data. 
 
@@ -325,6 +333,16 @@ class myExperiment(viz.EventClass):
 			self.Trial_YawRate_Offset = trial_yawrate_offset			
 			self.Trial_BendObject = trialbend	
 			self.Trial_trialtype_signed		
+
+			#pick file. Put this in dedicated function. TODO: Should open all of these at the start of the file to save on processing.
+			if self.Trial_radius == 80:
+				self.Trial_playbackfilename = random.choice(self.PlaybackPool80)
+				self.OpenTrial(self.Trial_playbackfilename)
+				self.Trial_YR_readout = self.playbackdata.get("Yawrate_seconds")
+			elif self.Trial_radius == 40:
+				self.Trial_playbackfilename = random.choice(self.PlaybackPool40)
+				self.OpenTrial(self.Trial_playbackfilename)
+				self.Trial_YR_readout = self.playbackdata.get("Yawrate_seconds")
 
 			#renew data frame.
 			self.Output = pd.DataFrame(index = range(self.TrialLength*60), columns=self.datacolumns) #make new empty EndofTrial data
@@ -464,7 +482,7 @@ class myExperiment(viz.EventClass):
 		#datacolumns = ['ppid', 'radius','occlusion','trialn','timestamp','trialtype_signed','World_x','World_z','WorldYaw','SWA']
 		output = [self.PP_id, self.Trial_radius, self.Trial_YawRate_Offset, self.Trial_N, self.Current_Time, self.Trial_trialtype_signed, 
 		self.Current_pos_x, self.Current_pos_z, self.Current_yaw, self.Current_SWA, self.Current_YawRate_seconds, self.Current_TurnAngle_frames, 
-		self.Current_distance, self.Current_dt, self.Current_WheelCorrection, self.AUTOMATION] #output array.
+		self.Current_distance, self.Current_dt, self.Current_WheelCorrection, self.AUTOMATION, self.Trial_playbackfilename] #output array.
 		
 		#print ("length of output: ", len(output))
 		#print ("size of self.Output: ", self.Output.shape)
@@ -508,7 +526,7 @@ class myExperiment(viz.EventClass):
 				#print ("Setting SWA position: ", newSWApos)
 				
 				self.Wheel.set_position(newSWApos)				
-				newyawrate = self.YR_readout[self.playbackindex]
+				newyawrate = self.Trial_YR_readout[self.playbackindex]
 				
 				self.playbackindex += 1
 				
