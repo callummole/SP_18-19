@@ -306,10 +306,10 @@ class myExperiment(viz.EventClass):
 				trialbend = self.rightbends[radius_index]
 				txtDir = "R"
 			else:
-				#trialbend = self.leftbends[radius_index]
-				#txtDir = "L"
-				trialbend = self.rightbends[radius_index]
-				txtDir = "R"
+				trialbend = self.leftbends[radius_index]
+				txtDir = "L"
+				#trialbend = self.rightbends[radius_index]
+				#txtDir = "R"
 
 			trialbend.ToggleVisibility(viz.ON)
 						
@@ -323,7 +323,8 @@ class myExperiment(viz.EventClass):
 			self.Trial_N = i
 			self.Trial_radius = trial_radii
 			self.Trial_YawRate_Offset = trial_yawrate_offset			
-			self.Trial_BendObject = trialbend			
+			self.Trial_BendObject = trialbend	
+			self.Trial_trialtype_signed		
 
 			#renew data frame.
 			self.Output = pd.DataFrame(index = range(self.TrialLength*60), columns=self.datacolumns) #make new empty EndofTrial data
@@ -518,6 +519,9 @@ class myExperiment(viz.EventClass):
 			newyawrate += self.Trial_YawRate_Offset
 
 			#begin = timer()
+			if self.Trial_trialtype_signed < 0: #left bend
+				newyawrate *= -1 #flip yaw-rate if it's a left bend. 
+
 			UpdateValues = self.driver.UpdateView(YR_input = newyawrate) #update view and return values used for update
 			#print ("Update Values: ", timer() - begin)
 			# get head position(x, y, z)
