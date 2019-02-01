@@ -432,7 +432,7 @@ class myExperiment(viz.EventClass):
 			#self.SaveData(trialdata)
 	
 		#loop has finished.
-		CloseConnections(self.EYETRACKING)
+		self.CloseConnections()
 		#viz.quit() 
 
 	def getNormalisedEuler(self):
@@ -516,7 +516,7 @@ class myExperiment(viz.EventClass):
 				
 			#add yawrateoffset.
 			newyawrate += self.Trial_YawRate_Offset
-			
+
 			#begin = timer()
 			UpdateValues = self.driver.UpdateView(YR_input = newyawrate) #update view and return values used for update
 			#print ("Update Values: ", timer() - begin)
