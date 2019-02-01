@@ -168,7 +168,7 @@ class myExperiment(viz.EventClass):
 
 
 		##### SET CONDITION VALUES #####
-		self.FACTOR_radiiPool = [80] # A sharp and gradual bend
+		self.FACTOR_radiiPool = [40] # A sharp and gradual bend
 		self.FACTOR_YawRate_offsets = [0] #6 yawrate offsets, specified in degrees per second.
 		self.TrialsPerCondition = 6
 		[trialsequence_signed, cl_radii, cl_yawrates]  = GenerateConditionLists(self.FACTOR_radiiPool, self.FACTOR_YawRate_offsets, self.TrialsPerCondition)
@@ -183,8 +183,8 @@ class myExperiment(viz.EventClass):
 
 
 		#### MAKE STRAIGHT OBJECT ####
-		length = 16 #2sec.
-		self.Straight = vizStraight(startpos = [0,0], road_width = 0, colour = [.8, .8, .8])
+		L = 16 #2sec.
+		self.Straight = vizStraight(startpos = [0,0], road_width = 0, length = 16, colour = [.8, .8, .8])
 		self.Straight.ToggleVisibility(viz.ON)
 
 		##### MAKE BEND OBJECTS #####
