@@ -3,6 +3,20 @@
 import numpy as np
 import viz
 
+"""TODO: 
+
+- Overall 'TrackSection' class with methods that all sub-sections will inherit. 
+
+- Overall 'Track' class that has sections as sub-classes. The user can specify the Bends and Straights, in order, with radii and lengths.
+
+- record end position within Bend Class.
+
+- Keep usability in mind at all times 
+
+- Programme in Bend length.
+
+"""
+
 class vizBend():
 
     def __init__(self, startpos, rads, size = 500,  x_dir = 1, z_dir = 1, colour = viz.WHTE, primitive = viz.QUAD_STRIP, primitive_width=None, road_width = 3.0):
@@ -129,6 +143,9 @@ class vizBend():
         else:
             self.InsideEdge.visible(visible)
             self.OutsideEdge.visible(visible)
+
+
+# class vizStraight():
 
 
 class Bend():
