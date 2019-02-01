@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pdb
 import pandas as pd
+import sys
 rootpath = 'C:\\VENLAB data\\TrackMaker\\'
 sys.path.append(rootpath)
 from simTrackMaker import Bend
@@ -156,7 +157,7 @@ def plotCar(plt, Car):
 if __name__ == '__main__':
     
     #Create Bend
-    myrads = 40
+    myrads = 80
     Course = Bend(startpos = [0,0], rads = myrads, x_dir = 1, road_width=3.0) 
     
     #Plot Bend
@@ -196,6 +197,8 @@ if __name__ == '__main__':
     plt.savefig(str(myrads) + '_Trajs.png', dpi=800)
     #plt.show()
     
+    np.savetxt("SimResults_"+str(myrads)+".csv", simResults, delimiter=",")
+
     #plot yr and time til crossing functions.
     plt.figure(2)
     plt.plot(simResults[:,0], simResults[:,1], 'k-')
