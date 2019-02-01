@@ -157,7 +157,7 @@ def plotCar(plt, Car):
 if __name__ == '__main__':
     
     #Create Bend
-    myrads = 80
+    myrads = 40
     Course = Bend(startpos = [0,0], rads = myrads, x_dir = 1, road_width=3.0) 
     
     #Plot Bend
@@ -174,9 +174,9 @@ if __name__ == '__main__':
     plt.title("Radius: " + str(myrads))
 #
     if myrads == 40:
-        filename = "Midline_40_4.csv" 
+        filename = "Midline_40_4_nostraight.csv" 
     elif myrads == 80:
-        filename = "Midline_80_3.csv"
+        filename = "Midline_80_3_nostraight.csv"
     else:
         raise Exception('Unrecognised radius')
     playbackdata = pd.read_csv("Data//"+filename) 	
