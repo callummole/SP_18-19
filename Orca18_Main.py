@@ -193,7 +193,7 @@ class myExperiment(viz.EventClass):
 
 		##### SET CONDITION VALUES #####
 		self.FACTOR_radiiPool = [40] # A sharp and gradual bend
-		self.FACTOR_YawRate_offsets = [0] #6 yawrate offsets, specified in degrees per second.
+		self.FACTOR_YawRate_offsets = [-5, 1, .1, 0, .1, 1, 5] #7 yawrate offsets, specified in degrees per second.
 		self.TrialsPerCondition = 6
 		[trialsequence_signed, cl_radii, cl_yawrates]  = GenerateConditionLists(self.FACTOR_radiiPool, self.FACTOR_YawRate_offsets, self.TrialsPerCondition)
 
@@ -514,6 +514,9 @@ class myExperiment(viz.EventClass):
 			else:
 				newyawrate = None
 				
+			#add yawrateoffset.
+			newyawrate += self.Trial_YawRate_Offset
+			
 			#begin = timer()
 			UpdateValues = self.driver.UpdateView(YR_input = newyawrate) #update view and return values used for update
 			#print ("Update Values: ", timer() - begin)
