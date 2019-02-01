@@ -252,17 +252,31 @@ class myExperiment(viz.EventClass):
 		self.Current_dt = 0
 		self.Current_WheelCorrection = 0 # mismatch between virtual yawrate and real wheel angle. 
 
+		self.Current_playbackindex = 0  		
 		#playback variables.
-		self.playbackindex = 0 #could use section index for this? 				
-		self.playbackdata = "" #filename.
+				
+		#self.playbackdata = "" #filename.
+		self.YR_readouts_40 = []
+		self.YR_readouts_80 = []
 		self.PlaybackPool40 = ["Midline_40_0.csv","Midline_40_1.csv","Midline_40_2.csv","Midline_40_3.csv","Midline_40_4.csv","Midline_40_5.csv"]
 		self.PlaybackPool80 = ["Midline_80_0.csv","Midline_80_1.csv","Midline_80_2.csv","Midline_80_3.csv","Midline_80_4.csv","Midline_80_5.csv"]
-		#self.OpenTrial("Midline_40_4.csv")
+
+		
+		#pre-load playback data at start of experiment.
+		for i, file40 in enumerate(self.PlaybackPool40):
+
+			#load radii 40
+			data40 = self.OpenTrial(file40)
+			self.YR_readouts_40.append(data40.get("Yawrate_seconds"))
+
+			#load radii 80
+			file80 = self.PlaybackPool80[i]
+			data80 = self.OpenTrial(file80)
+			self.YR_readouts_80.append(data80.get("Yawrate_seconds"))
+
+		
+		
 		self.AUTOMATION = True
-		#for now, for ease use one file.
-		#self.SWA_readout = self.playbackdata.get("SWA")
-		#self.YR_readout = self.playbackdata.get("YawRate_seconds")
-		#self.playbacklength = len(self.SWA_readout)		
 
 		self.callback(viz.EXIT_EVENT,self.CloseConnections) #if exited, save the data. 
 
@@ -327,22 +341,28 @@ class myExperiment(viz.EventClass):
 				msg = "Radius: Straight" + txtDir + '_' + str(trial_yawrate_offset)
 #			txtCondt.message(msg)	
 
+			
+
+			#pick file. Put this in dedicated function. TODO: Should open all of these at the start of the file to save on processing.
+			if self.Trial_radius == 40:
+				i = random.choice(range(len(self.YR_readouts_40))
+				self.Trial_YR_readout = self.YR_readouts_40[i]
+				self.Trial_playbackfilename = self.PlaybackPool40[i]
+				
+
+			elif self.Trial_radius == 80:
+				i = random.choice(range(len(self.YR_readouts_80))
+				self.Trial_YR_readout = self.YR_readouts_80[i]
+				self.Trial_playbackfilename = self.PlaybackPool80[i]
+
+			
 			#update class#
 			self.Trial_N = i
 			self.Trial_radius = trial_radii
 			self.Trial_YawRate_Offset = trial_yawrate_offset			
 			self.Trial_BendObject = trialbend	
-			self.Trial_trialtype_signed		
-
-			#pick file. Put this in dedicated function. TODO: Should open all of these at the start of the file to save on processing.
-			if self.Trial_radius == 80:
-				self.Trial_playbackfilename = random.choice(self.PlaybackPool80)
-				self.OpenTrial(self.Trial_playbackfilename)
-				self.Trial_YR_readout = self.playbackdata.get("Yawrate_seconds")
-			elif self.Trial_radius == 40:
-				self.Trial_playbackfilename = random.choice(self.PlaybackPool40)
-				self.OpenTrial(self.Trial_playbackfilename)
-				self.Trial_YR_readout = self.playbackdata.get("Yawrate_seconds")
+			self.Trial_trialtype_signed	= trialtype_signed
+			self.Trial_playbacklength = len(self.Trial_YR_readout)				
 
 			#renew data frame.
 			self.Output = pd.DataFrame(index = range(self.TrialLength*60), columns=self.datacolumns) #make new empty EndofTrial data
@@ -366,7 +386,7 @@ class myExperiment(viz.EventClass):
 				end = False
 
 				#check whether automation has been switched off. 				
-				if self.playbackindex >= self.playbacklength:
+				if self.Current_playbackindex >= self.Trial_playbacklength:
 					end = True
 
 				return(end)
@@ -444,7 +464,7 @@ class myExperiment(viz.EventClass):
 			
 			#reset row index. and trial parameters
 			self.Current_RowIndex = 0
-			self.playbackindex = 0
+			self.Current_playbackindex = 0
 			self.Trial_Timer = 0 
 
 			self.ResetDriverPosition()
@@ -473,7 +493,8 @@ class myExperiment(viz.EventClass):
 		"""opens csv file"""
 
 		print ("Loading file: " + filename)
-		self.playbackdata = pd.read_csv("Data//"+filename)
+		playbackdata = pd.read_csv("Data//"+filename)
+		return (playbackdata)
 
 	def RecordData(self):
 		
@@ -521,14 +542,14 @@ class myExperiment(viz.EventClass):
 			#update driver view.
 			if self.AUTOMATION:
 				
-				newSWApos = self.SWA_readout[self.playbackindex]
+				newSWApos = self.SWA_readout[self.Current_playbackindex]
 
 				#print ("Setting SWA position: ", newSWApos)
 				
 				self.Wheel.set_position(newSWApos)				
-				newyawrate = self.Trial_YR_readout[self.playbackindex]
+				newyawrate = self.Trial_YR_readout[self.Current_playbackindex]
 				
-				self.playbackindex += 1
+				self.Current_playbackindex += 1
 				
 			else:
 				newyawrate = None
