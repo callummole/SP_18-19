@@ -37,7 +37,7 @@ import pandas as pd
 rootpath = 'C:\\VENLAB data\\TrackMaker\\'
 sys.path.append(rootpath)
 
-from vizTrackMaker import vizBend as Bend
+from vizTrackMaker import vizBend, vizStraight
 import random
 #import PPinput
 
@@ -143,7 +143,7 @@ def setStage():
 	
 	return groundplane
 	
-def BendMaker(radlist):
+def BendMaker(radlist, start):
 	
 	"""makes left and right roads  for for a given radii and return them in a list"""
 	
@@ -152,11 +152,11 @@ def BendMaker(radlist):
 	grey = [.8,.8,.8]	
 
 	for r in radlist:
-		rightbend = Bend(startpos = [0,0], rads = r, x_dir = 1, colour = grey, road_width=3.0)
+		rightbend = vizBend(startpos = start, rads = r, x_dir = 1, colour = grey, road_width=3.0)
 			
 		rightbendlist.append(rightbend)
 
-		leftbend = Bend(startpos = [0,0], rads = r, x_dir = -1, colour = grey, road_width=3.0)
+		leftbend = vizBend(startpos = start, rads = r, x_dir = -1, colour = grey, road_width=3.0)
 		
 			
 		leftbendlist.append(leftbend)
@@ -209,9 +209,14 @@ class myExperiment(viz.EventClass):
 		##### ADD GRASS TEXTURE #####
 		gplane1 = setStage()
 		self.gplane1 = gplane1		
+		
+		#### MAKE STRAIGHT OBJECT ####
+		L = 16 #2sec.
+		self.Straight = vizStraight(startpos = [0,0], road_width = 3.0, length = L, colour = [.8, .8, .8])
+		self.Straight.ToggleVisibility(viz.ON)
 
 		##### MAKE BEND OBJECTS #####
-		[leftbends,rightbends] = BendMaker(self.FACTOR_radiiPool)
+		[leftbends,rightbends] = BendMaker(self.FACTOR_radiiPool, self.Straight.RoadEnd)
 		self.leftbends = leftbends
 		self.rightbends = rightbends 
 
@@ -261,7 +266,9 @@ class myExperiment(viz.EventClass):
 				
 		#self.playbackdata = "" #filename.
 		self.YR_readouts_40 = []
+		self.SWA_readouts_40 = []
 		self.YR_readouts_80 = []
+		self.SWA_readouts_80 = []
 		self.PlaybackPool40 = ["Midline_40_0.csv","Midline_40_1.csv","Midline_40_2.csv","Midline_40_3.csv","Midline_40_4.csv","Midline_40_5.csv"]
 		self.PlaybackPool80 = ["Midline_80_0.csv","Midline_80_1.csv","Midline_80_2.csv","Midline_80_3.csv","Midline_80_4.csv","Midline_80_5.csv"]
 
@@ -271,15 +278,15 @@ class myExperiment(viz.EventClass):
 
 			#load radii 40
 			data40 = self.OpenTrial(file40)
-			self.YR_readouts_40.append(data40.get("Yawrate_seconds"))
+			self.YR_readouts_40.append(data40.get("YawRate_seconds"))
+			self.SWA_readouts_40.append(data40.get("SWA"))
 
 			#load radii 80
 			file80 = self.PlaybackPool80[i]
 			data80 = self.OpenTrial(file80)
-			self.YR_readouts_80.append(data80.get("Yawrate_seconds"))
+			self.YR_readouts_80.append(data80.get("YawRate_seconds"))
+			self.SWA_readouts_80.append(data80.get("SWA"))
 
-		
-		
 		self.AUTOMATION = True
 
 		self.callback(viz.EXIT_EVENT,self.CloseConnections) #if exited, save the data. 
@@ -345,24 +352,29 @@ class myExperiment(viz.EventClass):
 				msg = "Radius: Straight" + txtDir + '_' + str(trial_yawrate_offset)
 #			txtCondt.message(msg)	
 
-			
+			#pick radius
+			self.Trial_radius = trial_radii
 
 			#pick file. Put this in dedicated function. TODO: Should open all of these at the start of the file to save on processing.
 			if self.Trial_radius == 40:
-				i = random.choice(range(len(self.YR_readouts_40))
+				i = random.choice(range(len(self.YR_readouts_40)))
 				self.Trial_YR_readout = self.YR_readouts_40[i]
+				self.Trial_SWA_readout = self.SWA_readouts_40[i]
 				self.Trial_playbackfilename = self.PlaybackPool40[i]
 				
 
 			elif self.Trial_radius == 80:
-				i = random.choice(range(len(self.YR_readouts_80))
+				i = random.choice(range(len(self.YR_readouts_80)))
 				self.Trial_YR_readout = self.YR_readouts_80[i]
+				self.Trial_SWA_readout = self.SWA_readouts_80[i]
 				self.Trial_playbackfilename = self.PlaybackPool80[i]
+
+			else:
+				raise Exception("Something bad happened")
 
 			
 			#update class#
-			self.Trial_N = i
-			self.Trial_radius = trial_radii
+			self.Trial_N = i			
 			self.Trial_YawRate_Offset = trial_yawrate_offset			
 			self.Trial_BendObject = trialbend	
 			self.Trial_trialtype_signed	= trialtype_signed
@@ -537,7 +549,7 @@ class myExperiment(viz.EventClass):
 
 		"""Here need to bring in steering bias updating from Trout as well"""
 		dt = viz.elapsed()
-		print ("elapsed:", dt)
+		#'print ("elapsed:", dt)
 		self.Trial_Timer = self.Trial_Timer + dt
 
 		if self.UPDATELOOP:
@@ -546,7 +558,7 @@ class myExperiment(viz.EventClass):
 			#update driver view.
 			if self.AUTOMATION:
 				
-				newSWApos = self.SWA_readout[self.Current_playbackindex]
+				newSWApos = self.Trial_SWA_readout[self.Current_playbackindex]
 
 				#print ("Setting SWA position: ", newSWApos)
 				
