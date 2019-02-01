@@ -2,6 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pdb
 import pandas as pd
+rootpath = 'C:\\VENLAB data\\TrackMaker\\'
+sys.path.append(rootpath)
 from simTrackMaker import Bend
 
 class vehicle:

@@ -33,6 +33,10 @@ import vizact
 import vizmat
 import myCave
 import pandas as pd
+
+rootpath = 'C:\\VENLAB data\\TrackMaker\\'
+sys.path.append(rootpath)
+
 from vizTrackMaker import vizBend as Bend
 import random
 #import PPinput
