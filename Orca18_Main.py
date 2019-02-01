@@ -197,8 +197,9 @@ class myExperiment(viz.EventClass):
 
 
 		##### SET CONDITION VALUES #####
-		self.FACTOR_radiiPool = [40] # A sharp and gradual bend
-		self.FACTOR_YawRate_offsets = [-5, 1, .1, 0, .1, 1, 5] #7 yawrate offsets, specified in degrees per second.
+		self.FACTOR_radiiPool = [40, 80] # A sharp and gradual bend
+		#these offsets should yield lane crossing times of approximately [2.2s, 4.8s, 7s] (40r) and [2s, 4.5s, 7s] for 80s
+		self.FACTOR_YawRate_offsets = [-5, 1, .5, 0, .5, 1, 5] #7 yawrate offsets, specified in degrees per second. 
 		self.TrialsPerCondition = 6
 		[trialsequence_signed, cl_radii, cl_yawrates]  = GenerateConditionLists(self.FACTOR_radiiPool, self.FACTOR_YawRate_offsets, self.TrialsPerCondition)
 
@@ -230,7 +231,7 @@ class myExperiment(viz.EventClass):
 		self.manual_audio.volume(.5)
 		
 		####### DATA SAVING ######
-		datacolumns = ['ppid', 'radius','yawrate_offset','trialn','timestamp','trialtype_signed','World_x','World_z','WorldYaw','SWA','YawRate_seconds','TurnAngle_frames','Distance_frames','dt', 'WheelCorrection', 'AutoFlag', 'AutoFile']
+		datacolumns = ['ppid', 'radius','yawrate_offset','trialn','timestamp','trialtype_signed','World_x','World_z','WorldYaw','SWA','YawRate_seconds','TurnAngle_frames','Distance_frames','dt', 'WheelCorrection', 'SteeringBias', 'Closestpt' 'AutoFlag', 'AutoFile']
 		self.datacolumns = datacolumns
 		self.Output = None #dataframe that gets renewed each trial.		
 		#self.Output = pd.DataFrame(columns=datacolumns) #make new empty EndofTrial data
@@ -246,7 +247,7 @@ class myExperiment(viz.EventClass):
 		self.Trial_YR_readout = []
 		self.Trial_playbacklength = 0
 		self.Trial_playbackfilename = ""
-
+		self.Trial_midline = []
 		
 		#### parameters that are updated each timestamp ####
 		self.Current_pos_x = 0
@@ -260,6 +261,8 @@ class myExperiment(viz.EventClass):
 		self.Current_distance = 0
 		self.Current_dt = 0
 		self.Current_WheelCorrection = 0 # mismatch between virtual yawrate and real wheel angle. 
+		self.Current_steeringbias = 0
+		self.Current_closestpt = 0
 
 		self.Current_playbackindex = 0  		
 		#playback variables.
@@ -354,6 +357,7 @@ class myExperiment(viz.EventClass):
 
 			#pick radius
 			self.Trial_radius = trial_radii
+			
 
 			#pick file. Put this in dedicated function. TODO: Should open all of these at the start of the file to save on processing.
 			if self.Trial_radius == 40:
@@ -379,6 +383,7 @@ class myExperiment(viz.EventClass):
 			self.Trial_BendObject = trialbend	
 			self.Trial_trialtype_signed	= trialtype_signed
 			self.Trial_playbacklength = len(self.Trial_YR_readout)				
+			self.Trial_midline = np.vstack((self.Straight.midline, self.Trial_BendObject.midline))
 
 			#renew data frame.
 			self.Output = pd.DataFrame(index = range(self.TrialLength*60), columns=self.datacolumns) #make new empty EndofTrial data
@@ -519,7 +524,7 @@ class myExperiment(viz.EventClass):
 		#datacolumns = ['ppid', 'radius','occlusion','trialn','timestamp','trialtype_signed','World_x','World_z','WorldYaw','SWA']
 		output = [self.PP_id, self.Trial_radius, self.Trial_YawRate_Offset, self.Trial_N, self.Current_Time, self.Trial_trialtype_signed, 
 		self.Current_pos_x, self.Current_pos_z, self.Current_yaw, self.Current_SWA, self.Current_YawRate_seconds, self.Current_TurnAngle_frames, 
-		self.Current_distance, self.Current_dt, self.Current_WheelCorrection, self.AUTOMATION, self.Trial_playbackfilename] #output array.
+		self.Current_distance, self.Current_dt, self.Current_WheelCorrection, self.Current_steeringbias, self.Current_closestpt, self.AUTOMATION, self.Trial_playbackfilename] #output array.
 		
 		#print ("length of output: ", len(output))
 		#print ("size of self.Output: ", self.Output.shape)
@@ -543,6 +548,25 @@ class myExperiment(viz.EventClass):
 
 		print ("Saved file: ", filename)
 
+	def calculatebias(self):
+
+		#TODO: cut down on processing but only selecting a window of points based on lastmidindex.
+		midlinedist = np.sqrt(((self.Current_pos_x-self.Trial_midline[:,0])**2)+((self.Current_pos_z-self.Trial_midline[:,1])**2)) #get a 4000 array of distances from the midline
+		idx = np.argmin(abs(midlinedist)) #find smallest difference. This is the closest index on the midline.	
+
+		closestpt = self.Trial_midline[idx,:] #xy of closest point
+		dist = midlinedist[idx] #distance from closest point				
+
+		CurveOrigin = self.Trial_BendObject.CurveOrigin
+
+		#Sign bias from assessing if the closest point on midline is closer to the track origin than the driver position. Since the track is an oval, closer = understeering, farther = oversteering.
+		middist_from_origin = np.sqrt(((closestpt[0]-CurveOrigin[0])**2)+((closestpt[1]-CurveOrigin[1])**2))  #distance of midline to origin
+		pos_from_trackorigin = np.sqrt(((self.Current_pos_x-CurveOrigin[0])**2)+((self.Current_pos_z-CurveOrigin[1])**2)) #distance of driver pos to origin
+		distdiff = middist_from_origin - pos_from_trackorigin #if driver distance is greater than closest point distance, steering position should be understeering
+		steeringbias = dist * np.sign(distdiff)     
+
+		return steeringbias, idx
+
 	def updatePositionLabel(self, num):
 		
 		"""Timer function that gets called every frame. Updates parameters for saving"""
@@ -563,15 +587,17 @@ class myExperiment(viz.EventClass):
 				#print ("Setting SWA position: ", newSWApos)				
 							
 				newyawrate = self.Trial_YR_readout[self.Current_playbackindex]
+
+				#add yawrateoffset.
+				if self.Trial_Timer > 4: #2 seconds into the bend.
+					newyawrate += self.Trial_YawRate_Offset
 				
 				self.Current_playbackindex += 1
 				
 			else:
 				newyawrate = None
 				
-			#add yawrateoffset.
-			if self.Trial_Timer > 4: #2 seconds into the bend.
-				newyawrate += self.Trial_YawRate_Offset
+			
 
 			#begin = timer()
 			if self.Trial_trialtype_signed < 0: #left bend
@@ -598,7 +624,9 @@ class myExperiment(viz.EventClass):
 			self.Current_distance = UpdateValues[2]
 			self.Current_dt = UpdateValues[3]
 			self.Current_WheelCorrection = UpdateValues[5]
+			self.Current_steeringbias, self.Current_closestpt = self.calculatebias()
 
+			print ("SteeringBIas:", self.Current_steeringbias)
 
 			self.RecordData() #write a line in the dataframe.	
 				
