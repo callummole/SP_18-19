@@ -231,8 +231,8 @@ class myExperiment(viz.EventClass):
 		self.manual_audio.volume(.5)
 		
 		####### DATA SAVING ######
-		datacolumns = ['ppid', 'radius','yawrate_offset','trialn','timestamp','trialtype_signed','World_x','World_z','WorldYaw','SWA','YawRate_seconds','TurnAngle_frames','Distance_frames','dt', 'WheelCorrection', 'SteeringBias', 'Closestpt' 'AutoFlag', 'AutoFile']
-		self.datacolumns = datacolumns
+		datacolumns = ['ppid', 'radius','yawrate_offset','trialn','timestamp','trialtype_signed','World_x','World_z','WorldYaw','SWA','YawRate_seconds','TurnAngle_frames','Distance_frames','dt', 'WheelCorrection', 'SteeringBias', 'Closestpt', 'AutoFlag', 'AutoFile']
+		self.datacolumns = datacolumns		
 		self.Output = None #dataframe that gets renewed each trial.		
 		#self.Output = pd.DataFrame(columns=datacolumns) #make new empty EndofTrial data
 
@@ -521,7 +521,7 @@ class myExperiment(viz.EventClass):
 		
 		"""Records Data into Dataframe"""
 
-		#datacolumns = ['ppid', 'radius','occlusion','trialn','timestamp','trialtype_signed','World_x','World_z','WorldYaw','SWA']
+		#'ppid', 'radius','yawrate_offset','trialn','timestamp','trialtype_signed','World_x','World_z','WorldYaw','SWA','YawRate_seconds','TurnAngle_frames','Distance_frames','dt', 'WheelCorrection', 'SteeringBias', 'Closestpt' 'AutoFlag', 'AutoFile'#		
 		output = [self.PP_id, self.Trial_radius, self.Trial_YawRate_Offset, self.Trial_N, self.Current_Time, self.Trial_trialtype_signed, 
 		self.Current_pos_x, self.Current_pos_z, self.Current_yaw, self.Current_SWA, self.Current_YawRate_seconds, self.Current_TurnAngle_frames, 
 		self.Current_distance, self.Current_dt, self.Current_WheelCorrection, self.Current_steeringbias, self.Current_closestpt, self.AUTOMATION, self.Trial_playbackfilename] #output array.
@@ -573,7 +573,9 @@ class myExperiment(viz.EventClass):
 
 		"""Here need to bring in steering bias updating from Trout as well"""
 		dt = viz.elapsed()
-		#'print ("elapsed:", dt)
+		print ("elapsed:", dt)
+
+		print ("frame elapsed:", viz.getFrameElapsed())
 		self.Trial_Timer = self.Trial_Timer + dt
 
 		if self.UPDATELOOP:
@@ -583,6 +585,8 @@ class myExperiment(viz.EventClass):
 			if self.AUTOMATION:
 				
 				newSWApos = self.Trial_SWA_readout[self.Current_playbackindex]
+				newSWApos *= sign(self.Trial_trialtype_signed) #flip if left hand bend
+				self.Wheel.set_position(newSWApos)	#set steering wheel to position.
 
 				#print ("Setting SWA position: ", newSWApos)				
 							
@@ -593,18 +597,11 @@ class myExperiment(viz.EventClass):
 					newyawrate += self.Trial_YawRate_Offset
 				
 				self.Current_playbackindex += 1
-				
+
+				newyawrate *= sign(self.Trial_trialtype_signed) #flip if left hand bend
+												
 			else:
 				newyawrate = None
-				
-			
-
-			#begin = timer()
-			if self.Trial_trialtype_signed < 0: #left bend
-				newyawrate *= -1 #flip yaw-rate and swa if it's a left bend. 
-				newSWApos *= -1
-
-			self.Wheel.set_position(newSWApos)	#set steering wheel to position.
 
 			UpdateValues = self.driver.UpdateView(YR_input = newyawrate) #update view and return values used for update
 			#print ("Update Values: ", timer() - begin)
@@ -626,7 +623,7 @@ class myExperiment(viz.EventClass):
 			self.Current_WheelCorrection = UpdateValues[5]
 			self.Current_steeringbias, self.Current_closestpt = self.calculatebias()
 
-			print ("SteeringBIas:", self.Current_steeringbias)
+		#	print ("SteeringBIas:", self.Current_steeringbias)
 
 			self.RecordData() #write a line in the dataframe.	
 				
