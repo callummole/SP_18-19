@@ -585,7 +585,7 @@ class myExperiment(viz.EventClass):
 			if self.AUTOMATION:
 				
 				newSWApos = self.Trial_SWA_readout[self.Current_playbackindex]
-				newSWApos *= sign(self.Trial_trialtype_signed) #flip if left hand bend
+				newSWApos *= np.sign(self.Trial_trialtype_signed) #flip if left hand bend
 				self.Wheel.set_position(newSWApos)	#set steering wheel to position.
 
 				#print ("Setting SWA position: ", newSWApos)				
@@ -598,7 +598,7 @@ class myExperiment(viz.EventClass):
 				
 				self.Current_playbackindex += 1
 
-				newyawrate *= sign(self.Trial_trialtype_signed) #flip if left hand bend
+				newyawrate *= np.sign(self.Trial_trialtype_signed) #flip if left hand bend
 												
 			else:
 				newyawrate = None
