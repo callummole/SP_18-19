@@ -33,6 +33,7 @@ import vizact
 import vizmat
 import myCave
 import pandas as pd
+import Count_Adjustable #distractor task
 
 rootpath = 'C:\\VENLAB data\\TrackMaker\\'
 sys.path.append(rootpath)
@@ -165,7 +166,7 @@ def BendMaker(radlist, start):
 
 class myExperiment(viz.EventClass):
 
-	def __init__(self, eyetracking, practice, exp_id, autowheel, debug, ppid = 1):
+	def __init__(self, eyetracking, practice, exp_id, autowheel, debug, distractor_type = None, ppid = 1):
 
 		viz.EventClass.__init__(self)
 	
@@ -174,7 +175,22 @@ class myExperiment(viz.EventClass):
 		self.EXP_ID = exp_id
 		self.AUTOWHEEL = autowheel
 		self.DEBUG = debug
+		if distractor_type == "None":
+			distractor_type = None
+		self.DISTRACTOR_TYPE = distractor_type
 
+		if self.DISTRACTOR_TYPE not in (None, "Easy", "Hard"):
+			raise Exception ("Unrecognised Distractor Type. Specify 'None', 'Easy', or 'Hard'. Case sensitive.")
+			#pass
+		
+		###set distractor parameters.
+		if self.DISTRACTOR_TYPE == "Easy":
+			self.targetoccurence_prob = .4
+			self.targetnumber = 1
+		elif self.DISTRACTOR_TYPE == "Hard":
+			self.targetoccurence_prob = .4
+			self.targetnumber = 3
+		self.StartScreenTime = 2		
 
 		if EYETRACKING == True:	
 			LoadEyetrackingModules()
@@ -309,9 +325,21 @@ class myExperiment(viz.EventClass):
 			filename = str(self.EXP_ID) + "_Calibration" #+ str(demographics[0]) + "_" + str(demographics[2]) #add experimental block to filename
 			print (filename)
 			yield run_calibration(comms, filename)
-			yield run_accuracy(comms, filename)		
+			yield run_accuracy(comms, filename)	
 
-		self.driver = vizdriver.Driver(self.caveview)	
+
+		#set up distractor task
+		if self.DISTRACTOR_TYPE is not None:
+			Distractor = Count_Adjustable.Distractor("distractor_", self.targetnumber, ppid = 1, startscreentime = self.StartScreenTime)
+		else:
+			Distractor = None
+		self.driver = vizdriver.Driver(self.caveview, Distractor)	
+
+		#SEPARATE CALLBACKS FOR DISTRACTOR TASK
+		driverjoy = self.driver.getJoy()		#Set joystick gear pad callbacks.
+		waitButton1 = vizdriver.waitJoyButtonDown(5,driverjoy)
+		waitButton2 = vizdriver.waitJoyButtonDown(6,driverjoy)
+
 		viz.MainScene.visible(viz.ON,viz.WORLD)		
 		
 	
@@ -399,6 +427,10 @@ class myExperiment(viz.EventClass):
 
 			#here we need to annotate eyetracking recording.
 
+			#start distractor task for that trial
+			if self.DISTRACTOR_TYPE is not None:
+				Distractor.StartTrial(self.targetoccurence_prob, self.targetnumber, trialn = i, triallength = 20)	#starts trial			
+
 			self.UPDATELOOP = True #
 
 			def PlaybackReached():
@@ -468,7 +500,8 @@ class myExperiment(viz.EventClass):
 				elif d.condition is waitManual:
 					print ('Manual Time Elapsed')
 
-			##### END TRIAL ######
+
+			##### END STEERING TASK ######
 			
 			self.UPDATELOOP = False
 			
@@ -490,6 +523,24 @@ class myExperiment(viz.EventClass):
 
 			self.ResetDriverPosition()
 			#self.SaveData(trialdata)
+
+			##### INITIALISE END OF TRIAL SCREEN FOR DISTRACTOR TASK #######
+			if self.DISTRACTOR_TYPE is not None:
+				Distractor.EndofTrial() #throw up the screen to record counts.
+				###interface with End of Trial Screen		
+				pressed = 0
+				while pressed < self.targetnumber:
+					
+					#keep looking for gearpad presses until pressed reaches trial_targetnumber
+					print ("waiting for gear press")
+					d = yield viztask.waitAny([waitButton1, waitButton2])
+					pressed += 1
+					print('pressed ' + str(pressed))		
+					Distractor.gearpaddown(d.condition) #call gearpaddown. 
+
+					yield viztask.waitTime(.5)
+					#Distractor.EoTScreen_Visibility(viz.OFF)
+				Distractor.RecordCounts()
 	
 		#loop has finished.
 		self.CloseConnections()
@@ -655,10 +706,13 @@ if __name__ == '__main__':
 	EXP_ID = "Orca18"
 	DEBUG = True
 
+	#distractor_type takes 'None', 'Easy' (1 target, 40% probability), and 'Hard' (3 targets, 40% probability)
+	DISTRACTOR_TYPE = "Easy" #Case sensitive
+
 	if PRACTICE == True: # HACK
 		EYETRACKING = False 
 
-	myExp = myExperiment(EYETRACKING, PRACTICE, EXP_ID, AUTOWHEEL, DEBUG)
+	myExp = myExperiment(EYETRACKING, PRACTICE, EXP_ID, AUTOWHEEL, DEBUG, DISTRACTOR_TYPE)
 
 	#viz.callback(viz.EXIT_EVENT,CloseConnections, myExp.EYETRACKING)
 

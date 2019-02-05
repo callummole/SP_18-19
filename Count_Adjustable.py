@@ -187,6 +187,7 @@ class Distractor(viz.EventClass):
 			self.Stimuli_Timer = self.Stimuli_Timer+self.interval	
 			
 			self.Trial_Timer = self.Trial_Timer + self.interval #timer to keep track of overall trial length
+			
 			if self.Trial_Timer > self.Trial_length:
 				#here start end of trial screens. 
 				self.EndofTrial() 						

@@ -10,7 +10,7 @@ KEY_FIRE_BUTTONS = [' ']
 KEY_DIR_SWITCH_BUTTON = viz.KEY_DELETE
 
 class Driver(viz.EventClass):
-	def __init__(self, Cave):
+	def __init__(self, Cave, Distractor):
 		viz.EventClass.__init__(self)
 				
 		#self.__speed = 0.223 #metres per frame. equates to 13.4 m/s therefore 30mph.
@@ -21,6 +21,8 @@ class Driver(viz.EventClass):
 
 		self.__Wheel_yawrate_adjustment = 0 #difference between real steering angle and virtual yaw-rate.
 		
+		self.__Distractor = Distractor #distractor class for callbacks.
+
 		self.__view = Cave
 		# self.__view = viz.MainView.setPosition(0,1.20,0) #Grabs the main graphics window
 		# self.__view = viz.MainView
@@ -33,7 +35,7 @@ class Driver(viz.EventClass):
 		#self.callback(viz.TIMER_EVENT,self.__ontimer)
 		self.callback(viz.KEYDOWN_EVENT,self.keyDown) #enables control with the keyboard
 		self.callback(vizjoy.BUTTONDOWN_EVENT,self.joyDown) 
-		#self.callback(vizjoy.MOVE_EVENT,self.joymove)
+		self.callback(vizjoy.MOVE_EVENT,self.joymove)
 		#self.starttimer(0,0,viz.FOREVER)
 
 		global joy
@@ -70,7 +72,9 @@ class Driver(viz.EventClass):
 		gas = data[1]
 
 	def UpdateView(self, YR_input = None):
-		elapsedTime = viz.elapsed()
+		#elapsedTime = viz.elapsed()
+
+		elapsedTime = viz.getFrameElapsed()
 
 		yawrate = 0.0
 		turnangle = 0.0
@@ -157,6 +161,13 @@ class Driver(viz.EventClass):
 
 		print ("Pressed: ", e.button)
 
+				#left red buttons are 8,21,23. right red buttons are 7,20,22:
+			#if buttons are left or right, call distractor task.
+		if self.__Distractor is not None:
+			if e.button in [8,7,21,23,20,22]:
+				print ("responded to distractor task")
+				self.__Distractor.keydown(e.button)
+
 		if e.button in (5,6):
 			self.__automation = False
 			print ("disengaged from automation")
@@ -186,9 +197,27 @@ class Driver(viz.EventClass):
 		return self.__pause
 		
 	def joymove(self,e):
-	
-		pass
-	
-		#x = e.pos[0]*10		
-		#self.txtSWA.message(str(x))
+		
+		if self.__Distractor is not None:
+			end_of_trial_flag = self.__Distractor.getFlag()
 			
+			#if end of trial screen on.
+			if end_of_trial_flag:
+				self.__Distractor.joymove(e.pos)
+		else:
+			pass
+
+	def getJoy(self):
+		return joy
+			
+
+class waitJoyButtonDown( viztask.Condition ):
+	
+	
+	def __init__( self, button, joy ):
+		#self.__joy = joy
+		self._button = button
+		self._joy = joy
+
+	def update( self ):
+		return self._joy.isButtonDown(self._button)
