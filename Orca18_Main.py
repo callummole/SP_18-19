@@ -154,14 +154,15 @@ def BendMaker(radlist, start):
 
 	for r in radlist:
 		rightbend = vizBend(startpos = start, rads = r, x_dir = 1, colour = grey, road_width=0, primitive_width=1.5)#, texturefile='strong_edge_soft.bmp')
+		rightbend.setAlpha(.5)
 			
 		rightbendlist.append(rightbend)
 
 		leftbend = vizBend(startpos = start, rads = r, x_dir = -1, colour = grey, road_width=0, primitive_width=1.5)#, texturefile='strong_edge_soft.bmp')
 		
-			
+		leftbend.setAlpha(.5)	
 		leftbendlist.append(leftbend)
-	
+			
 	return leftbendlist,rightbendlist 
 
 class myExperiment(viz.EventClass):
@@ -231,6 +232,7 @@ class myExperiment(viz.EventClass):
 		L = 16#2sec.
 		self.Straight = vizStraight(startpos = [0,0], primitive_width=1.5, road_width = 0, length = L, colour = [.6, .6, .6])#, texturefile='strong_edge_soft.bmp')
 		self.Straight.ToggleVisibility(viz.ON)
+		self.Straight.setAlpha(.5)
 
 		##### MAKE BEND OBJECTS #####
 		[leftbends,rightbends] = BendMaker(self.FACTOR_radiiPool, self.Straight.RoadEnd)
@@ -362,6 +364,15 @@ class myExperiment(viz.EventClass):
 			txtDir = ""
 			
 			#print ("Length of bend array:", len(self.rightbends))
+		
+			self.driver.setAutomation(True)
+			self.AUTOMATION = True
+			self.Wheel.control_on()
+
+			if self.DISTRACTOR_TYPE is not None:
+				Distractor.StartTrial(self.targetoccurence_prob, self.targetnumber, trialn = i, triallength = 20)	#starts trial								
+				yield viztask.waitTrue(Distractor.getStartFlag)
+
 
 			radius_index = self.FACTOR_radiiPool.index(trial_radii)
 
@@ -418,18 +429,13 @@ class myExperiment(viz.EventClass):
 
 			yield viztask.waitTime(.5) #pause at beginning of trial
 
-			self.driver.setAutomation(True)
-			self.AUTOMATION = True
-			self.Wheel.control_on()
-
 			if self.DEBUG:
 				self.txtStatus.message("Automation:" + str(self.AUTOMATION))
 
 			#here we need to annotate eyetracking recording.
 
 			#start distractor task for that trial
-			if self.DISTRACTOR_TYPE is not None:
-				Distractor.StartTrial(self.targetoccurence_prob, self.targetnumber, trialn = i, triallength = 20)	#starts trial			
+						
 
 			self.UPDATELOOP = True #
 
