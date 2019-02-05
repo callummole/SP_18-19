@@ -337,11 +337,6 @@ class myExperiment(viz.EventClass):
 			Distractor = None
 		self.driver = vizdriver.Driver(self.caveview, Distractor)	
 
-		#SEPARATE CALLBACKS FOR DISTRACTOR TASK
-		driverjoy = self.driver.getJoy()		#Set joystick gear pad callbacks.
-		waitButton1 = vizdriver.waitJoyButtonDown(5,driverjoy)
-		waitButton2 = vizdriver.waitJoyButtonDown(6,driverjoy)
-
 		viz.MainScene.visible(viz.ON,viz.WORLD)		
 		
 	
@@ -528,7 +523,6 @@ class myExperiment(viz.EventClass):
 			self.Trial_Timer = 0 
 
 			self.ResetDriverPosition()
-			#self.SaveData(trialdata)
 
 			##### INITIALISE END OF TRIAL SCREEN FOR DISTRACTOR TASK #######
 			if self.DISTRACTOR_TYPE is not None:
@@ -540,11 +534,14 @@ class myExperiment(viz.EventClass):
 					
 					#keep looking for gearpad presses until pressed reaches trial_targetnumber
 					print ("waiting for gear press")
-					d = yield viztask.waitAny([waitButton1, waitButton2])
+					yield viztask.waitTrue(self.driver.getGearPressed)
 					pressed += 1
-					print('pressed ' + str(pressed))		
-					Distractor.gearpaddown(d.condition) #call gearpaddown. 
+					print('pressed ' + str(pressed))							
+					
+					Distractor.gearpaddown()
 
+					self.driver.setGearPressed(False)
+										
 					yield viztask.waitTime(.5)
 					#Distractor.EoTScreen_Visibility(viz.OFF)
 				Distractor.RecordCounts()
@@ -714,7 +711,7 @@ if __name__ == '__main__':
 	DEBUG = True
 
 	#distractor_type takes 'None', 'Easy' (1 target, 40% probability), and 'Hard' (3 targets, 40% probability)
-	DISTRACTOR_TYPE = "Easy" #Case sensitive
+	DISTRACTOR_TYPE = "Hard" #Case sensitive
 
 	if PRACTICE == True: # HACK
 		EYETRACKING = False 

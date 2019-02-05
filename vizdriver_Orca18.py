@@ -18,6 +18,7 @@ class Driver(viz.EventClass):
 		self.__speed = 8.0 #m./s
 		self.__heading = 0.0
 		self.__pause = 0#pauses for 50 frames at the start of each trial
+		self.gearPressed = False #a second way to measure gearpaddown, for distractor end of trial.
 
 		self.__Wheel_yawrate_adjustment = 0 #difference between real steering angle and virtual yaw-rate.
 		
@@ -169,8 +170,13 @@ class Driver(viz.EventClass):
 				self.__Distractor.keydown(e.button)
 
 		if e.button in (5,6):
-			self.__automation = False
-			print ("disengaged from automation")
+			
+			EoTFlag = self.__Distractor.getFlag()
+			if EoTFlag:
+				self.gearPressed = True
+			else:
+				self.__automation = False
+				print ("disengaged from automation")
 
 
 	def resetHeading(self):
@@ -185,6 +191,15 @@ class Driver(viz.EventClass):
 	def getAutomation(self):
 		
 		return self.__automation
+
+		
+	def getGearPressed(self):
+		
+		return self.gearPressed
+
+	def setGearPressed(self, press = False):
+		
+		self.gearPressed = press
 
 	def getSpeed(self):
 		return self.__speed
@@ -209,15 +224,3 @@ class Driver(viz.EventClass):
 
 	def getJoy(self):
 		return joy
-			
-
-class waitJoyButtonDown( viztask.Condition ):
-	
-	
-	def __init__( self, button, joy ):
-		#self.__joy = joy
-		self._button = button
-		self._joy = joy
-
-	def update( self ):
-		return self._joy.isButtonDown(self._button)
