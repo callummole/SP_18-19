@@ -532,6 +532,7 @@ class myExperiment(viz.EventClass):
 
 			##### INITIALISE END OF TRIAL SCREEN FOR DISTRACTOR TASK #######
 			if self.DISTRACTOR_TYPE is not None:
+				self.Wheel.control_off()
 				Distractor.EndofTrial() #throw up the screen to record counts.
 				###interface with End of Trial Screen		
 				pressed = 0
