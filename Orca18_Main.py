@@ -149,14 +149,14 @@ def BendMaker(radlist, start):
 	
 	leftbendlist = []
 	rightbendlist = []
-	grey = [.8,.8,.8]	
+	grey = [.6,.6,.6]	
 
 	for r in radlist:
-		rightbend = vizBend(startpos = start, rads = r, x_dir = 1, colour = grey, road_width=3.0)
+		rightbend = vizBend(startpos = start, rads = r, x_dir = 1, colour = grey, road_width=0, primitive_width=1.5)#, texturefile='strong_edge_soft.bmp')
 			
 		rightbendlist.append(rightbend)
 
-		leftbend = vizBend(startpos = start, rads = r, x_dir = -1, colour = grey, road_width=3.0)
+		leftbend = vizBend(startpos = start, rads = r, x_dir = -1, colour = grey, road_width=0, primitive_width=1.5)#, texturefile='strong_edge_soft.bmp')
 		
 			
 		leftbendlist.append(leftbend)
@@ -212,8 +212,8 @@ class myExperiment(viz.EventClass):
 		self.gplane1 = gplane1		
 		
 		#### MAKE STRAIGHT OBJECT ####
-		L = 16 #2sec.
-		self.Straight = vizStraight(startpos = [0,0], road_width = 3.0, length = L, colour = [.8, .8, .8])
+		L = 16#2sec.
+		self.Straight = vizStraight(startpos = [0,0], primitive_width=1.5, road_width = 0, length = L, colour = [.6, .6, .6])#, texturefile='strong_edge_soft.bmp')
 		self.Straight.ToggleVisibility(viz.ON)
 
 		##### MAKE BEND OBJECTS #####
@@ -573,9 +573,9 @@ class myExperiment(viz.EventClass):
 
 		"""Here need to bring in steering bias updating from Trout as well"""
 		dt = viz.elapsed()
-		print ("elapsed:", dt)
+		#print ("elapsed:", dt)
 
-		print ("frame elapsed:", viz.getFrameElapsed())
+		#print ("frame elapsed:", viz.getFrameElapsed())
 		self.Trial_Timer = self.Trial_Timer + dt
 
 		if self.UPDATELOOP:
