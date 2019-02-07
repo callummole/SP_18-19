@@ -11,7 +11,7 @@ import pandas as pd
 
 
 class Distractor(viz.EventClass):
-	def __init__(self, filename, maxtargetnumber, ppid, startscreentime):
+	def __init__(self, filename, maxtargetnumber, ppid, startscreentime = 2):
 		viz.EventClass.__init__(self)
 
 		#needs to be an eventclass for timer to work.				
@@ -20,8 +20,9 @@ class Distractor(viz.EventClass):
 		##PARAMETERS THAT DO NOT VARY PER TRIAL
 		self.ppid = ppid
 		self.filename = filename		
-		self.AudioList = [] #load once at start. List of audio-files
+		self.AudioList = [] #load once at start. List of audio-files		
 		self.StartScreen_DisplayTime = startscreentime #amount of seconds that the targets for that trial are shown.
+						
 		#letters = ['a','b','c','d','e','i','o']#,'f','g']#,'h','i','j','k','l']#,'m','n','o']
 		#letters = ['a','b','k','h','f','i','o']#,'f','g']#,'h','i','j','k','l']#,'m','n','o'] #don't rhyme.
 
@@ -145,7 +146,7 @@ class Distractor(viz.EventClass):
 
 		return (EndofTrial_Data, WithinTrial_Data)
 	
-	def StartTrial(self, targetoccurence_prob, targetnumber, trialn, triallength):
+	def StartTrial(self, targetoccurence_prob, targetnumber, trialn, triallength, displayscreen = True):
 		
 		"""Sets parameters at the start of each trial, based on targetoccurence_prob and targetnumber"""
 		
@@ -161,9 +162,13 @@ class Distractor(viz.EventClass):
 
 		print("Trial targets: ", self.Trial_targets)
 
-		#show start screen. 
-		self.ChangeStartMsg()
-		self.StartScreen_Visibility(viz.ON)
+		#show start screen. Toggle whether you display the start screen or not.
+		if displayscreen:
+			self.ChangeStartMsg()
+			self.StartScreen_Visibility(viz.ON)
+			self.StartScreen_DisplayTime = 2
+		else:
+			self.StartScreen_DisplayTime = 0
 
 		self.EoT_NumberofResponses = 0 # not sure what this logic is for yet.						
 		

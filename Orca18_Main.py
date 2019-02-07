@@ -365,8 +365,11 @@ class myExperiment(viz.EventClass):
 			self.Wheel.control_on()
 
 			if self.DISTRACTOR_TYPE is not None:
-				Distractor.StartTrial(self.targetoccurence_prob, self.targetnumber, trialn = i, triallength = 20)	#starts trial								
-				yield viztask.waitTrue(Distractor.getStartFlag)
+				if i == 0: #the first trial.
+					Distractor.StartTrial(self.targetoccurence_prob, self.targetnumber, trialn = i, triallength = 20, displayscreen=True)	#starts trial								
+					yield viztask.waitTrue(Distractor.getStartFlag)
+				else:
+					Distractor.StartTrial(self.targetoccurence_prob, self.targetnumber, trialn = i, triallength = 20, displayscreen=False)	#starts trial								
 
 
 			radius_index = self.FACTOR_radiiPool.index(trial_radii)
