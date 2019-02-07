@@ -6,16 +6,20 @@ import math
 import viztask
 import pandas as pd
 
+import threading
+
+import winsound
+
 #import vizjoy
 #Each trial should be an independent class. 
 
 
 class Distractor(viz.EventClass):
-	def __init__(self, filename, maxtargetnumber, ppid, startscreentime = 2):
+	def __init__(self, filename, maxtargetnumber, ppid, triallength, ntrials, startscreentime = 2):
 		viz.EventClass.__init__(self)
 
 		#needs to be an eventclass for timer to work.				
-		self.callback(viz.EXIT_EVENT,self.SaveData) #if exited, save the data. 
+		self.callback(viz.EXIT_EVENT,self.CloseConnections) #if exited, save the data. 
 
 		##PARAMETERS THAT DO NOT VARY PER TRIAL
 		self.ppid = ppid
@@ -26,17 +30,27 @@ class Distractor(viz.EventClass):
 		#letters = ['a','b','c','d','e','i','o']#,'f','g']#,'h','i','j','k','l']#,'m','n','o']
 		#letters = ['a','b','k','h','f','i','o']#,'f','g']#,'h','i','j','k','l']#,'m','n','o'] #don't rhyme.
 
-		self.letters = ['b','o','z','k','t','h','f','s','i','a','m','n','y','r','j'] #target letters are the front two. Need to be paired with three distractors.		
+		self.letters = ['b','o','z','k','t','h','f','s','i','a','m','n','y','r','j'] #target letters are the front two. Need to be paired with three distractors.	
+
+		
 
 		l = len(self.letters)
 		#self.LetterLength
 		for i in range(l):
 			a = self.letters[i]
 			#self.AudioList.append(viz.addAudio('..\\textures\\audio-numbers\\' + a + '.wav'))		
-			self.AudioList.append(viz.addAudio('C:\\VENLAB data\\shared_modules\\textures\\Alphabet_Sounds\\' + a + '.wav'))		
+			self.AudioList.append(viz.addAudio('C:\\VENLAB data\\shared_modules\\textures\\Alphabet_Sounds\\' + a + '.wav'))					
+
+		self.SoundPlayer_threaded = SoundPlayer_threaded(self.AudioList) #load thread
+		self.SoundPlayer_threaded.start() #start the threaed
+
+		#self.myaudio = viz.playSound('C:\\VENLAB data\\shared_modules\\textures\\Alphabet_Sounds\\' + 'b' + '.wav', viz.SOUND_PRELOAD)
 
 		self.Target_pool = self.letters[:maxtargetnumber] #returns list up to  maxtargetnumber
 		self.Distractor_pool = self.letters[maxtargetnumber:]
+
+		self.nTrials = ntrials		
+		self.Trial_length = triallength #length of trial. Is usually constant.
 
 		self.EndofTrial_Data, self.WithinTrial_Data = self.BuildDataFrames(maxtargetnumber)		
 		self.MaxTargetNumber = maxtargetnumber
@@ -48,8 +62,7 @@ class Distractor(viz.EventClass):
 		self.Trial_targetnumber = 0 #trial parameters, target number		
 		self.Trial_targetcounts = [] #empty list with actual self.Trial_targetnumber counts.
 		self.Trial_EoTscores = [] #empty list with self.Trial_targetnumber user inputted counts.	
-		self.Trial_N = 0	
-		self.Trial_length = 20 #length of trial. Is usually constant.
+		self.Trial_N = 0			
 		self.Trial_Timer = 0 #keeps track of trial length. 		
 
 		self.StartScreen_Timer = 0
@@ -66,7 +79,7 @@ class Distractor(viz.EventClass):
 		self.Overall_Stimuli_Index = 0 #count for number of stimuli, to index response dataframe.
 		self.Trial_Stimuli_Index = 0 #count for number of stimuli, to index response dataframe.
 
-		self.callback(viz.TIMER_EVENT,self.onTimer)		
+		self.callback(viz.TIMER_EVENT,self.onTimer, priority = 0)		
 		self.Stimuli_Timer =0 #between - presentation timer. 
 		
 		self.interval = 0.1 #delay randomly varies between 1 - 1.5 at .1 increments.		
@@ -142,11 +155,12 @@ class Distractor(viz.EventClass):
 			WithinTrialcolumns.append(Targetcolumn) #columns for within trial dataframe. 
 
 		EndofTrial_Data = pd.DataFrame(columns=EoTcolumns) #make new empty EndofTrial data
-		WithinTrial_Data = pd.DataFrame(columns=WithinTrialcolumns) #make new empty EndofTrial data
+		#WithinTrial_Data = pd.DataFrame(columns=WithinTrialcolumns) #make new empty EndofTrial data
+		WithinTrial_Data = pd.DataFrame(index = range(self.nTrials*(self.Trial_length*2)), columns=WithinTrialcolumns) #pre-allocate plenty of space. 2 per second will be plenty resposnes
 
 		return (EndofTrial_Data, WithinTrial_Data)
 	
-	def StartTrial(self, targetoccurence_prob, targetnumber, trialn, triallength, displayscreen = True):
+	def StartTrial(self, targetoccurence_prob, targetnumber, trialn, displayscreen = True):
 		
 		"""Sets parameters at the start of each trial, based on targetoccurence_prob and targetnumber"""
 		
@@ -156,8 +170,7 @@ class Distractor(viz.EventClass):
 		self.Trial_targetnumber = targetnumber #trial parameters, target number		
 		self.Trial_targetcounts = [0] * targetnumber #empty list with self.Trial_targetnumber counts
 		self.Trial_EoTscores = [-1] * targetnumber
-		self.Trial_N = trialn
-		self.Trial_length = triallength
+		self.Trial_N = trialn		
 		self.Trial_targets = list(np.random.choice(self.Target_pool, size=targetnumber, replace=False))
 
 		print("Trial targets: ", self.Trial_targets)
@@ -184,6 +197,7 @@ class Distractor(viz.EventClass):
 		#need to only play files sequentially.
 			if self.Stimuli_Timer > self.delay:
 				
+				#change random choice
 				choice = np.random.randint(0,2)
 				if choice == 1:	
 					if self.Trial_Stimuli_Index < 1: 
@@ -305,6 +319,15 @@ class Distractor(viz.EventClass):
 		
 		print ("recorded counts")			
 
+	def CloseConnections(self):
+
+		"""kills threaded functions and saves data"""
+
+		self.SaveData()
+
+		self.SoundPlayer_threaded.thread_kill() #kill thread
+		
+
 	
 	def SaveData(self):
 
@@ -313,6 +336,8 @@ class Distractor(viz.EventClass):
 		##save all data to file.
 
 		self.EndofTrial_Data.to_csv('Data//' + str(self.filename) + '_EndofTrial.csv')
+
+		self.WithinTrial_Data = self.WithinTrial_Data.dropna() #drop trailing zeros
 		self.WithinTrial_Data.to_csv('Data//' + str(self.filename) + '_WithinTrial.csv')
 
 		print ("Saved Data")
@@ -324,6 +349,8 @@ class Distractor(viz.EventClass):
 		print ("DetectAudioResponse called")
 		
 		print ("currentaudio_type", self.currentaudio_type)
+
+		t = viz.tick()
 
 		if self.currentaudio_type == 'T': #should have responded.
 
@@ -355,7 +382,10 @@ class Distractor(viz.EventClass):
 
 		output = list(trialinfo) + list(currentresponse) + Trial_targets_outputlist
 		
-		self.WithinTrial_Data.loc[self.Overall_Stimuli_Index-1,:] = output		
+		self.WithinTrial_Data.loc[self.Overall_Stimuli_Index-1,:] = output		#this is takes about 3ms. Consider changing to csv writer.
+		#https://stackoverflow.com/questions/41888080/python-efficient-way-to-add-rows-to-dataframe
+
+		print("DetectResposne: ", viz.tick() - t)
 
 		self.SetNewStimuli()
 		
@@ -364,6 +394,8 @@ class Distractor(viz.EventClass):
 		"""Sets the delay and target for the next stimuli, based on the target occurence and current pool"""
 		
 		print ("SetNewStimuli called")
+
+		t= viz.tick()
 
 		choices = ['T','D']
 		probabilities = [self.Trial_targetoccurence_prob, 1-self.Trial_targetoccurence_prob]
@@ -377,9 +409,19 @@ class Distractor(viz.EventClass):
 		self.Stimuli_PlayedStamp=viz.tick()
 		
 		print(self.currentaudio)
-		sound1 = self.AudioList[self.letters.index(self.currentaudio)] #retrieve loaded sound file from list.		
-		sound1.setTime(0)		
-		viz.director(PlaySound,sound1)		
+
+		
+		# sound1 = self.AudioList[self.letters.index(self.currentaudio)] #retrieve loaded sound file from list.		
+		# sound1.setTime(0)		
+		# #viz.director(PlaySound,sound1)		
+		# #viz.director(self.PlaySound2)
+
+		# sound1.volume(1)		
+
+		audioindex = self.letters.index(self.currentaudio)
+		self.SoundPlayer_threaded.PlaySound(audioindex) #takes about 1.5 ms to call. Still occasionally drops frames.
+		#self.SoundPlayer_threaded.PlaySound(1) #takes about 1.5 ms to call
+		#sound1.play()
 
 		self.Stimuli_Timer=0
 		self.ppresp = 0		
@@ -391,6 +433,8 @@ class Distractor(viz.EventClass):
 		self.Overall_Stimuli_Index += 1
 		self.Trial_Stimuli_Index += 1
 
+
+		print ("SetNewStimuli: ", viz.tick() - t)
 
 	#### THE FOLLOWING FUNCTIONS CONTROL THE DRIVER INTERACTING WITH THE WHEEL ######
 
@@ -447,8 +491,73 @@ class Distractor(viz.EventClass):
 										
 			#print "score: " + str(self.EoTScore)							
 			
+	def PlaySound2(self):
+		"""plays sound"""
+		#print 'director:'
+
+		t = viz.tick()
+		
+		self.myaudio.play()
+		
+
+		print ("playsound proc time: ", viz.tick() - t)
+
+		print ("playsound viztick: ", viz.tick())
+		print ("playsound framenumber: ", viz.getFrameNumber())
 def PlaySound(myaudio):
 	"""plays sound"""
 	#print 'director:'
+
+	t = viz.tick()
 	myaudio.volume(1)
 	myaudio.play()
+
+	print ("playsound proc time: ", viz.tick() - t)
+
+	print ("playsound viztick: ", viz.tick())
+	print ("playsound framenumber: ", viz.getFrameNumber())
+
+
+class SoundPlayer_threaded(threading.Thread):
+
+	def __init__(self, audiolist):
+		
+		threading.Thread.__init__(self)
+
+		self.thread_init()		
+		self.AudioFiles = audiolist	
+		
+		#add any other beeps
+		self.manual_audio = viz.addAudio('C:\\VENLAB data\\shared_modules\\textures\\490.wav') #high beep to signal change
+		self.manual_audio.stoptime(.2) #cut it short for minimum interference.
+		self.manual_audio.volume(.5)
+		
+	def thread_init(self):
+		"""Initialise the thread"""
+		self.__thread_live = True
+		
+	def thread_kill(self):
+		"""Turn the thread loop off"""
+		self.__thread_live = False
+
+
+	def PlaySound(self,audioindex):
+
+		t = viz.tick()
+		myaudio = self.AudioFiles[audioindex]
+		myaudio.play()	
+		
+
+		#playsound('C:\\VENLAB data\\shared_modules\\textures\\Alphabet_Sounds\\' + 'b' + '.wav')
+
+		#winsound.PlaySound('C:\\VENLAB data\\shared_modules\\textures\\Alphabet_Sounds\\' + 'b' + '.wav', winsound.SND_FILENAME)
+
+		print ("PLAY SOUND: ", viz.tick() - t)
+
+	def SingleBeep(self):
+		"""play single beep"""
+
+		t = viz.tick()
+		self.manual_audio.play()
+
+		print ("SINGLE BEEP: ", viz.tick() - t)

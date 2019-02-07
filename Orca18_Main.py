@@ -242,8 +242,10 @@ class myExperiment(viz.EventClass):
 		self.leftbends = leftbends
 		self.rightbends = rightbends 
 
-		self.callback(viz.TIMER_EVENT,self.updatePositionLabel)
+		self.callback(viz.TIMER_EVENT,self.updatePositionLabel, priority = -1)
 		self.starttimer(0,1.0/60.0,viz.FOREVER) #self.update position label is called every frame.
+
+		
 		self.UPDATELOOP = False
 
 		#add audio files
@@ -384,7 +386,7 @@ class myExperiment(viz.EventClass):
 
 		#set up distractor task
 		if self.DISTRACTOR_TYPE is not None:
-			Distractor = Count_Adjustable.Distractor("distractor_", self.targetnumber, ppid = 1, startscreentime = self.StartScreenTime)
+			Distractor = Count_Adjustable.Distractor("distractor_", self.targetnumber, ppid = 1, startscreentime = self.StartScreenTime, triallength = 15, ntrials = len(self.TRIALSEQ_signed))
 		else:
 			Distractor = None
 		self.driver = vizdriver.Driver(self.caveview, Distractor)	
@@ -393,8 +395,10 @@ class myExperiment(viz.EventClass):
 
 		#switch texts on.
 		self.txtMode.visible(viz.ON)
-		self.txtTrial.visible(viz.ON)
-		self.txtCurrent.visible(viz.ON)
+
+		if self.DEBUG:
+			self.txtTrial.visible(viz.ON)
+			self.txtCurrent.visible(viz.ON)
 		
 	
 		if self.EYETRACKING: 
@@ -425,10 +429,10 @@ class myExperiment(viz.EventClass):
 
 			if self.DISTRACTOR_TYPE is not None:
 				if i == 0: #the first trial.
-					Distractor.StartTrial(self.targetoccurence_prob, self.targetnumber, trialn = i, triallength = 20, displayscreen=True)	#starts trial								
+					Distractor.StartTrial(self.targetoccurence_prob, self.targetnumber, trialn = i, displayscreen=True)	#starts trial								
 					yield viztask.waitTrue(Distractor.getStartFlag)
 				else:
-					Distractor.StartTrial(self.targetoccurence_prob, self.targetnumber, trialn = i, triallength = 20, displayscreen=False)	#starts trial								
+					Distractor.StartTrial(self.targetoccurence_prob, self.targetnumber, trialn = i, displayscreen=False)	#starts trial								
 
 
 			radius_index = self.FACTOR_radiiPool.index(trial_radii)
@@ -505,7 +509,6 @@ class myExperiment(viz.EventClass):
 
 			#start distractor task for that trial
 						
-
 			self.UPDATELOOP = True #
 
 			def PlaybackReached():
@@ -532,6 +535,7 @@ class myExperiment(viz.EventClass):
 					#begin = timer()
 					if self.AUTOWHEEL:
 						self.Wheel.control_off()
+						#pass
 					#print ("WheelControlOff", timer() - begin)
 					end = True
 				
@@ -550,7 +554,8 @@ class myExperiment(viz.EventClass):
 				print ('Automation Disengaged')
 
 				#begin = timer()
-				viz.director(self.SingleBeep)
+				#viz.director(self.SingleBeep)
+				Distractor.SoundPlayer_threaded.SingleBeep()
 				#print ("SingleBeep: ", timer()-begin)
 				#use waitAny again: check for running out of road or taking over.
 				#begin = timer()
@@ -659,7 +664,10 @@ class myExperiment(viz.EventClass):
 		#print ("size of self.Output: ", self.Output.shape)
 
 		#print(output)
+		t = viz.tick()
 		self.Output.loc[self.Current_RowIndex,:] = output #this dataframe is actually just one line. 		
+
+		print ("Enter data: ", viz.tick() - t)
 	
 	# def SaveData(self, data, filename):
 
@@ -797,7 +805,11 @@ class myExperiment(viz.EventClass):
 
 	def SingleBeep(self):
 		"""play single beep"""
+
+		t = viz.tick()
 		self.manual_audio.play()
+
+		print ("processing: ", viz.tick() - t)
 
 	def CloseConnections(self):
 		
@@ -810,7 +822,9 @@ class myExperiment(viz.EventClass):
 		#kill automation
 		if self.AUTOWHEEL:
 			self.Wheel.thread_kill() #This one is mission critical - else the thread will keep going 
-			self.Wheel.shutdown()
+			self.Wheel.shutdown()		
+
+
 		viz.quit()
 	
 if __name__ == '__main__':
@@ -820,11 +834,12 @@ if __name__ == '__main__':
 	AUTOWHEEL = True
 	PRACTICE = True	
 	EXP_ID = "Orca18"
-	DEBUG = True
+	DEBUG = False
 
 	#distractor_type takes 'None', 'Easy' (1 target, 40% probability), and 'Hard' (3 targets, 40% probability)
 	#DISTRACTOR_TYPE = "Hard" #Case sensitive
-	DISTRACTOR_TYPE = None #Case sensitive
+	DISTRACTOR_TYPE = "Easy" #Case sensitive
+	#DISTRACTOR_TYPE = None #Case sensitive
 
 	if PRACTICE == True: # HACK
 		EYETRACKING = False 

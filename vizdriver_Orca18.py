@@ -77,6 +77,11 @@ class Driver(viz.EventClass):
 
 		elapsedTime = viz.getFrameElapsed()
 
+		if elapsedTime > .018:
+			print ("viz.tick: ", viz.tick())
+			print ("frame number: ", viz.getFrameNumber())
+			print ("elapsedTime:", elapsedTime)
+
 		yawrate = 0.0
 		turnangle = 0.0
 		distance = 0.0
