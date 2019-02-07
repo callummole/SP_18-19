@@ -312,6 +312,7 @@ class myExperiment(viz.EventClass):
 			self.SWA_readouts_80.append(data80.get("SWA"))
 
 		self.AUTOMATION = True
+		self.txtMode.message('A')
 
 		self.callback(viz.EXIT_EVENT,self.CloseConnections) #if exited, save the data. 
 
@@ -321,6 +322,15 @@ class myExperiment(viz.EventClass):
 			self.txtStatus = viz.addText("Condition",parent = viz.SCREEN)
 			self.txtStatus.setPosition(.7,.2)
 			self.txtStatus.fontSize(36)		
+
+		self.txtMode = viz.addText("Mode",parent=viz.SCREEN)
+		self.txtMode.setBackdrop(viz.BACKDROP_OUTLINE)
+		self.txtMode.setBackdropColor(viz.BLACK)
+		#set above skyline so I can easily filter glances to the letter out of the data
+		self.txtMode.setPosition(.05,.52)
+		self.txtMode.fontSize(36)
+		self.txtMode.color(viz.WHITE)
+		self.txtMode.visible(viz.ON)
 			
 
 	def runtrials(self):
@@ -365,6 +375,7 @@ class myExperiment(viz.EventClass):
 		
 			self.driver.setAutomation(True)
 			self.AUTOMATION = True
+			self.txtMode.message('A')
 			if self.AUTOWHEEL:
 				self.Wheel.control_on()
 
@@ -461,6 +472,7 @@ class myExperiment(viz.EventClass):
 				if auto == False:
 					
 					self.AUTOMATION = auto
+					self.txtMode.message('M')
 					#switch wheel control off, because user has disengaged
 					#begin = timer()
 					if self.AUOTWHEEL:
