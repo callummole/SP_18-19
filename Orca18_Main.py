@@ -365,7 +365,8 @@ class myExperiment(viz.EventClass):
 		
 			self.driver.setAutomation(True)
 			self.AUTOMATION = True
-			self.Wheel.control_on()
+			if self.AUTOWHEEL:
+				self.Wheel.control_on()
 
 			if self.DISTRACTOR_TYPE is not None:
 				if i == 0: #the first trial.
@@ -462,7 +463,8 @@ class myExperiment(viz.EventClass):
 					self.AUTOMATION = auto
 					#switch wheel control off, because user has disengaged
 					#begin = timer()
-					self.Wheel.control_off()
+					if self.AUOTWHEEL:
+						self.Wheel.control_off()
 					#print ("WheelControlOff", timer() - begin)
 					end = True
 				
@@ -533,7 +535,8 @@ class myExperiment(viz.EventClass):
 
 			##### INITIALISE END OF TRIAL SCREEN FOR DISTRACTOR TASK #######
 			if self.DISTRACTOR_TYPE is not None:
-				self.Wheel.control_off()
+				if self.AUTOWHEEL:
+					self.Wheel.control_off()
 				Distractor.EndofTrial() #throw up the screen to record counts.
 				###interface with End of Trial Screen		
 				pressed = 0
@@ -648,7 +651,9 @@ class myExperiment(viz.EventClass):
 				
 				newSWApos = self.Trial_SWA_readout[self.Current_playbackindex]
 				newSWApos *= np.sign(self.Trial_trialtype_signed) #flip if left hand bend
-				self.Wheel.set_position(newSWApos)	#set steering wheel to position.
+
+				if self.AUTOWHEEL:
+					self.Wheel.set_position(newSWApos)	#set steering wheel to position.
 
 				#print ("Setting SWA position: ", newSWApos)				
 							
