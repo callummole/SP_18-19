@@ -364,6 +364,8 @@ class myExperiment(viz.EventClass):
 
 			self.dots_position, = self.plot_ax.plot(self.plot_positionarray_x, self.plot_positionarray_z, 'ko', markersize = .5)
 			self.dots_closestpt, = self.plot_ax.plot(self.plot_closestpt_x, self.plot_closestpt_z, 'bo', markersize = .2)
+			self.line_midline, = self.plot_ax.plot([],[],'r-')
+			self.dot_origin, = self.plot_ax.plot([], [], 'b*', markersize = 5)
 
 
 			#quad.alpha(0.5)
@@ -492,10 +494,12 @@ class myExperiment(viz.EventClass):
 				'\nTask: ' + str(self.DISTRACTOR_TYPE) 
 				self.txtTrial.message(conditionmessage)
 	
-				#plot midline.							
-				print self.Trial_midline
-				plt.plot(self.Trial_midline[:,0], self.Trial_midline[:,1], 'r-')
-				plt.plot(self.Trial_BendObject.CurveOrigin[0], self.Trial_BendObject.CurveOrigin[1], 'b*', markersize = 5)
+				#realtime plot.
+				self.line_midline.set_data(self.Trial_midline[:,0], self.Trial_midline[:,1])
+				self.dot_origin.set_data(self.Trial_BendObject.CurveOrigin[0],self.Trial_BendObject.CurveOrigin[1])
+				self.plot_ax.axis([min(self.Trial_midline[:,0])-10,max(self.Trial_midline[:,0])+10,min(self.Trial_midline[:,1])-10,max(self.Trial_midline[:,1])+10])  #set axis limits
+
+				self.plot_positionarray_x, self.plot_positionarray_z, self.plot_closestpt_x,  self.plot_closestpt_z = [], [], [], [] #arrays to store plot data in
 
 			#here we need to annotate eyetracking recording.
 
@@ -689,6 +693,8 @@ class myExperiment(viz.EventClass):
 		pos_from_trackorigin = np.sqrt(((self.Current_pos_x-CurveOrigin[0])**2)+((self.Current_pos_z-CurveOrigin[1])**2)) #distance of driver pos to origin
 		distdiff = middist_from_origin - pos_from_trackorigin #if driver distance is greater than closest point distance, steering position should be understeering
 		steeringbias = dist * np.sign(distdiff)     
+
+		steeringbias *= np.sign(self.Trial_trialtype_signed)
 
 		return steeringbias, idx
 
