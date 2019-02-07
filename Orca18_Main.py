@@ -35,6 +35,9 @@ import myCave
 import pandas as pd
 import Count_Adjustable #distractor task
 
+import vizmatplot
+import matplotlib.pyplot as plt
+
 rootpath = 'C:\\VENLAB data\\TrackMaker\\'
 sys.path.append(rootpath)
 
@@ -338,6 +341,33 @@ class myExperiment(viz.EventClass):
 			self.txtCurrent.setPosition(.2,.2)
 			self.txtCurrent.fontSize(36)
 			self.txtCurrent.visible(viz.OFF)
+
+			#for inset plot
+
+			self.plotinterval = .2 #in seconds, amount of time to redraw plot.
+			self.plottimer = 0 #to control interval.
+			fig = plt.figure() #create figure
+			self.plot_ax = fig.add_subplot(111) #add axes
+			plt.title('Debug')
+			plt.xlabel('Xpos')
+			plt.ylabel('Zpos')
+
+			#add a texture for a figure
+			self.fig_texture = vizmatplot.Texture(fig)
+
+			# Create quad to render plot texture
+			quad = viz.addTexQuad(texture=self.fig_texture, parent = viz.SCREEN, size = 400)
+			quad.setPosition(.5,.8)
+
+			
+			self.plot_positionarray_x, self.plot_positionarray_z, self.plot_closestpt_x,  self.plot_closestpt_z = [], [], [], [] #arrays to store plot data in
+
+			self.dots_position, = self.plot_ax.plot(self.plot_positionarray_x, self.plot_positionarray_z, 'ko', markersize = .5)
+			self.dots_closestpt, = self.plot_ax.plot(self.plot_closestpt_x, self.plot_closestpt_z, 'bo', markersize = .2)
+
+
+			#quad.alpha(0.5)
+		
 							
 
 	def runtrials(self):
@@ -461,6 +491,11 @@ class myExperiment(viz.EventClass):
 				'\nOnsetTime: ' + str(self.Trial_OnsetTime) + \
 				'\nTask: ' + str(self.DISTRACTOR_TYPE) 
 				self.txtTrial.message(conditionmessage)
+	
+				#plot midline.							
+				print self.Trial_midline
+				plt.plot(self.Trial_midline[:,0], self.Trial_midline[:,1], 'r-')
+				plt.plot(self.Trial_BendObject.CurveOrigin[0], self.Trial_BendObject.CurveOrigin[1], 'b*', markersize = 5)
 
 			#here we need to annotate eyetracking recording.
 
@@ -619,7 +654,7 @@ class myExperiment(viz.EventClass):
 		#print ("length of output: ", len(output))
 		#print ("size of self.Output: ", self.Output.shape)
 
-		print(output)
+		#print(output)
 		self.Output.loc[self.Current_RowIndex,:] = output #this dataframe is actually just one line. 		
 	
 	# def SaveData(self, data, filename):
@@ -724,8 +759,35 @@ class myExperiment(viz.EventClass):
 					'\nLanePos: ' + str(round(self.Current_steeringbias,2))
 				self.txtCurrent.message(currentmessage)
 
+				#add to plot position array
+				self.plot_positionarray_x.append(self.Current_pos_x)
+				self.plot_positionarray_z.append(self.Current_pos_z)
+				midpos = self.Trial_midline[self.Current_closestpt]
+				self.plot_closestpt_x.append(midpos[0])
+				self.plot_closestpt_z.append(midpos[1])
+
+				if self.plottimer > self.plotinterval:
+					self.UpdatePlot()
+					self.plottimer = 0
+				
+				self.plottimer += viz.elapsed()
+
+
+				
+
 			self.RecordData() #write a line in the dataframe.	
 				
+	
+	def UpdatePlot(self):
+		"""for debugging, update inset plot in real-time"""
+
+		# Update plot data
+		self.dots_position.set_data(self.plot_positionarray_x, self.plot_positionarray_z)
+		self.dots_closestpt.set_data(self.plot_closestpt_x, self.plot_closestpt_z)
+
+		# Wait for redraw
+		#yield fig_texture.waitRedraw() #probably will not work.
+		self.fig_texture.redraw()
 
 	def SingleBeep(self):
 		"""play single beep"""
