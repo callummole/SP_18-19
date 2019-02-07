@@ -249,10 +249,12 @@ class myExperiment(viz.EventClass):
 		self.manual_audio.volume(.5)
 		
 		####### DATA SAVING ######
-		datacolumns = ['ppid', 'radius','yawrate_offset','trialn','timestamp','trialtype_signed','World_x','World_z','WorldYaw','SWA','YawRate_seconds','TurnAngle_frames','Distance_frames','dt', 'WheelCorrection', 'SteeringBias', 'Closestpt', 'AutoFlag', 'AutoFile']
+		datacolumns = ['ppid', 'radius','yawrate_offset','trialn','timestamp','trialtype_signed','World_x','World_z','WorldYaw','SWA','YawRate_seconds','TurnAngle_frames','Distance_frames','dt', 'WheelCorrection', 'SteeringBias', 'Closestpt', 'AutoFlag', 'AutoFile', 'OnsetTime']
 		self.datacolumns = datacolumns		
 		self.Output = None #dataframe that gets renewed each trial.		
 		#self.Output = pd.DataFrame(columns=datacolumns) #make new empty EndofTrial data
+
+		self.OnsetTimePool = np.arange(4, 6.25, step = .25) #from 4 to 6s in .25s increments. The straight is ~ 2s of travel, so this is 2-4s into the bend.
 
 		### parameters that are set at the start of each trial ####
 		self.Trial_radius = 0
@@ -265,7 +267,8 @@ class myExperiment(viz.EventClass):
 		self.Trial_YR_readout = []
 		self.Trial_playbacklength = 0
 		self.Trial_playbackfilename = ""
-		self.Trial_midline = []
+		self.Trial_midline = [] #midline for the entire track.
+		self.Trial_OnsetTime = 0 #onset time for the trial.
 		
 		#### parameters that are updated each timestamp ####
 		self.Current_pos_x = 0
@@ -421,6 +424,7 @@ class myExperiment(viz.EventClass):
 			self.Trial_trialtype_signed	= trialtype_signed
 			self.Trial_playbacklength = len(self.Trial_YR_readout)				
 			self.Trial_midline = np.vstack((self.Straight.midline, self.Trial_BendObject.midline))
+			self.Trial_OnsetTime = np.random.choice(self.OnsetTimePool, size=1)
 
 			#renew data frame.
 			self.Output = pd.DataFrame(index = range(self.TrialLength*60), columns=self.datacolumns) #make new empty EndofTrial data
@@ -582,7 +586,7 @@ class myExperiment(viz.EventClass):
 		#'ppid', 'radius','yawrate_offset','trialn','timestamp','trialtype_signed','World_x','World_z','WorldYaw','SWA','YawRate_seconds','TurnAngle_frames','Distance_frames','dt', 'WheelCorrection', 'SteeringBias', 'Closestpt' 'AutoFlag', 'AutoFile'#		
 		output = [self.PP_id, self.Trial_radius, self.Trial_YawRate_Offset, self.Trial_N, self.Current_Time, self.Trial_trialtype_signed, 
 		self.Current_pos_x, self.Current_pos_z, self.Current_yaw, self.Current_SWA, self.Current_YawRate_seconds, self.Current_TurnAngle_frames, 
-		self.Current_distance, self.Current_dt, self.Current_WheelCorrection, self.Current_steeringbias, self.Current_closestpt, self.AUTOMATION, self.Trial_playbackfilename] #output array.
+		self.Current_distance, self.Current_dt, self.Current_WheelCorrection, self.Current_steeringbias, self.Current_closestpt, self.AUTOMATION, self.Trial_playbackfilename, self.Trial_OnsetTime] #output array.
 		
 		#print ("length of output: ", len(output))
 		#print ("size of self.Output: ", self.Output.shape)
@@ -651,7 +655,7 @@ class myExperiment(viz.EventClass):
 				newyawrate = self.Trial_YR_readout[self.Current_playbackindex]
 
 				#add yawrateoffset.
-				if self.Trial_Timer > 4: #2 seconds into the bend.
+				if self.Trial_Timer > self.Trial_OnsetTime: #2 seconds into the bend.
 					newyawrate += self.Trial_YawRate_Offset
 				
 				self.Current_playbackindex += 1
