@@ -256,6 +256,16 @@ class myExperiment(viz.EventClass):
 
 		self.OnsetTimePool = np.arange(4, 6.25, step = .25) #from 4 to 6s in .25s increments. The straight is ~ 2s of travel, so this is 2-4s into the bend.
 
+		
+		self.txtMode = viz.addText("Mode",parent=viz.SCREEN)
+		self.txtMode.setBackdrop(viz.BACKDROP_OUTLINE)
+		self.txtMode.setBackdropColor(viz.BLACK)
+		#set above skyline so I can easily filter glances to the letter out of the data
+		self.txtMode.setPosition(.05,.52)
+		self.txtMode.fontSize(36)
+		self.txtMode.color(viz.WHITE)
+		self.txtMode.visible(viz.OFF)
+
 		### parameters that are set at the start of each trial ####
 		self.Trial_radius = 0
 		self.Trial_YawRate_Offset = 0 				
@@ -316,22 +326,19 @@ class myExperiment(viz.EventClass):
 
 		self.callback(viz.EXIT_EVENT,self.CloseConnections) #if exited, save the data. 
 
-
 		if self.DEBUG:
-			#add text to denote status.
-			self.txtStatus = viz.addText("Condition",parent = viz.SCREEN)
-			self.txtStatus.setPosition(.7,.2)
-			self.txtStatus.fontSize(36)		
+			#add text to denote trial status.
+			self.txtTrial = viz.addText("Condition",parent = viz.SCREEN)
+			self.txtTrial.setPosition(.7,.2)
+			self.txtTrial.fontSize(36)
+			self.txtTrial.visible(viz.OFF)
 
-		self.txtMode = viz.addText("Mode",parent=viz.SCREEN)
-		self.txtMode.setBackdrop(viz.BACKDROP_OUTLINE)
-		self.txtMode.setBackdropColor(viz.BLACK)
-		#set above skyline so I can easily filter glances to the letter out of the data
-		self.txtMode.setPosition(.05,.52)
-		self.txtMode.fontSize(36)
-		self.txtMode.color(viz.WHITE)
-		self.txtMode.visible(viz.ON)
-			
+			#add text to denote condition status
+			self.txtCurrent = viz.addText("Current",parent = viz.SCREEN)
+			self.txtCurrent.setPosition(.2,.2)
+			self.txtCurrent.fontSize(36)
+			self.txtCurrent.visible(viz.OFF)
+							
 
 	def runtrials(self):
 		"""Loops through the trial sequence"""
@@ -351,6 +358,11 @@ class myExperiment(viz.EventClass):
 		self.driver = vizdriver.Driver(self.caveview, Distractor)	
 
 		viz.MainScene.visible(viz.ON,viz.WORLD)		
+
+		#switch texts on.
+		self.txtMode.visible(viz.ON)
+		self.txtTrial.visible(viz.ON)
+		self.txtCurrent.visible(viz.ON)
 		
 	
 		if self.EYETRACKING: 
@@ -436,7 +448,7 @@ class myExperiment(viz.EventClass):
 			self.Trial_trialtype_signed	= trialtype_signed
 			self.Trial_playbacklength = len(self.Trial_YR_readout)				
 			self.Trial_midline = np.vstack((self.Straight.midline, self.Trial_BendObject.midline))
-			self.Trial_OnsetTime = np.random.choice(self.OnsetTimePool, size=1)
+			self.Trial_OnsetTime = np.random.choice(self.OnsetTimePool, size=1)[0]
 
 			#renew data frame.
 			self.Output = pd.DataFrame(index = range(self.TrialLength*60), columns=self.datacolumns) #make new empty EndofTrial data
@@ -444,7 +456,11 @@ class myExperiment(viz.EventClass):
 			yield viztask.waitTime(.5) #pause at beginning of trial
 
 			if self.DEBUG:
-				self.txtStatus.message("Automation:" + str(self.AUTOMATION))
+				conditionmessage = 'YR_offset: ' + str(self.Trial_YawRate_Offset) + \
+				'\nRadius: ' +str(self.Trial_radius) + \
+				'\nOnsetTime: ' + str(self.Trial_OnsetTime) + \
+				'\nTask: ' + str(self.DISTRACTOR_TYPE) 
+				self.txtTrial.message(conditionmessage)
 
 			#here we need to annotate eyetracking recording.
 
@@ -475,7 +491,7 @@ class myExperiment(viz.EventClass):
 					self.txtMode.message('M')
 					#switch wheel control off, because user has disengaged
 					#begin = timer()
-					if self.AUOTWHEEL:
+					if self.AUTOWHEEL:
 						self.Wheel.control_off()
 					#print ("WheelControlOff", timer() - begin)
 					end = True
@@ -493,9 +509,6 @@ class myExperiment(viz.EventClass):
 				print ('Playback Limit Reached')
 			elif d.condition is waitDisengage:
 				print ('Automation Disengaged')
-				
-				if self.DEBUG:
-					self.txtStatus.message("Automation:" + str(self.AUTOMATION))
 
 				#begin = timer()
 				viz.director(self.SingleBeep)
@@ -606,7 +619,7 @@ class myExperiment(viz.EventClass):
 		#print ("length of output: ", len(output))
 		#print ("size of self.Output: ", self.Output.shape)
 
-		#print(output)
+		print(output)
 		self.Output.loc[self.Current_RowIndex,:] = output #this dataframe is actually just one line. 		
 	
 	# def SaveData(self, data, filename):
@@ -704,6 +717,13 @@ class myExperiment(viz.EventClass):
 
 		#	print ("SteeringBIas:", self.Current_steeringbias)
 
+
+			#update txtCurrent.
+			if self.DEBUG:
+				currentmessage = 'TrialTime: ' + str(round(self.Trial_Timer,2)) + \
+					'\nLanePos: ' + str(round(self.Current_steeringbias,2))
+				self.txtCurrent.message(currentmessage)
+
 			self.RecordData() #write a line in the dataframe.	
 				
 
@@ -735,7 +755,8 @@ if __name__ == '__main__':
 	DEBUG = True
 
 	#distractor_type takes 'None', 'Easy' (1 target, 40% probability), and 'Hard' (3 targets, 40% probability)
-	DISTRACTOR_TYPE = "Hard" #Case sensitive
+	#DISTRACTOR_TYPE = "Hard" #Case sensitive
+	DISTRACTOR_TYPE = None #Case sensitive
 
 	if PRACTICE == True: # HACK
 		EYETRACKING = False 
