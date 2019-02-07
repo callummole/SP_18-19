@@ -171,7 +171,11 @@ class Driver(viz.EventClass):
 
 		if e.button in (5,6):
 			
-			EoTFlag = self.__Distractor.getFlag()
+			if self.__Distractor is not None:
+				EoTFlag = self.__Distractor.getFlag()
+			else:
+				EoTFlag = False
+
 			if EoTFlag:
 				self.gearPressed = True
 			else:

@@ -727,7 +727,7 @@ class myExperiment(viz.EventClass):
 
 				#add yawrateoffset.
 				if self.Trial_Timer > self.Trial_OnsetTime: #2 seconds into the bend.
-					newyawrate += self.Trial_YawRate_Offset
+					newyawrate += self.Trial_YawRate_Offset #positive offset = greater oversteering.
 				
 				self.Current_playbackindex += 1
 
