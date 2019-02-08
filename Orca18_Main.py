@@ -51,10 +51,6 @@ def LoadEyetrackingModules():
 
 	"""load eyetracking modules and check connection"""
 
-	from eyetrike_calibration_standard import Markers, run_calibration
-	from eyetrike_accuracy_standard import run_accuracy
-	from UDP_comms import pupil_comms
-
 	###Connect over network to eyetrike and check the connection
 	comms = pupil_comms() #Initiate a communication with eyetrike	
 	#Check the connection is live
@@ -65,7 +61,9 @@ def LoadEyetrackingModules():
 		raise Exception("Could not connect to Eyetrike")
 	else:
 		pass	
-	#markers = Markers() #this now gets added during run_calibration				
+
+	return(comms)
+	
 	
 def LoadCave():
 	"""loads myCave and returns Caveview"""
@@ -199,8 +197,9 @@ class myExperiment(viz.EventClass):
 			self.targetnumber = 3
 		self.StartScreenTime = 2		
 
-		if EYETRACKING == True:	
-			LoadEyetrackingModules()
+		if EYETRACKING:	
+			#eyetracking modules loaded
+			self.comms = LoadEyetrackingModules()
 
 		self.PP_id = ppid
 		self.TrialLength = 15 #length of time that road is visible. Constant throughout experiment
@@ -381,10 +380,11 @@ class myExperiment(viz.EventClass):
 		"""Loops through the trial sequence"""
 		
 		if self.EYETRACKING:
-			filename = str(self.EXP_ID) + "_Calibration" #+ str(demographics[0]) + "_" + str(demographics[2]) #add experimental block to filename
+			viz.MainScene.visible(viz.OFF,viz.WORLD)		
+			filename = str(self.EXP_ID) + "_Calibration_" + str(self.PP_id) #+ str(demographics[0]) + "_" + str(demographics[2]) #add experimental block to filename
 			print (filename)
-			yield run_calibration(comms, filename)
-			yield run_accuracy(comms, filename)	
+			yield run_calibration(self.comms, filename)
+			yield run_accuracy(self.comms, filename)	
 
 
 		#set up distractor task
@@ -399,7 +399,9 @@ class myExperiment(viz.EventClass):
 		self.ToggleTextVisibility(viz.ON)
 	
 		if self.EYETRACKING: 
-			comms.start_trial()
+			#pass it the filename, and also the timestamp.
+			et_file = str(self.EXP_ID) + '_' + str(self.PP_id) #one file for the whole task.
+			self.comms.start_trial(fname = et_file, timestamp = viz.tick())
 		
 		for i, trialtype_signed in enumerate(self.TRIALSEQ_signed):
 			#import vizjoy		
@@ -426,7 +428,15 @@ class myExperiment(viz.EventClass):
 
 			if self.DISTRACTOR_TYPE is not None:
 				if i == 0: #the first trial.			
+					
+					#annotate eyetracking
+					if self.EYETRACKING:
+						self.comms.annotate("DistractorScreen")	
+					
+					
 					#switch texts off for the first trial.
+
+
 					self.ToggleTextVisibility(viz.OFF)
 
 					Distractor.StartTrial(self.targetoccurence_prob, self.targetnumber, trialn = i, displayscreen=True)	#starts trial								
@@ -487,7 +497,7 @@ class myExperiment(viz.EventClass):
 			self.Trial_playbacklength = len(self.Trial_YR_readout)				
 			self.Trial_midline = np.vstack((self.Straight.midline, self.Trial_BendObject.midline))
 			self.Trial_OnsetTime = np.random.choice(self.OnsetTimePool, size=1)[0]
-			self.Trial_SaveName = 'Data//OrcaPilot_' + str(self.Trial_radius) + '_' + str(self.Trial_N) + '.csv'
+			self.Trial_SaveName = str(self.EXP_ID) + '_' + str(self.PP_id) + '_' + str(self.Trial_radius) + '_' + str(self.Trial_N)
 
 			#renew data frame.
 			#self.OutputWriter = pd.DataFrame(index = range(self.TrialLength*60), columns=self.datacolumns) #make new empty EndofTrial data
@@ -496,6 +506,11 @@ class myExperiment(viz.EventClass):
 			self.OutputFile = io.BytesIO()
 			self.OutputWriter = csv.writer(self.OutputFile)
 			self.OutputWriter.writerow(self.datacolumns) #write headers.
+
+			
+			#annotate eyetracking
+			if self.EYETRACKING:
+					self.comms.annotate('Start_' + self.Trial_SaveName)	
 
 			yield viztask.waitTime(.5) #pause at beginning of trial
 
@@ -513,10 +528,6 @@ class myExperiment(viz.EventClass):
 					self.plot_ax.axis([min(self.Trial_midline[:,0])-10,max(self.Trial_midline[:,0])+10,min(self.Trial_midline[:,1])-10,max(self.Trial_midline[:,1])+10])  #set axis limits
 
 					self.plot_positionarray_x, self.plot_positionarray_z, self.plot_closestpt_x,  self.plot_closestpt_z = [], [], [], [] #arrays to store plot data in
-
-			#here we need to annotate eyetracking recording.
-
-			#start distractor task for that trial
 						
 			self.UPDATELOOP = True #
 
@@ -583,6 +594,8 @@ class myExperiment(viz.EventClass):
 					print ('Manual Time Elapsed')
 
 			##### END STEERING TASK ######
+
+
 			
 			self.UPDATELOOP = False
 			
@@ -595,6 +608,11 @@ class myExperiment(viz.EventClass):
 
 			##### INITIALISE END OF TRIAL SCREEN FOR DISTRACTOR TASK #######
 			if self.DISTRACTOR_TYPE is not None:
+
+				#annotate eyetracking
+				if self.EYETRACKING:
+					self.comms.annotate('Distractor_' + self.Trial_SaveName)	
+
 				if self.AUTOWHEEL:
 					self.Wheel.control_off()
 				Distractor.EndofTrial() #throw up the screen to record counts.
@@ -615,6 +633,10 @@ class myExperiment(viz.EventClass):
 					yield viztask.waitTime(.5)
 					#Distractor.EoTScreen_Visibility(viz.OFF)
 				Distractor.RecordCounts()
+
+			#annotate eyetracking
+			if self.EYETRACKING:
+				self.comms.annotate('End_' + self.Trial_SaveName)	
 	
 		#loop has finished.
 		self.CloseConnections()
@@ -674,7 +696,7 @@ class myExperiment(viz.EventClass):
 
 		data.seek(0)
 		df = pd.read_csv(data) #grab bytesIO object.		
-		df.to_csv(filename) #save to file.
+		df.to_csv('Data//' + filename + '.csv') #save to file.
 
 		print ("Saved file: ", filename)
 
@@ -806,7 +828,7 @@ class myExperiment(viz.EventClass):
 		
 		print ("Closing connections")
 		if self.EYETRACKING: 
-			comms.stop_trial() #closes recording			
+			self.comms.stop_trial() #closes recording			
 		
 		#kill automation
 		if self.AUTOWHEEL:
@@ -818,11 +840,11 @@ class myExperiment(viz.EventClass):
 if __name__ == '__main__':
 
 	###### SET EXPERIMENT OPTIONS ######	
-	EYETRACKING = False
+	EYETRACKING = True
 	AUTOWHEEL = True
-	PRACTICE = True	
+	PRACTICE = False	#keep false. no practice trial at the moment.
 	EXP_ID = "Orca18"
-	DEBUG = True
+	DEBUG = False
 	DEBUG_PLOT = False #flag for the debugger plot. only active if Debug == True.
 
 	#distractor_type takes 'None', 'Easy' (1 target, 40% probability), and 'Hard' (3 targets, 40% probability)
@@ -830,8 +852,15 @@ if __name__ == '__main__':
 	DISTRACTOR_TYPE = "Easy" #Case sensitive
 	#DISTRACTOR_TYPE = None #Case sensitive
 
+	EXP_ID = EXP_ID + '_' + str(DISTRACTOR_TYPE)
+
 	if PRACTICE == True: # HACK
 		EYETRACKING = False 
+
+	if EYETRACKING:
+		from eyetrike_calibration_standard import Markers, run_calibration
+		from eyetrike_accuracy_standard import run_accuracy
+		from UDP_comms import pupil_comms
 
 	myExp = myExperiment(EYETRACKING, PRACTICE, EXP_ID, AUTOWHEEL, DEBUG, DEBUG_PLOT, DISTRACTOR_TYPE)
 
