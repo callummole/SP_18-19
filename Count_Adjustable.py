@@ -6,6 +6,8 @@ import math
 import viztask
 import pandas as pd
 
+import csv, io
+
 import threading
 
 import winsound
@@ -52,7 +54,8 @@ class Distractor(viz.EventClass):
 		self.nTrials = ntrials		
 		self.Trial_length = triallength #length of trial. Is usually constant.
 
-		self.EndofTrial_Data, self.WithinTrial_Data = self.BuildDataFrames(maxtargetnumber)		
+		self.EndofTrial_Data, self.WithinTrial_Data_writer, self.WithinTrial_Data_file = self.BuildDataFrames(maxtargetnumber)		
+		
 		self.MaxTargetNumber = maxtargetnumber
 
 		#PARAMETERS THAT ARE SET AT THE START OF EACH TRIAL
@@ -63,7 +66,7 @@ class Distractor(viz.EventClass):
 		self.Trial_targetcounts = [] #empty list with actual self.Trial_targetnumber counts.
 		self.Trial_EoTscores = [] #empty list with self.Trial_targetnumber user inputted counts.	
 		self.Trial_N = 0			
-		self.Trial_Timer = 0 #keeps track of trial length. 		
+		self.Trial_Timer = 0 #keeps track of trial length. 				
 
 		self.StartScreen_Timer = 0
 		#self.Trial_Index = 0 #count for number of Trails, to index Trial dataframe. Isn't needed as Trial_N gets passed on StartTrial. 
@@ -156,9 +159,16 @@ class Distractor(viz.EventClass):
 
 		EndofTrial_Data = pd.DataFrame(columns=EoTcolumns) #make new empty EndofTrial data
 		#WithinTrial_Data = pd.DataFrame(columns=WithinTrialcolumns) #make new empty EndofTrial data
-		WithinTrial_Data = pd.DataFrame(index = range(self.nTrials*(self.Trial_length*2)), columns=WithinTrialcolumns) #pre-allocate plenty of space. 2 per second will be plenty resposnes
+		#WithinTrial_Data = pd.DataFrame(index = range(self.nTrials*(self.Trial_length*2)), columns=WithinTrialcolumns) #pre-allocate plenty of space. 2 per second will be plenty resposnes
 
-		return (EndofTrial_Data, WithinTrial_Data)
+		#open stream as bytes object for quicker saving.
+		WithinTrialcolumns = tuple(WithinTrialcolumns) #needs to be tuple to write row.
+		WithinTrialFile = io.BytesIO()
+		WithinTrialWriter = csv.writer(WithinTrialFile)
+		WithinTrialWriter.writerow(WithinTrialcolumns)
+
+		#return (EndofTrial_Data, WithinTrial_Data)
+		return (EndofTrial_Data, WithinTrialWriter, WithinTrialFile)
 	
 	def StartTrial(self, targetoccurence_prob, targetnumber, trialn, displayscreen = True):
 		
@@ -337,8 +347,12 @@ class Distractor(viz.EventClass):
 
 		self.EndofTrial_Data.to_csv('Data//' + str(self.filename) + '_EndofTrial.csv')
 
-		self.WithinTrial_Data = self.WithinTrial_Data.dropna() #drop trailing zeros
-		self.WithinTrial_Data.to_csv('Data//' + str(self.filename) + '_WithinTrial.csv')
+		#self.WithinTrial_Data = self.WithinTrial_Data.dropna() #drop trailing zeros
+		#self.WithinTrial_Data.to_csv('Data//' + str(self.filename) + '_WithinTrial.csv')
+
+		self.WithinTrial_Data_file.seek(0) #start from beginning
+		data = pd.read_csv(self.WithinTrial_Data_file) #read bytes stream
+		data.to_csv('Data//' + str(self.filename) + '_WithinTrial.csv') #save to csv
 
 		print ("Saved Data")
 		
@@ -382,7 +396,10 @@ class Distractor(viz.EventClass):
 
 		output = list(trialinfo) + list(currentresponse) + Trial_targets_outputlist
 		
-		self.WithinTrial_Data.loc[self.Overall_Stimuli_Index-1,:] = output		#this is takes about 3ms. Consider changing to csv writer.
+	#	self.WithinTrial_Data.loc[self.Overall_Stimuli_Index-1,:] = output		#this is takes about 3ms. Consider changing to csv writer.
+
+		output = tuple(output)
+		self.WithinTrial_Data_writer.writerow(output) #write row to output stream.
 		#https://stackoverflow.com/questions/41888080/python-efficient-way-to-add-rows-to-dataframe
 
 		print("DetectResposne: ", viz.tick() - t)

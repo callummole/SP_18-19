@@ -35,6 +35,8 @@ import myCave
 import pandas as pd
 import Count_Adjustable #distractor task
 
+import csv, io #for efficient data saving
+
 import vizmatplot
 import matplotlib.pyplot as plt
 
@@ -255,9 +257,11 @@ class myExperiment(viz.EventClass):
 		
 		####### DATA SAVING ######
 		datacolumns = ['ppid', 'radius','yawrate_offset','trialn','timestamp','trialtype_signed','World_x','World_z','WorldYaw','SWA','YawRate_seconds','TurnAngle_frames','Distance_frames','dt', 'WheelCorrection', 'SteeringBias', 'Closestpt', 'AutoFlag', 'AutoFile', 'OnsetTime']
+		datacolumns = ('ppid', 'radius','yawrate_offset','trialn','timestamp','trialtype_signed','World_x','World_z','WorldYaw','SWA','YawRate_seconds','TurnAngle_frames','Distance_frames','dt', 'WheelCorrection', 'SteeringBias', 'Closestpt', 'AutoFlag', 'AutoFile', 'OnsetTime')
 		self.datacolumns = datacolumns		
-		self.Output = None #dataframe that gets renewed each trial.		
-		#self.Output = pd.DataFrame(columns=datacolumns) #make new empty EndofTrial data
+		self.OutputWriter = None #dataframe that gets renewed each trial.
+		self.OutputFile = None #for csv.		
+		#self.OutputWriter = pd.DataFrame(columns=datacolumns) #make new empty EndofTrial data
 
 		self.OnsetTimePool = np.arange(4, 6.25, step = .25) #from 4 to 6s in .25s increments. The straight is ~ 2s of travel, so this is 2-4s into the bend.
 
@@ -284,6 +288,7 @@ class myExperiment(viz.EventClass):
 		self.Trial_playbackfilename = ""
 		self.Trial_midline = [] #midline for the entire track.
 		self.Trial_OnsetTime = 0 #onset time for the trial.
+		self.Trial_SaveName = "" #filename for saving data
 		
 		#### parameters that are updated each timestamp ####
 		self.Current_pos_x = 0
@@ -485,9 +490,15 @@ class myExperiment(viz.EventClass):
 			self.Trial_playbacklength = len(self.Trial_YR_readout)				
 			self.Trial_midline = np.vstack((self.Straight.midline, self.Trial_BendObject.midline))
 			self.Trial_OnsetTime = np.random.choice(self.OnsetTimePool, size=1)[0]
+			self.Trial_SaveName = 'Data//OrcaPilot_' + str(self.Trial_radius) + '_' + str(self.Trial_N) + '.csv'
 
 			#renew data frame.
-			self.Output = pd.DataFrame(index = range(self.TrialLength*60), columns=self.datacolumns) #make new empty EndofTrial data
+			#self.OutputWriter = pd.DataFrame(index = range(self.TrialLength*60), columns=self.datacolumns) #make new empty EndofTrial data
+
+			#renew csv writer			
+			self.OutputFile = io.BytesIO()
+			self.OutputWriter = csv.writer(self.OutputFile)
+			self.OutputWriter.writerow(self.datacolumns) #write headers.
 
 			yield viztask.waitTime(.5) #pause at beginning of trial
 
@@ -587,13 +598,12 @@ class myExperiment(viz.EventClass):
 			self.Trial_BendObject.ToggleVisibility(viz.OFF)	
 
 			##reset trial. Also need to annotate each eyetracking trial.			
-			
-			trialdata = self.Output.copy()
-			fname = 'Data//OrcaPilot_' + str(self.Trial_radius) + '_' + str(self.Trial_N) + '.csv'
-
+					
 			#print (trialdata)
 			#print (fname)
-			viz.director(self.SaveData, trialdata, fname)
+			#viz.director(self.SaveData, trialdata, fname)
+			viz.director(self.SaveData, self.OutputFile, self.Trial_SaveName)
+			#self.SaveData()
 			
 			#reset row index. and trial parameters
 			self.Current_RowIndex = 0
@@ -656,32 +666,34 @@ class myExperiment(viz.EventClass):
 		"""Records Data into Dataframe"""
 
 		#'ppid', 'radius','yawrate_offset','trialn','timestamp','trialtype_signed','World_x','World_z','WorldYaw','SWA','YawRate_seconds','TurnAngle_frames','Distance_frames','dt', 'WheelCorrection', 'SteeringBias', 'Closestpt' 'AutoFlag', 'AutoFile'#		
-		output = [self.PP_id, self.Trial_radius, self.Trial_YawRate_Offset, self.Trial_N, self.Current_Time, self.Trial_trialtype_signed, 
+		# output = [self.PP_id, self.Trial_radius, self.Trial_YawRate_Offset, self.Trial_N, self.Current_Time, self.Trial_trialtype_signed, 
+		# self.Current_pos_x, self.Current_pos_z, self.Current_yaw, self.Current_SWA, self.Current_YawRate_seconds, self.Current_TurnAngle_frames, 
+		# self.Current_distance, self.Current_dt, self.Current_WheelCorrection, self.Current_steeringbias, self.Current_closestpt, self.AUTOMATION, self.Trial_playbackfilename, self.Trial_OnsetTime] #output array.
+
+		output = (self.PP_id, self.Trial_radius, self.Trial_YawRate_Offset, self.Trial_N, self.Current_Time, self.Trial_trialtype_signed, 
 		self.Current_pos_x, self.Current_pos_z, self.Current_yaw, self.Current_SWA, self.Current_YawRate_seconds, self.Current_TurnAngle_frames, 
-		self.Current_distance, self.Current_dt, self.Current_WheelCorrection, self.Current_steeringbias, self.Current_closestpt, self.AUTOMATION, self.Trial_playbackfilename, self.Trial_OnsetTime] #output array.
+		self.Current_distance, self.Current_dt, self.Current_WheelCorrection, self.Current_steeringbias, self.Current_closestpt, self.AUTOMATION, self.Trial_playbackfilename, self.Trial_OnsetTime) #output array
 		
 		#print ("length of output: ", len(output))
-		#print ("size of self.Output: ", self.Output.shape)
+		#print ("size of self.OutputWriter: ", self.OutputWriter.shape)
 
 		#print(output)
-		t = viz.tick()
-		self.Output.loc[self.Current_RowIndex,:] = output #this dataframe is actually just one line. 		
+		#t = viz.tick()
+		#self.OutputWriter.loc[self.Current_RowIndex,:] = output #this dataframe is actually just one line. 		
+		self.OutputWriter.writerow(output)  #output to csv. any quicker?
 
-		print ("Enter data: ", viz.tick() - t)
-	
-	# def SaveData(self, data, filename):
+		#print ("Enter data: ", viz.tick() - t)
 
-	# 	"""Saves Current Dataframe to csv file"""
-
-	# 	data = data.dropna() #drop any trailing space.		
-	# 	data.to_csv(filename)
-
-	def SaveData(self, data, filename):
+	def SaveData(self, data = None, filename = None):
 
 		"""Saves Current Dataframe to csv file"""
 
-		data = data.dropna() #drop any trailing space.		
-		data.to_csv(filename)
+		# data = data.dropna() #drop any trailing space.		
+		# data.to_csv(filename)
+
+		data.seek(0)
+		df = pd.read_csv(data) #grab bytesIO object.		
+		df.to_csv(filename) #save to file.
 
 		print ("Saved file: ", filename)
 
@@ -834,7 +846,7 @@ if __name__ == '__main__':
 	AUTOWHEEL = True
 	PRACTICE = True	
 	EXP_ID = "Orca18"
-	DEBUG = False
+	DEBUG = True
 
 	#distractor_type takes 'None', 'Easy' (1 target, 40% probability), and 'Hard' (3 targets, 40% probability)
 	#DISTRACTOR_TYPE = "Hard" #Case sensitive
