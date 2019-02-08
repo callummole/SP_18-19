@@ -35,6 +35,11 @@ import myCave
 import pandas as pd
 import Count_Adjustable #distractor task
 
+import csv, io #for efficient data saving
+
+import vizmatplot
+import matplotlib.pyplot as plt
+
 rootpath = 'C:\\VENLAB data\\TrackMaker\\'
 sys.path.append(rootpath)
 
@@ -239,22 +244,38 @@ class myExperiment(viz.EventClass):
 		self.leftbends = leftbends
 		self.rightbends = rightbends 
 
-		self.callback(viz.TIMER_EVENT,self.updatePositionLabel)
+		self.callback(viz.TIMER_EVENT,self.updatePositionLabel, priority = -1)
 		self.starttimer(0,1.0/60.0,viz.FOREVER) #self.update position label is called every frame.
+
+		
 		self.UPDATELOOP = False
 
 		#add audio files
-		self.manual_audio = viz.addAudio('C:/VENLAB data/shared_modules/textures/490.wav') #high beep to signal change
-		self.manual_audio.stoptime(.2) #cut it short for minimum interference.
-		self.manual_audio.volume(.5)
+		self.manual_audio = 'C:\\VENLAB data\\shared_modules\\textures\\490_200ms.wav'
+		viz.playSound(self.manual_audio, viz.SOUND_PRELOAD)
+		#self.manual_audio = viz.addAudio('C:/VENLAB data/shared_modules/textures/490.wav') #high beep to signal change
+		#self.manual_audio.stoptime(.2) #cut it short for minimum interference.
+		#self.manual_audio.volume(.5)
 		
 		####### DATA SAVING ######
 		datacolumns = ['ppid', 'radius','yawrate_offset','trialn','timestamp','trialtype_signed','World_x','World_z','WorldYaw','SWA','YawRate_seconds','TurnAngle_frames','Distance_frames','dt', 'WheelCorrection', 'SteeringBias', 'Closestpt', 'AutoFlag', 'AutoFile', 'OnsetTime']
+		datacolumns = ('ppid', 'radius','yawrate_offset','trialn','timestamp','trialtype_signed','World_x','World_z','WorldYaw','SWA','YawRate_seconds','TurnAngle_frames','Distance_frames','dt', 'WheelCorrection', 'SteeringBias', 'Closestpt', 'AutoFlag', 'AutoFile', 'OnsetTime')
 		self.datacolumns = datacolumns		
-		self.Output = None #dataframe that gets renewed each trial.		
-		#self.Output = pd.DataFrame(columns=datacolumns) #make new empty EndofTrial data
+		self.OutputWriter = None #dataframe that gets renewed each trial.
+		self.OutputFile = None #for csv.		
+		#self.OutputWriter = pd.DataFrame(columns=datacolumns) #make new empty EndofTrial data
 
 		self.OnsetTimePool = np.arange(4, 6.25, step = .25) #from 4 to 6s in .25s increments. The straight is ~ 2s of travel, so this is 2-4s into the bend.
+
+		
+		self.txtMode = viz.addText("Mode",parent=viz.SCREEN)
+		self.txtMode.setBackdrop(viz.BACKDROP_OUTLINE)
+		self.txtMode.setBackdropColor(viz.BLACK)
+		#set above skyline so I can easily filter glances to the letter out of the data
+		self.txtMode.setPosition(.05,.52)
+		self.txtMode.fontSize(36)
+		self.txtMode.color(viz.WHITE)
+		self.txtMode.visible(viz.OFF)
 
 		### parameters that are set at the start of each trial ####
 		self.Trial_radius = 0
@@ -269,6 +290,7 @@ class myExperiment(viz.EventClass):
 		self.Trial_playbackfilename = ""
 		self.Trial_midline = [] #midline for the entire track.
 		self.Trial_OnsetTime = 0 #onset time for the trial.
+		self.Trial_SaveName = "" #filename for saving data
 		
 		#### parameters that are updated each timestamp ####
 		self.Current_pos_x = 0
@@ -312,16 +334,52 @@ class myExperiment(viz.EventClass):
 			self.SWA_readouts_80.append(data80.get("SWA"))
 
 		self.AUTOMATION = True
+		self.txtMode.message('A')
 
 		self.callback(viz.EXIT_EVENT,self.CloseConnections) #if exited, save the data. 
 
-
 		if self.DEBUG:
-			#add text to denote status.
-			self.txtStatus = viz.addText("Condition",parent = viz.SCREEN)
-			self.txtStatus.setPosition(.7,.2)
-			self.txtStatus.fontSize(36)		
+			#add text to denote trial status.
+			self.txtTrial = viz.addText("Condition",parent = viz.SCREEN)
+			self.txtTrial.setPosition(.7,.2)
+			self.txtTrial.fontSize(36)
+			self.txtTrial.visible(viz.OFF)
+
+			#add text to denote condition status
+			self.txtCurrent = viz.addText("Current",parent = viz.SCREEN)
+			self.txtCurrent.setPosition(.2,.2)
+			self.txtCurrent.fontSize(36)
+			self.txtCurrent.visible(viz.OFF)
+
+			#for inset plot
+
+			self.plotinterval = .2 #in seconds, amount of time to redraw plot.
+			self.plottimer = 0 #to control interval.
+			fig = plt.figure() #create figure
+			self.plot_ax = fig.add_subplot(111) #add axes
+			plt.title('Debug')
+			plt.xlabel('Xpos')
+			plt.ylabel('Zpos')
+
+			#add a texture for a figure
+			self.fig_texture = vizmatplot.Texture(fig)
+
+			# Create quad to render plot texture
+			quad = viz.addTexQuad(texture=self.fig_texture, parent = viz.SCREEN, size = 400)
+			quad.setPosition(.5,.8)
+
 			
+			self.plot_positionarray_x, self.plot_positionarray_z, self.plot_closestpt_x,  self.plot_closestpt_z = [], [], [], [] #arrays to store plot data in
+
+			self.dots_position, = self.plot_ax.plot(self.plot_positionarray_x, self.plot_positionarray_z, 'ko', markersize = .5)
+			self.dots_closestpt, = self.plot_ax.plot(self.plot_closestpt_x, self.plot_closestpt_z, 'bo', markersize = .2)
+			self.line_midline, = self.plot_ax.plot([],[],'r-')
+			self.dot_origin, = self.plot_ax.plot([], [], 'b*', markersize = 5)
+
+
+			#quad.alpha(0.5)
+		
+							
 
 	def runtrials(self):
 		"""Loops through the trial sequence"""
@@ -335,12 +393,19 @@ class myExperiment(viz.EventClass):
 
 		#set up distractor task
 		if self.DISTRACTOR_TYPE is not None:
-			Distractor = Count_Adjustable.Distractor("distractor_", self.targetnumber, ppid = 1, startscreentime = self.StartScreenTime)
+			Distractor = Count_Adjustable.Distractor("distractor_", self.targetnumber, ppid = 1, startscreentime = self.StartScreenTime, triallength = 15, ntrials = len(self.TRIALSEQ_signed))
 		else:
 			Distractor = None
 		self.driver = vizdriver.Driver(self.caveview, Distractor)	
 
 		viz.MainScene.visible(viz.ON,viz.WORLD)		
+
+		#switch texts on.
+		self.txtMode.visible(viz.ON)
+
+		if self.DEBUG:
+			self.txtTrial.visible(viz.ON)
+			self.txtCurrent.visible(viz.ON)
 		
 	
 		if self.EYETRACKING: 
@@ -365,15 +430,16 @@ class myExperiment(viz.EventClass):
 		
 			self.driver.setAutomation(True)
 			self.AUTOMATION = True
+			self.txtMode.message('A')
 			if self.AUTOWHEEL:
 				self.Wheel.control_on()
 
 			if self.DISTRACTOR_TYPE is not None:
 				if i == 0: #the first trial.
-					Distractor.StartTrial(self.targetoccurence_prob, self.targetnumber, trialn = i, triallength = 20, displayscreen=True)	#starts trial								
+					Distractor.StartTrial(self.targetoccurence_prob, self.targetnumber, trialn = i, displayscreen=True)	#starts trial								
 					yield viztask.waitTrue(Distractor.getStartFlag)
 				else:
-					Distractor.StartTrial(self.targetoccurence_prob, self.targetnumber, trialn = i, triallength = 20, displayscreen=False)	#starts trial								
+					Distractor.StartTrial(self.targetoccurence_prob, self.targetnumber, trialn = i, displayscreen=False)	#starts trial								
 
 
 			radius_index = self.FACTOR_radiiPool.index(trial_radii)
@@ -425,21 +491,37 @@ class myExperiment(viz.EventClass):
 			self.Trial_trialtype_signed	= trialtype_signed
 			self.Trial_playbacklength = len(self.Trial_YR_readout)				
 			self.Trial_midline = np.vstack((self.Straight.midline, self.Trial_BendObject.midline))
-			self.Trial_OnsetTime = np.random.choice(self.OnsetTimePool, size=1)
+			self.Trial_OnsetTime = np.random.choice(self.OnsetTimePool, size=1)[0]
+			self.Trial_SaveName = 'Data//OrcaPilot_' + str(self.Trial_radius) + '_' + str(self.Trial_N) + '.csv'
 
 			#renew data frame.
-			self.Output = pd.DataFrame(index = range(self.TrialLength*60), columns=self.datacolumns) #make new empty EndofTrial data
+			#self.OutputWriter = pd.DataFrame(index = range(self.TrialLength*60), columns=self.datacolumns) #make new empty EndofTrial data
+
+			#renew csv writer			
+			self.OutputFile = io.BytesIO()
+			self.OutputWriter = csv.writer(self.OutputFile)
+			self.OutputWriter.writerow(self.datacolumns) #write headers.
 
 			yield viztask.waitTime(.5) #pause at beginning of trial
 
 			if self.DEBUG:
-				self.txtStatus.message("Automation:" + str(self.AUTOMATION))
+				conditionmessage = 'YR_offset: ' + str(self.Trial_YawRate_Offset) + \
+				'\nRadius: ' +str(self.Trial_radius) + \
+				'\nOnsetTime: ' + str(self.Trial_OnsetTime) + \
+				'\nTask: ' + str(self.DISTRACTOR_TYPE) 
+				self.txtTrial.message(conditionmessage)
+	
+				#realtime plot.
+				self.line_midline.set_data(self.Trial_midline[:,0], self.Trial_midline[:,1])
+				self.dot_origin.set_data(self.Trial_BendObject.CurveOrigin[0],self.Trial_BendObject.CurveOrigin[1])
+				self.plot_ax.axis([min(self.Trial_midline[:,0])-10,max(self.Trial_midline[:,0])+10,min(self.Trial_midline[:,1])-10,max(self.Trial_midline[:,1])+10])  #set axis limits
+
+				self.plot_positionarray_x, self.plot_positionarray_z, self.plot_closestpt_x,  self.plot_closestpt_z = [], [], [], [] #arrays to store plot data in
 
 			#here we need to annotate eyetracking recording.
 
 			#start distractor task for that trial
 						
-
 			self.UPDATELOOP = True #
 
 			def PlaybackReached():
@@ -461,10 +543,12 @@ class myExperiment(viz.EventClass):
 				if auto == False:
 					
 					self.AUTOMATION = auto
+					self.txtMode.message('M')
 					#switch wheel control off, because user has disengaged
 					#begin = timer()
-					if self.AUOTWHEEL:
+					if self.AUTOWHEEL:
 						self.Wheel.control_off()
+						#pass
 					#print ("WheelControlOff", timer() - begin)
 					end = True
 				
@@ -481,12 +565,11 @@ class myExperiment(viz.EventClass):
 				print ('Playback Limit Reached')
 			elif d.condition is waitDisengage:
 				print ('Automation Disengaged')
-				
-				if self.DEBUG:
-					self.txtStatus.message("Automation:" + str(self.AUTOMATION))
 
 				#begin = timer()
-				viz.director(self.SingleBeep)
+				#viz.director(self.SingleBeep)
+				#Distractor.SoundPlayer_threaded.SingleBeep()
+				self.SingleBeep()
 				#print ("SingleBeep: ", timer()-begin)
 				#use waitAny again: check for running out of road or taking over.
 				#begin = timer()
@@ -518,13 +601,12 @@ class myExperiment(viz.EventClass):
 			self.Trial_BendObject.ToggleVisibility(viz.OFF)	
 
 			##reset trial. Also need to annotate each eyetracking trial.			
-			
-			trialdata = self.Output.copy()
-			fname = 'Data//OrcaPilot_' + str(self.Trial_radius) + '_' + str(self.Trial_N) + '.csv'
-
+					
 			#print (trialdata)
 			#print (fname)
-			viz.director(self.SaveData, trialdata, fname)
+			#viz.director(self.SaveData, trialdata, fname)
+			viz.director(self.SaveData, self.OutputFile, self.Trial_SaveName)
+			#self.SaveData()
 			
 			#reset row index. and trial parameters
 			self.Current_RowIndex = 0
@@ -587,29 +669,34 @@ class myExperiment(viz.EventClass):
 		"""Records Data into Dataframe"""
 
 		#'ppid', 'radius','yawrate_offset','trialn','timestamp','trialtype_signed','World_x','World_z','WorldYaw','SWA','YawRate_seconds','TurnAngle_frames','Distance_frames','dt', 'WheelCorrection', 'SteeringBias', 'Closestpt' 'AutoFlag', 'AutoFile'#		
-		output = [self.PP_id, self.Trial_radius, self.Trial_YawRate_Offset, self.Trial_N, self.Current_Time, self.Trial_trialtype_signed, 
+		# output = [self.PP_id, self.Trial_radius, self.Trial_YawRate_Offset, self.Trial_N, self.Current_Time, self.Trial_trialtype_signed, 
+		# self.Current_pos_x, self.Current_pos_z, self.Current_yaw, self.Current_SWA, self.Current_YawRate_seconds, self.Current_TurnAngle_frames, 
+		# self.Current_distance, self.Current_dt, self.Current_WheelCorrection, self.Current_steeringbias, self.Current_closestpt, self.AUTOMATION, self.Trial_playbackfilename, self.Trial_OnsetTime] #output array.
+
+		output = (self.PP_id, self.Trial_radius, self.Trial_YawRate_Offset, self.Trial_N, self.Current_Time, self.Trial_trialtype_signed, 
 		self.Current_pos_x, self.Current_pos_z, self.Current_yaw, self.Current_SWA, self.Current_YawRate_seconds, self.Current_TurnAngle_frames, 
-		self.Current_distance, self.Current_dt, self.Current_WheelCorrection, self.Current_steeringbias, self.Current_closestpt, self.AUTOMATION, self.Trial_playbackfilename, self.Trial_OnsetTime] #output array.
+		self.Current_distance, self.Current_dt, self.Current_WheelCorrection, self.Current_steeringbias, self.Current_closestpt, self.AUTOMATION, self.Trial_playbackfilename, self.Trial_OnsetTime) #output array
 		
 		#print ("length of output: ", len(output))
-		#print ("size of self.Output: ", self.Output.shape)
+		#print ("size of self.OutputWriter: ", self.OutputWriter.shape)
 
 		#print(output)
-		self.Output.loc[self.Current_RowIndex,:] = output #this dataframe is actually just one line. 		
-	
-	# def SaveData(self, data, filename):
+		#t = viz.tick()
+		#self.OutputWriter.loc[self.Current_RowIndex,:] = output #this dataframe is actually just one line. 		
+		self.OutputWriter.writerow(output)  #output to csv. any quicker?
 
-	# 	"""Saves Current Dataframe to csv file"""
+		#print ("Enter data: ", viz.tick() - t)
 
-	# 	data = data.dropna() #drop any trailing space.		
-	# 	data.to_csv(filename)
-
-	def SaveData(self, data, filename):
+	def SaveData(self, data = None, filename = None):
 
 		"""Saves Current Dataframe to csv file"""
 
-		data = data.dropna() #drop any trailing space.		
-		data.to_csv(filename)
+		# data = data.dropna() #drop any trailing space.		
+		# data.to_csv(filename)
+
+		data.seek(0)
+		df = pd.read_csv(data) #grab bytesIO object.		
+		df.to_csv(filename) #save to file.
 
 		print ("Saved file: ", filename)
 
@@ -629,6 +716,8 @@ class myExperiment(viz.EventClass):
 		pos_from_trackorigin = np.sqrt(((self.Current_pos_x-CurveOrigin[0])**2)+((self.Current_pos_z-CurveOrigin[1])**2)) #distance of driver pos to origin
 		distdiff = middist_from_origin - pos_from_trackorigin #if driver distance is greater than closest point distance, steering position should be understeering
 		steeringbias = dist * np.sign(distdiff)     
+
+		steeringbias *= np.sign(self.Trial_trialtype_signed)
 
 		return steeringbias, idx
 
@@ -661,7 +750,7 @@ class myExperiment(viz.EventClass):
 
 				#add yawrateoffset.
 				if self.Trial_Timer > self.Trial_OnsetTime: #2 seconds into the bend.
-					newyawrate += self.Trial_YawRate_Offset
+					newyawrate += self.Trial_YawRate_Offset #positive offset = greater oversteering.
 				
 				self.Current_playbackindex += 1
 
@@ -692,12 +781,52 @@ class myExperiment(viz.EventClass):
 
 		#	print ("SteeringBIas:", self.Current_steeringbias)
 
+
+			#update txtCurrent.
+			if self.DEBUG:
+				currentmessage = 'TrialTime: ' + str(round(self.Trial_Timer,2)) + \
+					'\nLanePos: ' + str(round(self.Current_steeringbias,2))
+				self.txtCurrent.message(currentmessage)
+
+				#add to plot position array
+				self.plot_positionarray_x.append(self.Current_pos_x)
+				self.plot_positionarray_z.append(self.Current_pos_z)
+				midpos = self.Trial_midline[self.Current_closestpt]
+				self.plot_closestpt_x.append(midpos[0])
+				self.plot_closestpt_z.append(midpos[1])
+
+				if self.plottimer > self.plotinterval:
+					self.UpdatePlot()
+					self.plottimer = 0
+				
+				self.plottimer += viz.elapsed()
+
+
+				
+
 			self.RecordData() #write a line in the dataframe.	
 				
+	
+	def UpdatePlot(self):
+		"""for debugging, update inset plot in real-time"""
+
+		# Update plot data
+		self.dots_position.set_data(self.plot_positionarray_x, self.plot_positionarray_z)
+		self.dots_closestpt.set_data(self.plot_closestpt_x, self.plot_closestpt_z)
+
+		# Wait for redraw
+		#yield fig_texture.waitRedraw() #probably will not work.
+		self.fig_texture.redraw()
 
 	def SingleBeep(self):
 		"""play single beep"""
-		self.manual_audio.play()
+
+		#t = viz.tick()
+		#self.manual_audio.play()
+
+		viz.playSound(self.manual_audio)
+
+		#print ("processing: ", viz.tick() - t)
 
 	def CloseConnections(self):
 		
@@ -710,7 +839,9 @@ class myExperiment(viz.EventClass):
 		#kill automation
 		if self.AUTOWHEEL:
 			self.Wheel.thread_kill() #This one is mission critical - else the thread will keep going 
-			self.Wheel.shutdown()
+			self.Wheel.shutdown()		
+
+
 		viz.quit()
 	
 if __name__ == '__main__':
@@ -720,10 +851,12 @@ if __name__ == '__main__':
 	AUTOWHEEL = True
 	PRACTICE = True	
 	EXP_ID = "Orca18"
-	DEBUG = True
+	DEBUG = False
 
 	#distractor_type takes 'None', 'Easy' (1 target, 40% probability), and 'Hard' (3 targets, 40% probability)
-	DISTRACTOR_TYPE = "Hard" #Case sensitive
+	#DISTRACTOR_TYPE = "Hard" #Case sensitive
+	DISTRACTOR_TYPE = "Easy" #Case sensitive
+	#DISTRACTOR_TYPE = None #Case sensitive
 
 	if PRACTICE == True: # HACK
 		EYETRACKING = False 

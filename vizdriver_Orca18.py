@@ -77,6 +77,11 @@ class Driver(viz.EventClass):
 
 		elapsedTime = viz.getFrameElapsed()
 
+		if elapsedTime > .018:
+			print ("viz.tick: ", viz.tick())
+			print ("frame number: ", viz.getFrameNumber())
+			print ("elapsedTime:", elapsedTime)
+
 		yawrate = 0.0
 		turnangle = 0.0
 		distance = 0.0
@@ -171,7 +176,11 @@ class Driver(viz.EventClass):
 
 		if e.button in (5,6):
 			
-			EoTFlag = self.__Distractor.getFlag()
+			if self.__Distractor is not None:
+				EoTFlag = self.__Distractor.getFlag()
+			else:
+				EoTFlag = False
+
 			if EoTFlag:
 				self.gearPressed = True
 			else:
