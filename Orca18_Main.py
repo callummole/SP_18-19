@@ -251,9 +251,11 @@ class myExperiment(viz.EventClass):
 		self.UPDATELOOP = False
 
 		#add audio files
-		self.manual_audio = viz.addAudio('C:/VENLAB data/shared_modules/textures/490.wav') #high beep to signal change
-		self.manual_audio.stoptime(.2) #cut it short for minimum interference.
-		self.manual_audio.volume(.5)
+		self.manual_audio = 'C:\\VENLAB data\\shared_modules\\textures\\490_200ms.wav'
+		viz.playSound(self.manual_audio, viz.SOUND_PRELOAD)
+		#self.manual_audio = viz.addAudio('C:/VENLAB data/shared_modules/textures/490.wav') #high beep to signal change
+		#self.manual_audio.stoptime(.2) #cut it short for minimum interference.
+		#self.manual_audio.volume(.5)
 		
 		####### DATA SAVING ######
 		datacolumns = ['ppid', 'radius','yawrate_offset','trialn','timestamp','trialtype_signed','World_x','World_z','WorldYaw','SWA','YawRate_seconds','TurnAngle_frames','Distance_frames','dt', 'WheelCorrection', 'SteeringBias', 'Closestpt', 'AutoFlag', 'AutoFile', 'OnsetTime']
@@ -566,7 +568,8 @@ class myExperiment(viz.EventClass):
 
 				#begin = timer()
 				#viz.director(self.SingleBeep)
-				Distractor.SoundPlayer_threaded.SingleBeep()
+				#Distractor.SoundPlayer_threaded.SingleBeep()
+				self.SingleBeep()
 				#print ("SingleBeep: ", timer()-begin)
 				#use waitAny again: check for running out of road or taking over.
 				#begin = timer()
@@ -818,10 +821,12 @@ class myExperiment(viz.EventClass):
 	def SingleBeep(self):
 		"""play single beep"""
 
-		t = viz.tick()
-		self.manual_audio.play()
+		#t = viz.tick()
+		#self.manual_audio.play()
 
-		print ("processing: ", viz.tick() - t)
+		viz.playSound(self.manual_audio)
+
+		#print ("processing: ", viz.tick() - t)
 
 	def CloseConnections(self):
 		
@@ -846,7 +851,7 @@ if __name__ == '__main__':
 	AUTOWHEEL = True
 	PRACTICE = True	
 	EXP_ID = "Orca18"
-	DEBUG = True
+	DEBUG = False
 
 	#distractor_type takes 'None', 'Easy' (1 target, 40% probability), and 'Hard' (3 targets, 40% probability)
 	#DISTRACTOR_TYPE = "Hard" #Case sensitive
