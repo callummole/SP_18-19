@@ -42,7 +42,7 @@ class Distractor(viz.EventClass):
 			a = self.letters[i]
 			#self.AudioList.append(viz.addAudio('..\\textures\\audio-numbers\\' + a + '.wav'))		
 			#self.AudioList.append(viz.addAudio('C:\\VENLAB data\\shared_modules\\textures\\Alphabet_Sounds\\' + a + '.wav'))					
-			self.AudioList.append('C:\\VENLAB data\\shared_modules\\textures\\Alphabet_Sounds\\' + a + '.wav') #append files
+			self.AudioList.append('C:\\VENLAB data\\shared_modules\\textures\\Alphabet_Sounds\\' + a + '.wav') #append file paths so you can use viz.SOUND_PRELOAD
 
 		#preload sounds
 		for af in self.AudioList:
@@ -51,8 +51,7 @@ class Distractor(viz.EventClass):
 
 		# self.SoundPlayer_threaded = SoundPlayer_threaded(self.AudioList) #load thread
 		# self.SoundPlayer_threaded.start() #start the threaed
-
-		#self.myaudio = viz.playSound('C:\\VENLAB data\\shared_modules\\textures\\Alphabet_Sounds\\' + 'b' + '.wav', viz.SOUND_PRELOAD)
+		
 
 		self.Target_pool = self.letters[:maxtargetnumber] #returns list up to  maxtargetnumber
 		self.Distractor_pool = self.letters[maxtargetnumber:]
@@ -341,7 +340,7 @@ class Distractor(viz.EventClass):
 
 		self.SaveData()
 
-		self.SoundPlayer_threaded.thread_kill() #kill thread
+	#	self.SoundPlayer_threaded.thread_kill() #kill thread
 		
 
 	
@@ -431,23 +430,12 @@ class Distractor(viz.EventClass):
 							
 		self.Stimuli_PlayedStamp=viz.tick()
 		
-		print(self.currentaudio)
-
-		
-		# sound1 = self.AudioList[self.letters.index(self.currentaudio)] #retrieve loaded sound file from list.		
-		# sound1.setTime(0)		
-		# #viz.director(PlaySound,sound1)		
-		# #viz.director(self.PlaySound2)
-
-		# sound1.volume(1)		
+		print(self.currentaudio)		
 
 		audioindex = self.letters.index(self.currentaudio)
 
 		af = self.AudioList[audioindex]
 		viz.playSound(af)
-		#self.SoundPlayer_threaded.PlaySound(audioindex) #takes about 1.5 ms to call. Still occasionally drops frames.
-		#self.SoundPlayer_threaded.PlaySound(1) #takes about 1.5 ms to call
-		#sound1.play()
 
 		self.Stimuli_Timer=0
 		self.ppresp = 0		
@@ -479,8 +467,6 @@ class Distractor(viz.EventClass):
 	def gearpaddown(self,button=None):
 		
 		"""saves on-screen count"""	
-
-		#TODO: change to accommodate multiple target iterations.
 
 		print "Button: " + str(button) #6 is left. 5 is right. Participants can press any button for the response.
 		
@@ -517,33 +503,7 @@ class Distractor(viz.EventClass):
 										
 			#print "score: " + str(self.EoTScore)							
 			
-	def PlaySound2(self):
-		"""plays sound"""
-		#print 'director:'
-
-		t = viz.tick()
-		
-		self.myaudio.play()
-		
-
-		print ("playsound proc time: ", viz.tick() - t)
-
-		print ("playsound viztick: ", viz.tick())
-		print ("playsound framenumber: ", viz.getFrameNumber())
-def PlaySound(myaudio):
-	"""plays sound"""
-	#print 'director:'
-
-	t = viz.tick()
-	myaudio.volume(1)
-	myaudio.play()
-
-	print ("playsound proc time: ", viz.tick() - t)
-
-	print ("playsound viztick: ", viz.tick())
-	print ("playsound framenumber: ", viz.getFrameNumber())
-
-
+#### DO NOT NEED THREADED CLASS. FOR SOME REASONS THREADING IN VIZARD IS PROCESSING HEAVY
 class SoundPlayer_threaded(threading.Thread):
 
 	def __init__(self, audiolist):
@@ -555,12 +515,7 @@ class SoundPlayer_threaded(threading.Thread):
 
 		###preload sounds into vizard.
 		for af in self.AudioFiles:
-			viz.playsound(af, viz.SOUND_PRELOAD)
-		
-		#add any other beeps
-		# self.manual_audio = viz.addAudio('C:\\VENLAB data\\shared_modules\\textures\\490.wav') #high beep to signal change
-		# self.manual_audio.stoptime(.2) #cut it short for minimum interference.
-		# self.manual_audio.volume(.5)
+			viz.playsound(af, viz.SOUND_PRELOAD) #NEEDS TO PRE-LOAD THE SOUND
 		
 	def thread_init(self):
 		"""Initialise the thread"""
@@ -570,25 +525,10 @@ class SoundPlayer_threaded(threading.Thread):
 		"""Turn the thread loop off"""
 		self.__thread_live = False
 
-
 	def PlaySound(self,audioindex):
 
 		t = viz.tick()
 		myaudio = self.AudioFiles[audioindex]
 		viz.playSound(myaudio)
-		#myaudio.play()	
-		
 
-		#playsound('C:\\VENLAB data\\shared_modules\\textures\\Alphabet_Sounds\\' + 'b' + '.wav')
-
-		#winsound.PlaySound('C:\\VENLAB data\\shared_modules\\textures\\Alphabet_Sounds\\' + 'b' + '.wav', winsound.SND_FILENAME)
-
-		print ("PLAY SOUND: ", viz.tick() - t)
-
-	def SingleBeep(self):
-		"""play single beep"""
-
-		t = viz.tick()
-		self.manual_audio.play()
-
-		print ("SINGLE BEEP: ", viz.tick() - t)
+		print ("PLAY SOUND: ", viz.tick() - t)	

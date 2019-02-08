@@ -252,13 +252,10 @@ class myExperiment(viz.EventClass):
 
 		#add audio files
 		self.manual_audio = 'C:\\VENLAB data\\shared_modules\\textures\\490_200ms.wav'
-		viz.playSound(self.manual_audio, viz.SOUND_PRELOAD)
-		#self.manual_audio = viz.addAudio('C:/VENLAB data/shared_modules/textures/490.wav') #high beep to signal change
-		#self.manual_audio.stoptime(.2) #cut it short for minimum interference.
-		#self.manual_audio.volume(.5)
+		viz.playSound(self.manual_audio, viz.SOUND_PRELOAD)		
 		
 		####### DATA SAVING ######
-		datacolumns = ['ppid', 'radius','yawrate_offset','trialn','timestamp','trialtype_signed','World_x','World_z','WorldYaw','SWA','YawRate_seconds','TurnAngle_frames','Distance_frames','dt', 'WheelCorrection', 'SteeringBias', 'Closestpt', 'AutoFlag', 'AutoFile', 'OnsetTime']
+		#datacolumns = ['ppid', 'radius','yawrate_offset','trialn','timestamp','trialtype_signed','World_x','World_z','WorldYaw','SWA','YawRate_seconds','TurnAngle_frames','Distance_frames','dt', 'WheelCorrection', 'SteeringBias', 'Closestpt', 'AutoFlag', 'AutoFile', 'OnsetTime']
 		datacolumns = ('ppid', 'radius','yawrate_offset','trialn','timestamp','trialtype_signed','World_x','World_z','WorldYaw','SWA','YawRate_seconds','TurnAngle_frames','Distance_frames','dt', 'WheelCorrection', 'SteeringBias', 'Closestpt', 'AutoFlag', 'AutoFile', 'OnsetTime')
 		self.datacolumns = datacolumns		
 		self.OutputWriter = None #dataframe that gets renewed each trial.
@@ -374,11 +371,7 @@ class myExperiment(viz.EventClass):
 			self.dots_position, = self.plot_ax.plot(self.plot_positionarray_x, self.plot_positionarray_z, 'ko', markersize = .5)
 			self.dots_closestpt, = self.plot_ax.plot(self.plot_closestpt_x, self.plot_closestpt_z, 'bo', markersize = .2)
 			self.line_midline, = self.plot_ax.plot([],[],'r-')
-			self.dot_origin, = self.plot_ax.plot([], [], 'b*', markersize = 5)
-
-
-			#quad.alpha(0.5)
-		
+			self.dot_origin, = self.plot_ax.plot([], [], 'b*', markersize = 5)	
 							
 
 	def runtrials(self):
@@ -677,15 +670,9 @@ class myExperiment(viz.EventClass):
 		self.Current_pos_x, self.Current_pos_z, self.Current_yaw, self.Current_SWA, self.Current_YawRate_seconds, self.Current_TurnAngle_frames, 
 		self.Current_distance, self.Current_dt, self.Current_WheelCorrection, self.Current_steeringbias, self.Current_closestpt, self.AUTOMATION, self.Trial_playbackfilename, self.Trial_OnsetTime) #output array
 		
-		#print ("length of output: ", len(output))
-		#print ("size of self.OutputWriter: ", self.OutputWriter.shape)
-
-		#print(output)
-		#t = viz.tick()
+		
 		#self.OutputWriter.loc[self.Current_RowIndex,:] = output #this dataframe is actually just one line. 		
 		self.OutputWriter.writerow(output)  #output to csv. any quicker?
-
-		#print ("Enter data: ", viz.tick() - t)
 
 	def SaveData(self, data = None, filename = None):
 
@@ -701,8 +688,7 @@ class myExperiment(viz.EventClass):
 		print ("Saved file: ", filename)
 
 	def calculatebias(self):
-
-		#TODO: cut down on processing but only selecting a window of points based on lastmidindex.
+		
 		midlinedist = np.sqrt(((self.Current_pos_x-self.Trial_midline[:,0])**2)+((self.Current_pos_z-self.Trial_midline[:,1])**2)) #get a 4000 array of distances from the midline
 		idx = np.argmin(abs(midlinedist)) #find smallest difference. This is the closest index on the midline.	
 
@@ -743,8 +729,6 @@ class myExperiment(viz.EventClass):
 
 				if self.AUTOWHEEL:
 					self.Wheel.set_position(newSWApos)	#set steering wheel to position.
-
-				#print ("Setting SWA position: ", newSWApos)				
 							
 				newyawrate = self.Trial_YR_readout[self.Current_playbackindex]
 
@@ -760,8 +744,7 @@ class myExperiment(viz.EventClass):
 				newyawrate = None
 
 			UpdateValues = self.driver.UpdateView(YR_input = newyawrate) #update view and return values used for update
-			#print ("Update Values: ", timer() - begin)
-			# get head position(x, y, z)
+
 			pos = self.caveview.getPosition()				
 			ori = self.getNormalisedEuler()	
 										
@@ -778,9 +761,6 @@ class myExperiment(viz.EventClass):
 			self.Current_dt = UpdateValues[3]
 			self.Current_WheelCorrection = UpdateValues[5]
 			self.Current_steeringbias, self.Current_closestpt = self.calculatebias()
-
-		#	print ("SteeringBIas:", self.Current_steeringbias)
-
 
 			#update txtCurrent.
 			if self.DEBUG:
@@ -801,9 +781,6 @@ class myExperiment(viz.EventClass):
 				
 				self.plottimer += viz.elapsed()
 
-
-				
-
 			self.RecordData() #write a line in the dataframe.	
 				
 	
@@ -814,19 +791,12 @@ class myExperiment(viz.EventClass):
 		self.dots_position.set_data(self.plot_positionarray_x, self.plot_positionarray_z)
 		self.dots_closestpt.set_data(self.plot_closestpt_x, self.plot_closestpt_z)
 
-		# Wait for redraw
-		#yield fig_texture.waitRedraw() #probably will not work.
 		self.fig_texture.redraw()
 
 	def SingleBeep(self):
 		"""play single beep"""
 
-		#t = viz.tick()
-		#self.manual_audio.play()
-
 		viz.playSound(self.manual_audio)
-
-		#print ("processing: ", viz.tick() - t)
 
 	def CloseConnections(self):
 		
@@ -840,7 +810,6 @@ class myExperiment(viz.EventClass):
 		if self.AUTOWHEEL:
 			self.Wheel.thread_kill() #This one is mission critical - else the thread will keep going 
 			self.Wheel.shutdown()		
-
 
 		viz.quit()
 	
