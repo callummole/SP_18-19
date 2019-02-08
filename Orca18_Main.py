@@ -172,7 +172,7 @@ def BendMaker(radlist, start):
 
 class myExperiment(viz.EventClass):
 
-	def __init__(self, eyetracking, practice, exp_id, autowheel, debug, distractor_type = None, ppid = 1):
+	def __init__(self, eyetracking, practice, exp_id, autowheel, debug, debug_plot, distractor_type = None, ppid = 1):
 
 		viz.EventClass.__init__(self)
 	
@@ -181,6 +181,7 @@ class myExperiment(viz.EventClass):
 		self.EXP_ID = exp_id
 		self.AUTOWHEEL = autowheel
 		self.DEBUG = debug
+		self.DEBUG_PLOT = debug_plot
 		if distractor_type == "None":
 			distractor_type = None
 		self.DISTRACTOR_TYPE = distractor_type
@@ -348,30 +349,32 @@ class myExperiment(viz.EventClass):
 			self.txtCurrent.fontSize(36)
 			self.txtCurrent.visible(viz.OFF)
 
-			#for inset plot
-
-			self.plotinterval = .2 #in seconds, amount of time to redraw plot.
-			self.plottimer = 0 #to control interval.
-			fig = plt.figure() #create figure
-			self.plot_ax = fig.add_subplot(111) #add axes
-			plt.title('Debug')
-			plt.xlabel('Xpos')
-			plt.ylabel('Zpos')
-
-			#add a texture for a figure
-			self.fig_texture = vizmatplot.Texture(fig)
-
-			# Create quad to render plot texture
-			quad = viz.addTexQuad(texture=self.fig_texture, parent = viz.SCREEN, size = 400)
-			quad.setPosition(.5,.8)
-
 			
-			self.plot_positionarray_x, self.plot_positionarray_z, self.plot_closestpt_x,  self.plot_closestpt_z = [], [], [], [] #arrays to store plot data in
+			if self.DEBUG_PLOT:
+				#for inset plot
 
-			self.dots_position, = self.plot_ax.plot(self.plot_positionarray_x, self.plot_positionarray_z, 'ko', markersize = .5)
-			self.dots_closestpt, = self.plot_ax.plot(self.plot_closestpt_x, self.plot_closestpt_z, 'bo', markersize = .2)
-			self.line_midline, = self.plot_ax.plot([],[],'r-')
-			self.dot_origin, = self.plot_ax.plot([], [], 'b*', markersize = 5)	
+				self.plotinterval = .2 #in seconds, amount of time to redraw plot.
+				self.plottimer = 0 #to control interval.
+				fig = plt.figure() #create figure
+				self.plot_ax = fig.add_subplot(111) #add axes
+				plt.title('Debug')
+				plt.xlabel('Xpos')
+				plt.ylabel('Zpos')
+
+				#add a texture for a figure
+				self.fig_texture = vizmatplot.Texture(fig)
+
+				# Create quad to render plot texture
+				quad = viz.addTexQuad(texture=self.fig_texture, parent = viz.SCREEN, size = 400)
+				quad.setPosition(.5,.8)
+
+				
+				self.plot_positionarray_x, self.plot_positionarray_z, self.plot_closestpt_x,  self.plot_closestpt_z = [], [], [], [] #arrays to store plot data in
+
+				self.dots_position, = self.plot_ax.plot(self.plot_positionarray_x, self.plot_positionarray_z, 'ko', markersize = .5)
+				self.dots_closestpt, = self.plot_ax.plot(self.plot_closestpt_x, self.plot_closestpt_z, 'bo', markersize = .2)
+				self.line_midline, = self.plot_ax.plot([],[],'r-')
+				self.dot_origin, = self.plot_ax.plot([], [], 'b*', markersize = 5)	
 							
 
 	def runtrials(self):
@@ -504,12 +507,13 @@ class myExperiment(viz.EventClass):
 				'\nTask: ' + str(self.DISTRACTOR_TYPE) 
 				self.txtTrial.message(conditionmessage)
 	
-				#realtime plot.
-				self.line_midline.set_data(self.Trial_midline[:,0], self.Trial_midline[:,1])
-				self.dot_origin.set_data(self.Trial_BendObject.CurveOrigin[0],self.Trial_BendObject.CurveOrigin[1])
-				self.plot_ax.axis([min(self.Trial_midline[:,0])-10,max(self.Trial_midline[:,0])+10,min(self.Trial_midline[:,1])-10,max(self.Trial_midline[:,1])+10])  #set axis limits
+				if self.DEBUG_PLOT:
+					#realtime plot.
+					self.line_midline.set_data(self.Trial_midline[:,0], self.Trial_midline[:,1])
+					self.dot_origin.set_data(self.Trial_BendObject.CurveOrigin[0],self.Trial_BendObject.CurveOrigin[1])
+					self.plot_ax.axis([min(self.Trial_midline[:,0])-10,max(self.Trial_midline[:,0])+10,min(self.Trial_midline[:,1])-10,max(self.Trial_midline[:,1])+10])  #set axis limits
 
-				self.plot_positionarray_x, self.plot_positionarray_z, self.plot_closestpt_x,  self.plot_closestpt_z = [], [], [], [] #arrays to store plot data in
+					self.plot_positionarray_x, self.plot_positionarray_z, self.plot_closestpt_x,  self.plot_closestpt_z = [], [], [], [] #arrays to store plot data in
 
 			#here we need to annotate eyetracking recording.
 
@@ -768,18 +772,19 @@ class myExperiment(viz.EventClass):
 					'\nLanePos: ' + str(round(self.Current_steeringbias,2))
 				self.txtCurrent.message(currentmessage)
 
-				#add to plot position array
-				self.plot_positionarray_x.append(self.Current_pos_x)
-				self.plot_positionarray_z.append(self.Current_pos_z)
-				midpos = self.Trial_midline[self.Current_closestpt]
-				self.plot_closestpt_x.append(midpos[0])
-				self.plot_closestpt_z.append(midpos[1])
+				if self.DEBUG_PLOT:
+					#add to plot position array
+					self.plot_positionarray_x.append(self.Current_pos_x)
+					self.plot_positionarray_z.append(self.Current_pos_z)
+					midpos = self.Trial_midline[self.Current_closestpt]
+					self.plot_closestpt_x.append(midpos[0])
+					self.plot_closestpt_z.append(midpos[1])
 
-				if self.plottimer > self.plotinterval:
-					self.UpdatePlot()
-					self.plottimer = 0
-				
-				self.plottimer += viz.elapsed()
+					if self.plottimer > self.plotinterval:
+						self.UpdatePlot()
+						self.plottimer = 0
+					
+					self.plottimer += viz.elapsed()
 
 			self.RecordData() #write a line in the dataframe.	
 				
@@ -820,7 +825,8 @@ if __name__ == '__main__':
 	AUTOWHEEL = True
 	PRACTICE = True	
 	EXP_ID = "Orca18"
-	DEBUG = False
+	DEBUG = True
+	DEBUG_PLOT = False #flag for the debugger plot. only active if Debug == True.
 
 	#distractor_type takes 'None', 'Easy' (1 target, 40% probability), and 'Hard' (3 targets, 40% probability)
 	#DISTRACTOR_TYPE = "Hard" #Case sensitive
@@ -830,7 +836,7 @@ if __name__ == '__main__':
 	if PRACTICE == True: # HACK
 		EYETRACKING = False 
 
-	myExp = myExperiment(EYETRACKING, PRACTICE, EXP_ID, AUTOWHEEL, DEBUG, DISTRACTOR_TYPE)
+	myExp = myExperiment(EYETRACKING, PRACTICE, EXP_ID, AUTOWHEEL, DEBUG, DEBUG_PLOT, DISTRACTOR_TYPE)
 
 	#viz.callback(viz.EXIT_EVENT,CloseConnections, myExp.EYETRACKING)
 
