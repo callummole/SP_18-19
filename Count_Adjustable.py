@@ -421,7 +421,8 @@ class Distractor(viz.EventClass):
 
 		choices = ['T','D']
 		probabilities = [self.Trial_targetoccurence_prob, 1-self.Trial_targetoccurence_prob]
-		self.currentaudio_type = np.random.choice(choices, p = probabilities)
+		self.currentaudio_type = np.random.choice(choices, p = probabilities) #slow. ~ 1ms.
+		
 
 		if self.currentaudio_type == 'T':
 			self.currentaudio = np.random.choice(self.Trial_targets)
