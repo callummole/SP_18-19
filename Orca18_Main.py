@@ -396,13 +396,7 @@ class myExperiment(viz.EventClass):
 
 		viz.MainScene.visible(viz.ON,viz.WORLD)		
 
-		#switch texts on.
-		self.txtMode.visible(viz.ON)
-
-		if self.DEBUG:
-			self.txtTrial.visible(viz.ON)
-			self.txtCurrent.visible(viz.ON)
-		
+		self.ToggleTextVisibility(viz.ON)
 	
 		if self.EYETRACKING: 
 			comms.start_trial()
@@ -431,9 +425,14 @@ class myExperiment(viz.EventClass):
 				self.Wheel.control_on()
 
 			if self.DISTRACTOR_TYPE is not None:
-				if i == 0: #the first trial.
+				if i == 0: #the first trial.			
+					#switch texts off for the first trial.
+					self.ToggleTextVisibility(viz.OFF)
+
 					Distractor.StartTrial(self.targetoccurence_prob, self.targetnumber, trialn = i, displayscreen=True)	#starts trial								
 					yield viztask.waitTrue(Distractor.getStartFlag)
+
+					self.ToggleTextVisibility(viz.ON)
 				else:
 					Distractor.StartTrial(self.targetoccurence_prob, self.targetnumber, trialn = i, displayscreen=False)	#starts trial								
 
@@ -562,14 +561,9 @@ class myExperiment(viz.EventClass):
 				print ('Playback Limit Reached')
 			elif d.condition is waitDisengage:
 				print ('Automation Disengaged')
-
-				#begin = timer()
-				#viz.director(self.SingleBeep)
-				#Distractor.SoundPlayer_threaded.SingleBeep()
+				
 				self.SingleBeep()
-				#print ("SingleBeep: ", timer()-begin)
-				#use waitAny again: check for running out of road or taking over.
-				#begin = timer()
+				
 				def RoadRunout():
 					"""temporary HACK function to check whether the participant has ran out of road"""
 
@@ -582,14 +576,11 @@ class myExperiment(viz.EventClass):
 				waitRoad = viztask.waitTrue (RoadRunout)
 				waitManual = viztask.waitTime(5)
 
-				#print ("Create function: ", timer()- begin)
-
 				d = yield viztask.waitAny( [ waitRoad, waitManual ] )
 				if d.condition is waitRoad:
 					print ('Run out of Road')
 				elif d.condition is waitManual:
 					print ('Manual Time Elapsed')
-
 
 			##### END STEERING TASK ######
 			
@@ -597,20 +588,10 @@ class myExperiment(viz.EventClass):
 			
 			self.Trial_BendObject.ToggleVisibility(viz.OFF)	
 
-			##reset trial. Also need to annotate each eyetracking trial.			
-					
-			#print (trialdata)
-			#print (fname)
-			#viz.director(self.SaveData, trialdata, fname)
-			viz.director(self.SaveData, self.OutputFile, self.Trial_SaveName)
-			#self.SaveData()
+			##reset trial. Also need to annotate each eyetracking trial.											
+			viz.director(self.SaveData, self.OutputFile, self.Trial_SaveName)			
 			
-			#reset row index. and trial parameters
-			self.Current_RowIndex = 0
-			self.Current_playbackindex = 0
-			self.Trial_Timer = 0 
-
-			self.ResetDriverPosition()
+			self.ResetTrialAndDriver() #reset parameters for beginning of trial
 
 			##### INITIALISE END OF TRIAL SCREEN FOR DISTRACTOR TASK #######
 			if self.DISTRACTOR_TYPE is not None:
@@ -650,8 +631,14 @@ class myExperiment(viz.EventClass):
 
 		return euler	
 
-	def ResetDriverPosition(self):
-		"""Sets Driver Position and Euler to original start point"""
+	def ResetTrialAndDriver(self):
+		"""Sets Driver Position and Euler to original start point, and resets trial parameters"""
+
+		#reset row index. and trial parameters
+		self.Current_RowIndex = 0
+		self.Current_playbackindex = 0
+		self.Trial_Timer = 0 
+
 		self.driver.reset()
 
 	def OpenTrial(self,filename):
@@ -802,6 +789,16 @@ class myExperiment(viz.EventClass):
 		"""play single beep"""
 
 		viz.playSound(self.manual_audio)
+
+	def ToggleTextVisibility(self, visible = viz.ON):
+
+		"""toggles onscreen text"""
+		
+		self.txtMode.visible(visible)
+
+		if self.DEBUG:
+			self.txtTrial.visible(visible)
+			self.txtCurrent.visible(visible)
 
 	def CloseConnections(self):
 		
