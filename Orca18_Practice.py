@@ -389,6 +389,8 @@ class myExperiment(viz.EventClass):
 		self.driver.reset(position = self.InitialPosition_xz) #reset position.
 
 		viz.MainScene.visible(viz.ON,viz.WORLD)		
+		
+		
 
 		self.ToggleTextVisibility(viz.ON)
 	
@@ -402,19 +404,29 @@ class myExperiment(viz.EventClass):
 			print("Trial: ", str(i))
 			print("TrialType: ", str(trialtype))
 			
-
+			viz.mouse.setVisible(viz.ON)
 			if trialtype == 2: #automation
 
 				self.driver.setAutomation(True)
 				self.AUTOMATION = True
 				self.txtMode.message('A')
+
 				if self.AUTOWHEEL:
 					self.Wheel.control_on()
+				
+				viz.message('\t\tTRIAL INSTRUCTIONS \n\nThe automated system will now drive. Please keep your hands loosely on the wheel. When you are ready, you may take over control of the vehicle by pressing the gear pads.\n\nOnce pressed, you will immediately be in control of the vehicle')	
+
 			else: #manual
 				self.driver.setAutomation(False)
 				self.AUTOMATION = False
 				self.txtMode.message('M')
 
+				if self.AUTOWHEEL:
+					self.Wheel.control_off()
+
+				viz.message('\t\tTRIAL INSTRUCTIONS \n\nFor this practice you have manual control of the vehicle. Please get a feel for the simulation, but stay within the road-edges.')	
+
+			viz.mouse.setVisible(viz.OFF)
 
 			if self.DISTRACTOR_TYPE is not None:
 				if i == 0: #the first trial.			
@@ -547,6 +559,9 @@ class myExperiment(viz.EventClass):
 			
 			##reset trial. Also need to annotate each eyetracking trial.											
 			viz.director(self.SaveData, self.OutputFile, self.Trial_SaveName)			
+
+			if self.AUTOWHEEL:
+					self.Wheel.control_off()
 			
 			self.ResetTrialAndDriver() #reset parameters for beginning of trial
 
@@ -557,8 +572,6 @@ class myExperiment(viz.EventClass):
 				if self.EYETRACKING:
 					self.comms.annotate('Distractor_' + self.Trial_SaveName)	
 
-				if self.AUTOWHEEL:
-					self.Wheel.control_off()
 				Distractor.EndofTrial() #throw up the screen to record counts.
 				###interface with End of Trial Screen		
 				pressed = 0
@@ -793,6 +806,7 @@ if __name__ == '__main__':
 	DISTRACTOR_TYPE = None #Case sensitive
 
 	#EXP_ID = EXP_ID + '_' + str(DISTRACTOR_TYPE)
+	PP_ID = viz.input('Participant code: ')
 
 	if PRACTICE == True: # HACK
 		EYETRACKING = False 
@@ -802,7 +816,7 @@ if __name__ == '__main__':
 		from eyetrike_accuracy_standard import run_accuracy
 		from UDP_comms import pupil_comms
 
-	myExp = myExperiment(EYETRACKING, PRACTICE, EXP_ID, AUTOWHEEL, DEBUG, DEBUG_PLOT, DISTRACTOR_TYPE)
+	myExp = myExperiment(EYETRACKING, PRACTICE, EXP_ID, AUTOWHEEL, DEBUG, DEBUG_PLOT, DISTRACTOR_TYPE, ppid = PP_ID)
 
 	#viz.callback(viz.EXIT_EVENT,CloseConnections, myExp.EYETRACKING)
 
