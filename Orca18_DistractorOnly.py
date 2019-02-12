@@ -26,7 +26,9 @@ viz.window.setFullscreen(viz.ON)
 ExpID = "Orca18_Distractor"
 DEG_SYM = unichr(176).encode("latin-1")
 pname = viz.input('Participant code: ')
-file_prefix = str(ExpID) + "_" + str(pname)
+
+
+########### CHANGE HERE TO TOGGLE PRACTICE ANDS BLOCK #############
 
 PRACTICE = True #if practice, they only do one of each.
 BLOCK = 1 #switch to not save over previous file.
@@ -40,15 +42,17 @@ BLOCK = 1 #switch to not save over previous file.
 
 ##Create array of trials.
 if PRACTICE:
-	TrialsPerCondition = 1 #how many trials do we want with this? 
+	TrialsPerCondition = 1 #for practice, do one trial each
 	ExpID = ExpID + '_' + str(PRACTICE)
 else:
-	TrialsPerCondition = 1 #how many trials do we want with this? 
+	TrialsPerCondition = 3 #for the isolated task, do three trials each. 
 	ExpID = ExpID + '_' + str(BLOCK)
 
 FACTOR_targetoccurence_prob = [.4] #probability of response frequency
 FACTOR_targetnumber = [1, 3] #number of targets to keep count of.
 ##################
+
+file_prefix = str(ExpID) + "_" + str(pname)
 
 
 NCndts = len(FACTOR_targetoccurence_prob) * len(FACTOR_targetnumber)	
