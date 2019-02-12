@@ -202,7 +202,7 @@ class myExperiment(viz.EventClass):
 			self.comms = LoadEyetrackingModules()
 
 		self.PP_id = ppid
-		self.TrialLength = 15 #length of time that road is visible. Constant throughout experiment
+		self.TrialLength = 15 #length of time that road is visible. Constant throughout experiment. Needs to match pre-recorded midline trajectories.
 	
 		#### PERSPECTIVE CORRECT ######
 		self.caveview = LoadCave() #this module includes viz.go()
@@ -579,7 +579,7 @@ class myExperiment(viz.EventClass):
 					"""temporary HACK function to check whether the participant has ran out of road"""
 
 					end = False
-					if self.Trial_Timer > 15:
+					if self.Trial_Timer > self.TrialLength:
 						end = True
 					
 					return(end)
