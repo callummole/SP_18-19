@@ -170,7 +170,7 @@ def BendMaker(radlist, start):
 
 class myExperiment(viz.EventClass):
 
-	def __init__(self, eyetracking, practice, exp_id, autowheel, debug, debug_plot, distractor_type = None, ppid = 1):
+	def __init__(self, eyetracking, practice, exp_id, autowheel, debug, debug_plot, distractor_type = None, ppid = 1, trialspercondition = 6):
 
 		viz.EventClass.__init__(self)
 	
@@ -222,7 +222,7 @@ class myExperiment(viz.EventClass):
 		self.FACTOR_radiiPool = [40, 80] # A sharp and gradual bend
 		#these offsets should yield lane crossing times of approximately [2.2s, 4.8s, 7s] (40r) and [2s, 4.5s, 7s] for 80s
 		self.FACTOR_YawRate_offsets = [-5, 1, .5, 0, .5, 1, 5] #7 yawrate offsets, specified in degrees per second. 
-		self.TrialsPerCondition = 6
+		self.TrialsPerCondition = trialspercondition
 		[trialsequence_signed, cl_radii, cl_yawrates]  = GenerateConditionLists(self.FACTOR_radiiPool, self.FACTOR_YawRate_offsets, self.TrialsPerCondition)
 
 		self.TRIALSEQ_signed = trialsequence_signed #list of trialtypes in a randomised order. -ve = leftwards, +ve = rightwards.
@@ -852,7 +852,13 @@ if __name__ == '__main__':
 	DISTRACTOR_TYPE = "Easy" #Case sensitive
 	#DISTRACTOR_TYPE = None #Case sensitive
 
-	EXP_ID = EXP_ID + '_' + str(DISTRACTOR_TYPE)
+	#determine amount of trials
+	if DISTRACTOR_TYPE is None:
+		trials = 3
+	else:
+		trials = 6
+
+	EXP_ID = EXP_ID + '_' + str(DISTRACTOR_TYPE) #build string for file saving.
 
 	PP_ID = viz.input('Participant code: ') #add participant code
 
@@ -863,8 +869,9 @@ if __name__ == '__main__':
 		from eyetrike_calibration_standard import Markers, run_calibration
 		from eyetrike_accuracy_standard import run_accuracy
 		from UDP_comms import pupil_comms
+	
 
-	myExp = myExperiment(EYETRACKING, PRACTICE, EXP_ID, AUTOWHEEL, DEBUG, DEBUG_PLOT, DISTRACTOR_TYPE, ppid = PP_ID)
+	myExp = myExperiment(EYETRACKING, PRACTICE, EXP_ID, AUTOWHEEL, DEBUG, DEBUG_PLOT, DISTRACTOR_TYPE, ppid = PP_ID, trialspercondition=trials)
 
 	#viz.callback(viz.EXIT_EVENT,CloseConnections, myExp.EYETRACKING)
 
