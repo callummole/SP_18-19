@@ -216,8 +216,7 @@ class myExperiment(viz.EventClass):
 		##### SET CONDITION VALUES #####
 		self.BendRadius = 60	 # 60m radii sinusoidal
 		
-		self.TRIAL_SEQ = [1, 1, 1, 2, 2, 2] #1 = manual, 2 = automated.
-		self.TRIAL_SEQ = [2, 2, 2] #1 = manual, 2 = automated.
+		self.TRIAL_SEQ = [1, 1, 2, 2, 2] #1 = manual, 2 = automated.		
 
 		##### ADD GRASS TEXTURE #####
 		gplane1 = setStage()
@@ -230,25 +229,25 @@ class myExperiment(viz.EventClass):
 		##First straight
 		L = 16#2sec.
 		grey = [.6, .6, .6]
-		self.Straight1 = vizStraight(startpos = self.InitialPosition_xz, primitive_width=.1, road_width = 0, length = L, colour = grey)#, texturefile='strong_edge_soft.bmp')
+		self.Straight1 = vizStraight(startpos = self.InitialPosition_xz, primitive_width=1.5, road_width = 0, length = L, colour = grey)#, texturefile='strong_edge_soft.bmp')
 		self.Straight1.ToggleVisibility(viz.ON)
 		self.Straight1.setAlpha(alpha)
 		print ("Straight1 end: ", self.Straight1.RoadEnd)
 
 		#first bend
-		self.RightBend = vizBend(startpos = self.Straight1.RoadEnd, rads = self.BendRadius, x_dir = 1, colour = grey, road_width=0, primitive_width=.1)#, texturefile='strong_edge_soft.bmp')
+		self.RightBend = vizBend(startpos = self.Straight1.RoadEnd, rads = self.BendRadius, x_dir = 1, colour = grey, road_width=0, primitive_width=1.5)#, texturefile='strong_edge_soft.bmp')
 		self.RightBend.ToggleVisibility(viz.ON)
 		self.RightBend.setAlpha(alpha)
 		print ("RightBend end: ", self.RightBend.RoadEnd)
 
 		#second straight
-		self.Straight2 = vizStraight(startpos = self.RightBend.RoadEnd, primitive_width=.1, road_width = 0, length = L, colour = grey, z_dir=-1)#, texturefile='strong_edge_soft.bmp')
+		self.Straight2 = vizStraight(startpos = self.RightBend.RoadEnd, primitive_width=1.5, road_width = 0, length = L, colour = grey, z_dir=-1)#, texturefile='strong_edge_soft.bmp')
 		self.Straight2.ToggleVisibility(viz.ON)
 		self.Straight2.setAlpha(alpha)
 		print ("Straight2 end: ", self.Straight2.RoadEnd)
 
 		#final bend
-		self.LeftBend = vizBend(startpos = self.Straight2.RoadEnd, rads = self.BendRadius, x_dir = 1, z_dir=-1, colour = grey, road_width=0, primitive_width=.1)#, texturefile='strong_edge_soft.bmp')		
+		self.LeftBend = vizBend(startpos = self.Straight2.RoadEnd, rads = self.BendRadius, x_dir = 1, z_dir=-1, colour = grey, road_width=0, primitive_width=1.5)#, texturefile='strong_edge_soft.bmp')		
 		self.LeftBend.ToggleVisibility(viz.ON)
 		self.LeftBend.setAlpha(alpha)
 
@@ -313,7 +312,7 @@ class myExperiment(viz.EventClass):
 		#playback variables.
 				
 		#self.playbackdata = "" #filename.
-		#TODO: only need one readout
+		
 		self.YR_readout = []
 		self.SWA_readout = []
 		
@@ -405,12 +404,13 @@ class myExperiment(viz.EventClass):
 			
 
 			if trialtype == 2: #automation
+
 				self.driver.setAutomation(True)
 				self.AUTOMATION = True
 				self.txtMode.message('A')
 				if self.AUTOWHEEL:
 					self.Wheel.control_on()
-			else:
+			else: #manual
 				self.driver.setAutomation(False)
 				self.AUTOMATION = False
 				self.txtMode.message('M')
@@ -688,7 +688,6 @@ class myExperiment(viz.EventClass):
 			if self.AUTOMATION:
 				
 				newSWApos = self.SWA_readout[self.Current_playbackindex]
-				newSWApos *= np.sign(self.Trial_trialtype_signed) #flip if left hand bend
 
 				if self.AUTOWHEEL:
 					self.Wheel.set_position(newSWApos)	#set steering wheel to position.
@@ -696,12 +695,9 @@ class myExperiment(viz.EventClass):
 				newyawrate = self.YR_readout[self.Current_playbackindex]
 				
 				self.Current_playbackindex += 1
-
-				newyawrate *= np.sign(self.Trial_trialtype_signed) #flip if left hand bend
-												
 			else:
 				newyawrate = None
-
+			
 			UpdateValues = self.driver.UpdateView(YR_input = newyawrate) #update view and return values used for update
 
 			pos = self.caveview.getPosition()				
@@ -785,7 +781,7 @@ if __name__ == '__main__':
 
 	###### SET EXPERIMENT OPTIONS ######	
 	EYETRACKING = False
-	AUTOWHEEL = False
+	AUTOWHEEL = True
 	PRACTICE = False	#keep false. no practice trial at the moment.
 	EXP_ID = "Orca18_PRAC"
 	DEBUG = False #Will crash if set to True in the practice file.
