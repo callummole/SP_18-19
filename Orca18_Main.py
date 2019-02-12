@@ -221,7 +221,34 @@ class myExperiment(viz.EventClass):
 		##### SET CONDITION VALUES #####
 		self.FACTOR_radiiPool = [40, 80] # A sharp and gradual bend
 		#these offsets should yield lane crossing times of approximately [2.2s, 4.8s, 7s] (40r) and [2s, 4.5s, 7s] for 80s
-		self.FACTOR_YawRate_offsets = [-5, 1, .5, 0, .5, 1, 5] #7 yawrate offsets, specified in degrees per second. 
+		#Estimates based on Zhang et al., (2019) preprint.https://www.researchgate.net/publication/325218061_Determinants_of_take-over_time_from_automated_driving_A_meta-analysis_of_129_studies
+		#The average takeover time is around 2.72 s. The mode is around 2 - 2.25s. Auditory distraction effect size is around .4s
+
+		#We want them taking over 50% of the time, so that they feel that they can at least partly trust the system.
+		#The original design had 3 small offsets that do not need takeover, and 3 larger offsets (generally understeer) that need takeover.
+
+		#Onset time pool is from 4 to 6s in .25s increments. The straight is ~ 2s of travel, so this is 2-4s into the bend. 
+		#Trial time is 15s, so this onset range gives a minimum of 9s of bend travel, and a maximum of 11s of bend travel. 
+		self.OnsetTimePool = np.arange(4, 6.25, step = .25) #
+
+		#offsets chosen for trials that do not intend to cross the road need to keep within the road within 11s.
+		#For offsets that cross the road, let's pick one that produces maximally quick responses (1 s), through to responses that require more judgement (4 - 8 s)
+		"""
+		PREDICTIONS FOR TIME TIL CROSSING THE ROAD EDGES
+
+		YR OFFSET (m/s)	40m radius		80m radius		category
+		-.2				~11s			~11s			stay
+		-.05			~inf			~inf			stay
+		.15				~11s			~12s			stay
+
+
+		-9				~1.6s			~1.5s			leave - urgent  (yawrate for turning the bend is about 11 deg/s for 40m and 6 deg/s for 80m)
+		-1.5			~4s				~3.8s			leave - middle
+		-.5				~7.5s			~7s				leave - non urgent
+
+		"""
+
+		self.FACTOR_YawRate_offsets = [-.2, -.05, .15, -9, -1.5, -.5] #6 yawrate offsets, specified in degrees per second. 
 		self.TrialsPerCondition = trialspercondition
 		[trialsequence_signed, cl_radii, cl_yawrates]  = GenerateConditionLists(self.FACTOR_radiiPool, self.FACTOR_YawRate_offsets, self.TrialsPerCondition)
 
@@ -261,8 +288,6 @@ class myExperiment(viz.EventClass):
 		self.OutputWriter = None #dataframe that gets renewed each trial.
 		self.OutputFile = None #for csv.		
 		#self.OutputWriter = pd.DataFrame(columns=datacolumns) #make new empty EndofTrial data
-
-		self.OnsetTimePool = np.arange(4, 6.25, step = .25) #from 4 to 6s in .25s increments. The straight is ~ 2s of travel, so this is 2-4s into the bend.
 
 		
 		self.txtMode = viz.addText("Mode",parent=viz.SCREEN)
