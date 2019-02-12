@@ -32,7 +32,10 @@ import vizact
 import vizmat
 import myCave
 import pandas as pd
-from TrackMaker import Bend
+
+rootpath = 'C:\\VENLAB data\\TrackMaker\\'
+sys.path.append(rootpath)
+from vizTrackMaker import vizStraight, vizBend
 #import PPinput
 
 def LoadEyetrackingModules():
@@ -121,7 +124,7 @@ def setStage():
 	
 	return groundplane
 	
-def BendMaker(radlist):
+def BendMaker(radlist, start):
 	
 	"""makes left and right roads  for for a given radii and return them in a list"""
 	
@@ -130,13 +133,12 @@ def BendMaker(radlist):
 	grey = [.8,.8,.8]	
 
 	for r in radlist:
-		rightbend = Bend(startpos = [0,0], rads = r, x_dir = 1, colour = grey, road_width=0)
+		rightbend = vizBend(startpos = start, rads = r, x_dir = 1, colour = grey, road_width=0)
 			
 		rightbendlist.append(rightbend)
 
-		leftbend = Bend(startpos = [0,0], rads = r, x_dir = -1, colour = grey, road_width=0)
-		
-			
+		leftbend = vizBend(startpos = start, rads = r, x_dir = -1, colour = grey, road_width=0)
+					
 		leftbendlist.append(leftbend)
 	
 	return leftbendlist,rightbendlist 
@@ -166,7 +168,7 @@ class myExperiment(viz.EventClass):
 
 
 		##### SET CONDITION VALUES #####
-		self.FACTOR_radiiPool = [80] # A sharp and gradual bend
+		self.FACTOR_radiiPool = [40] # A sharp and gradual bend
 		self.FACTOR_YawRate_offsets = [0] #6 yawrate offsets, specified in degrees per second.
 		self.TrialsPerCondition = 6
 		[trialsequence_signed, cl_radii, cl_yawrates]  = GenerateConditionLists(self.FACTOR_radiiPool, self.FACTOR_YawRate_offsets, self.TrialsPerCondition)
@@ -179,8 +181,14 @@ class myExperiment(viz.EventClass):
 		gplane1 = setStage()
 		self.gplane1 = gplane1		
 
+
+		#### MAKE STRAIGHT OBJECT ####
+		L = 16 #2sec.
+		self.Straight = vizStraight(startpos = [0,0], road_width = 0, length = 16, colour = [.8, .8, .8])
+		self.Straight.ToggleVisibility(viz.ON)
+
 		##### MAKE BEND OBJECTS #####
-		[leftbends,rightbends] = BendMaker(self.FACTOR_radiiPool)
+		[leftbends,rightbends] = BendMaker(self.FACTOR_radiiPool, self.Straight.RoadEnd)
 		self.leftbends = leftbends
 		self.rightbends = rightbends 
 
@@ -262,8 +270,10 @@ class myExperiment(viz.EventClass):
 				trialbend = self.rightbends[radius_index]
 				txtDir = "R"
 			else:
-				trialbend = self.leftbends[radius_index]
-				txtDir = "L"
+				#trialbend = self.leftbends[radius_index]
+				#txtDir = "L"
+				trialbend = self.rightbends[radius_index]
+				txtDir = "R" 
 
 			trialbend.ToggleVisibility(viz.ON)
 						

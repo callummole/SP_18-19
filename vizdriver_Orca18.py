@@ -10,7 +10,7 @@ KEY_FIRE_BUTTONS = [' ']
 KEY_DIR_SWITCH_BUTTON = viz.KEY_DELETE
 
 class Driver(viz.EventClass):
-	def __init__(self, Cave):
+	def __init__(self, Cave, Distractor):
 		viz.EventClass.__init__(self)
 				
 		#self.__speed = 0.223 #metres per frame. equates to 13.4 m/s therefore 30mph.
@@ -18,7 +18,12 @@ class Driver(viz.EventClass):
 		self.__speed = 8.0 #m./s
 		self.__heading = 0.0
 		self.__pause = 0#pauses for 50 frames at the start of each trial
+		self.gearPressed = False #a second way to measure gearpaddown, for distractor end of trial.
+
+		self.__Wheel_yawrate_adjustment = 0 #difference between real steering angle and virtual yaw-rate.
 		
+		self.__Distractor = Distractor #distractor class for callbacks.
+
 		self.__view = Cave
 		# self.__view = viz.MainView.setPosition(0,1.20,0) #Grabs the main graphics window
 		# self.__view = viz.MainView
@@ -31,7 +36,7 @@ class Driver(viz.EventClass):
 		#self.callback(viz.TIMER_EVENT,self.__ontimer)
 		self.callback(viz.KEYDOWN_EVENT,self.keyDown) #enables control with the keyboard
 		self.callback(vizjoy.BUTTONDOWN_EVENT,self.joyDown) 
-		#self.callback(vizjoy.MOVE_EVENT,self.joymove)
+		self.callback(vizjoy.MOVE_EVENT,self.joymove)
 		#self.starttimer(0,0,viz.FOREVER)
 
 		global joy
@@ -56,6 +61,8 @@ class Driver(viz.EventClass):
 
 		self.__pause = 0#-50
 		
+		self.__Wheel_yawrate_adjustment = 0
+
 		#self.__view = viz.MainView.setPosition(0,1.20,0) ##CHANGE EYE-HEIGHT FROM HERE
 		# self.__view = viz.MainView.setPosition(0,1.20,0) ##CHANGE EYE-HEIGHT FROM HERE
 		# self.__view = viz.MainView
@@ -66,7 +73,14 @@ class Driver(viz.EventClass):
 		gas = data[1]
 
 	def UpdateView(self, YR_input = None):
-		elapsedTime = viz.elapsed()
+		#elapsedTime = viz.elapsed()
+
+		elapsedTime = viz.getFrameElapsed()
+
+		if elapsedTime > .02:
+			print ("viz.tick: ", viz.tick())
+			print ("frame number: ", viz.getFrameNumber())
+			print ("elapsedTime:", elapsedTime)
 
 		yawrate = 0.0
 		turnangle = 0.0
@@ -99,8 +113,16 @@ class Driver(viz.EventClass):
 		self.__dir = 1
 		if (YR_input is not None) and (self.__automation == True): #provides the opportunity to pass a yaw rate to the driver.
 			yawrate = YR_input
+
+			Wheel_yawrate = self.__dir * SteeringWheelValue  * 35.0 #max wheel lock is 35degrees per s yawrate
+
+			self.__Wheel_yawrate_adjustment = yawrate - Wheel_yawrate #correction for any offset between virtual yawrate and yawrate as specified by the steering wheel angle.
 		else:
 			yawrate = self.__dir * SteeringWheelValue  * 35.0 #max wheel lock is 35degrees per s yawrate
+
+			#add adjustment for smooth take-over.
+			yawrate += self.__Wheel_yawrate_adjustment
+			
 		turnangle = yawrate * dt
 		self.__heading += turnangle
 	
@@ -129,6 +151,7 @@ class Driver(viz.EventClass):
 		UpdateValues.append(distance)
 		UpdateValues.append(dt)
 		UpdateValues.append(SteeringWheelValue)
+		UpdateValues.append(self.__Wheel_yawrate_adjustment)
 
 		return (UpdateValues)
 
@@ -142,11 +165,27 @@ class Driver(viz.EventClass):
 		if e.button in JOY_FIRE_BUTTONS:
 			button = e.button # do nothing
 
-		print ("Presssed: ", e.button)
+		print ("Pressed: ", e.button)
 
-		self.__automation = False
+				#left red buttons are 8,21,23. right red buttons are 7,20,22:
+			#if buttons are left or right, call distractor task.
+		if self.__Distractor is not None:
+			if e.button in [8,7,21,23,20,22]:
+				print ("responded to distractor task")
+				self.__Distractor.keydown(e.button)
 
-		print ("disengaged from automation")
+		if e.button in (5,6):
+			
+			if self.__Distractor is not None:
+				EoTFlag = self.__Distractor.getFlag()
+			else:
+				EoTFlag = False
+
+			if EoTFlag:
+				self.gearPressed = True
+			else:
+				self.__automation = False
+				print ("disengaged from automation")
 
 
 	def resetHeading(self):
@@ -162,6 +201,15 @@ class Driver(viz.EventClass):
 		
 		return self.__automation
 
+		
+	def getGearPressed(self):
+		
+		return self.gearPressed
+
+	def setGearPressed(self, press = False):
+		
+		self.gearPressed = press
+
 	def getSpeed(self):
 		return self.__speed
 
@@ -173,9 +221,15 @@ class Driver(viz.EventClass):
 		return self.__pause
 		
 	def joymove(self,e):
-	
-		pass
-	
-		#x = e.pos[0]*10		
-		#self.txtSWA.message(str(x))
+		
+		if self.__Distractor is not None:
+			end_of_trial_flag = self.__Distractor.getFlag()
 			
+			#if end of trial screen on.
+			if end_of_trial_flag:
+				self.__Distractor.joymove(e.pos)
+		else:
+			pass
+
+	def getJoy(self):
+		return joy
