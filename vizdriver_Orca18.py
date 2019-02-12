@@ -15,7 +15,7 @@ class Driver(viz.EventClass):
 				
 		#self.__speed = 0.223 #metres per frame. equates to 13.4 m/s therefore 30mph.
 		#8ms = 8/60 = .1333
-		self.__speed = 8.0 #m./s
+		self.__speed = 8 #m./s =30mph
 		self.__heading = 0.0
 		self.__pause = 0#pauses for 50 frames at the start of each trial
 		self.gearPressed = False #a second way to measure gearpaddown, for distractor end of trial.
@@ -49,15 +49,19 @@ class Driver(viz.EventClass):
 		else:
 			self.__dir = 1.0
 		
-	def reset(self):
+	def reset(self, position = None):
 		
 		self.__heading = 0.0
 		self.__dir = 1.0
 		turnrate = 0.0
 		#self.__view.reset(viz.BODY_ORI) 
 
-		self.__view.setPosition([0,0,0])
-		self.__view.setEuler([0,0,0])
+		if position is None:
+			self.__view.setPosition([0,0,0])
+			self.__view.setEuler([0,0,0])			
+		else:
+			self.__view.setPosition([position[0],0,position[1]])
+			self.__view.setEuler([0,0,0])
 
 		self.__pause = 0#-50
 		
