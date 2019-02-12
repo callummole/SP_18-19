@@ -386,7 +386,6 @@ class myExperiment(viz.EventClass):
 			yield run_calibration(self.comms, filename)
 			yield run_accuracy(self.comms, filename)	
 
-
 		#set up distractor task
 		if self.DISTRACTOR_TYPE is not None:
 			Distractor = Count_Adjustable.Distractor("distractor_", self.targetnumber, ppid = 1, startscreentime = self.StartScreenTime, triallength = 15, ntrials = len(self.TRIALSEQ_signed))
@@ -395,6 +394,7 @@ class myExperiment(viz.EventClass):
 		self.driver = vizdriver.Driver(self.caveview, Distractor)	
 
 		viz.MainScene.visible(viz.ON,viz.WORLD)		
+		viz.mouse.setVisible(viz.OFF) #switch mouse off
 
 		self.ToggleTextVisibility(viz.ON)
 	
@@ -854,6 +854,8 @@ if __name__ == '__main__':
 
 	EXP_ID = EXP_ID + '_' + str(DISTRACTOR_TYPE)
 
+	PP_ID = viz.input('Participant code: ') #add participant code
+
 	if PRACTICE == True: # HACK
 		EYETRACKING = False 
 
@@ -862,7 +864,7 @@ if __name__ == '__main__':
 		from eyetrike_accuracy_standard import run_accuracy
 		from UDP_comms import pupil_comms
 
-	myExp = myExperiment(EYETRACKING, PRACTICE, EXP_ID, AUTOWHEEL, DEBUG, DEBUG_PLOT, DISTRACTOR_TYPE)
+	myExp = myExperiment(EYETRACKING, PRACTICE, EXP_ID, AUTOWHEEL, DEBUG, DEBUG_PLOT, DISTRACTOR_TYPE, ppid = PP_ID)
 
 	#viz.callback(viz.EXIT_EVENT,CloseConnections, myExp.EYETRACKING)
 
