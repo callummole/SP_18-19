@@ -5,7 +5,7 @@ import pandas as pd
 import sys
 rootpath = 'C:\\VENLAB data\\TrackMaker\\'
 sys.path.append(rootpath)
-from simTrackMaker import Bend
+from simTrackMaker import lineBend, lineStraight
 
 class vehicle:
     
@@ -156,9 +156,20 @@ def plotCar(plt, Car):
     
 if __name__ == '__main__':
     
+
+    #create straight.
+    L = 16#2sec.
+    myStraight  = simTrackMaker.lineStraight(startpos = [0,0], length= 16)#, texturefile='strong_edge_soft.bmp')
+
     #Create Bend
     myrads = 40
-    Course = Bend(startpos = [0,0], rads = myrads, x_dir = 1, road_width=3.0) 
+    myBend = simTrackMaker.lineBend(startpos = Straight.RoadEnd, rads = myrads, x_dir = 1, road_width=3.0) 
+
+    #midline and edges
+    Course.midline = np.vstack((myStraight.midline, myBend.midline))
+    Course.OutsideLine = np.vstack(myStraight.OutsideLine, myBend.OutsideLine)
+    Course.InsideLine = np.vstack(myStraight.InsideLine, myBend.InsideLine)
+    Course.CurveOrigin = myBend.CurveOrigin
     
     #Plot Bend
     plt.figure(1)
@@ -172,13 +183,25 @@ if __name__ == '__main__':
     plt.plot(Course.InsideLine[:,0], Course.InsideLine[:,1],'-k')
     plt.axis('equal')    
     plt.title("Radius: " + str(myrads))
+
+    plt.show()
+
+    pause
 #
+
+    #list of filenames
     if myrads == 40:
-        filename = "Midline_40_4_nostraight.csv" 
+        filename_list = ["Midline_40_0.csv","Midline_40_1.csv","Midline_40_2.csv","Midline_40_3.csv","Midline_40_4.csv","Midline_40_5.csv"]
+		
     elif myrads == 80:
-        filename = "Midline_80_3_nostraight.csv"
+        filename_list = ["Midline_80_0.csv","Midline_80_1.csv","Midline_80_2.csv","Midline_80_3.csv","Midline_80_4.csv","Midline_80_5.csv"]
     else:
         raise Exception('Unrecognised radius')
+
+    #onset pool times
+    self.OnsetTimePool = np.arange(4, 6.25, step = .25) #from 4 to 6s in .25 steps.
+
+    #loop through filename and onset times.
     playbackdata = pd.read_csv("Data//"+filename) 	
     yawrate_readout = playbackdata.get("YawRate_seconds")
 
