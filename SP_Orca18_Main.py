@@ -750,13 +750,15 @@ class myExperiment(viz.EventClass):
 		"""Timer function that gets called every frame. Updates parameters for saving"""
 
 		"""Here need to bring in steering bias updating from Trout as well"""
-		dt = viz.elapsed()
-		#print ("elapsed:", dt)
-
-		#print ("frame elapsed:", viz.getFrameElapsed())
-		self.Trial_Timer = self.Trial_Timer + dt
+	
 
 		if self.UPDATELOOP:
+
+			dt = viz.elapsed()
+			#print ("elapsed:", dt)
+
+			#print ("frame elapsed:", viz.getFrameElapsed())
+			self.Trial_Timer = self.Trial_Timer + dt
 		
 			#print("UpdatingPosition...")	
 			#update driver view.
@@ -869,15 +871,15 @@ if __name__ == '__main__':
 	AUTOWHEEL = True
 	PRACTICE = False	#keep false. no practice trial at the moment.
 	EXP_ID = "Orca18"
-	DEBUG = False
+	DEBUG = True
 	DEBUG_PLOT = False #flag for the debugger plot. only active if Debug == True.
 
 
 	#SP CHANGE HERE
 	
 	#distractor_type takes 'None', 'Easy' (1 target, 40% probability), and 'Hard' (3 targets, 40% probability)
-	#DISTRACTOR_TYPE = "Hard" #Case sensitive
-	DISTRACTOR_TYPE = "Easy" #Case sensitive
+	DISTRACTOR_TYPE = "Hard" #Case sensitive
+	#DISTRACTOR_TYPE = "Easy" #Case sensitive
 	#DISTRACTOR_TYPE = None #Case sensitive. Shouldn't have speech marks since None is a special word.
 	BLOCK = 1 #SP. change to one or two.
 
