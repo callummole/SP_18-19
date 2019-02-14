@@ -865,7 +865,7 @@ class myExperiment(viz.EventClass):
 if __name__ == '__main__':
 
 	###### SET EXPERIMENT OPTIONS ######	
-	EYETRACKING = True
+	EYETRACKING = False#True
 	AUTOWHEEL = True
 	PRACTICE = False	#keep false. no practice trial at the moment.
 	EXP_ID = "Orca18"

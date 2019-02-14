@@ -13,7 +13,7 @@ import viz # vizard library
 import vizact # vizard library for timers
 import numpy as np # numpy library - such as matrix calculation
 import random # python library
-import vizdriver_Orca18_pilotnotsteering as vizdriver # vizard library
+import vizdriver_Orca18_pilotnosteering as vizdriver # vizard library
 import viztask # vizard library
 import math as mt # python library
 import Count_Adjustable #distractor task

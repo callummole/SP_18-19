@@ -13,7 +13,7 @@ import viz # vizard library
 import vizact # vizard library for timers
 import numpy as np # numpy library - such as matrix calculation
 import random # python library
-import vizdriver_Orca18_pilotnotsteering as vizdriver # vizard library
+import vizdriver_Orca18_pilotnosteering as vizdriver # vizard library
 import viztask # vizard library
 import math as mt # python library
 import Count_Adjustable #distractor task
@@ -31,7 +31,8 @@ pname = viz.input('Participant code: ')
 ########### CHANGE HERE TO TOGGLE PRACTICE ANDS BLOCK #############
 
 PRACTICE = True #if practice, they only do one of each.
-BLOCK = 1 #switch to not save over previous file.
+BLOCK = 1 #1 or 2. #switch to not save over previous file.
+DISTRACTOR_TYPE = "Hard" #"Easy" (1 target) or "Hard" (3 targets). 
 
 #### ORDER TRIALS #####
 
@@ -43,13 +44,20 @@ BLOCK = 1 #switch to not save over previous file.
 ##Create array of trials.
 if PRACTICE:
 	TrialsPerCondition = 1 #for practice, do one trial each
-	ExpID = ExpID + '_' + str(PRACTICE)
+	ExpID = ExpID + '_' + str(PRACTICE) #file name	
+	if DISTRACTOR_TYPE == "Easy":
+		FACTOR_targetnumber = [1] #number of targets to keep count of.
+	elif DISTRACTOR_TYPE == "Hard":
+		FACTOR_targetnumber = [3] #number of targets to keep count of.
+	else:
+		raise Exception("Distractor Type must be Easy or Hard. Case sensitive")
 else:
 	TrialsPerCondition = 3 #for the isolated task, do three trials each. 
 	ExpID = ExpID + '_' + str(BLOCK)
+	FACTOR_targetnumber = [1, 3] #number of targets to keep count of.
 
 FACTOR_targetoccurence_prob = [.4] #probability of response frequency
-FACTOR_targetnumber = [1, 3] #number of targets to keep count of.
+
 ##################
 
 file_prefix = str(ExpID) + "_" + str(pname)
@@ -76,7 +84,8 @@ TrialTime = 15
 StartScreenTime = 2
 TotalTrialTime = TrialTime+StartScreenTime
 
-Distractor = Count_Adjustable.Distractor(file_prefix, max(FACTOR_targetnumber), pname, startscreentime = StartScreenTime)
+Distractor = Count_Adjustable.Distractor(file_prefix, max(FACTOR_targetnumber), pname, triallength= TrialTime, ntrials = TrialsPerCondition, startscreentime = StartScreenTime)
+
 driver = vizdriver.Driver(Distractor) #initialise driver
 
 global waitButton1, waitButton2
@@ -98,7 +107,7 @@ def runtrials():
 		print(str([trial_targetoccurence_prob, trial_targetnumber]))
 		
 
-		Distractor.StartTrial(trial_targetoccurence_prob, trial_targetnumber, trialn = i, triallength = TrialTime)	#starts trial
+		Distractor.StartTrial(trial_targetoccurence_prob, trial_targetnumber, trialn = i)	#starts trial
 
 		print ("Called Start Trial, now waiting")
 		

@@ -17,7 +17,7 @@ import winsound
 
 
 class Distractor(viz.EventClass):
-	def __init__(self, filename, maxtargetnumber, ppid, triallength, ntrials, startscreentime = 2):
+	def __init__(self, filename, maxtargetnumber, ppid, triallength, ntrials = None, startscreentime = 2):
 		viz.EventClass.__init__(self)
 
 		#needs to be an eventclass for timer to work.				
@@ -32,7 +32,7 @@ class Distractor(viz.EventClass):
 		#letters = ['a','b','c','d','e','i','o']#,'f','g']#,'h','i','j','k','l']#,'m','n','o']
 		#letters = ['a','b','k','h','f','i','o']#,'f','g']#,'h','i','j','k','l']#,'m','n','o'] #don't rhyme.
 
-		self.letters = ['b','o','z','k','t','h','f','s','i','a','m','n','y','r','j'] #target letters are the front two. Need to be paired with three distractors.	
+		self.letters = ['b','o','h','k','t','l','f','s','i','a','m','n','y','r','j'] #target letters are the front two. Need to be paired with three distractors.	
 
 		
 
@@ -186,6 +186,7 @@ class Distractor(viz.EventClass):
 		self.Trial_targetcounts = [0] * targetnumber #empty list with self.Trial_targetnumber counts
 		self.Trial_EoTscores = [-1] * targetnumber
 		self.Trial_N = trialn		
+		#print ("TargetPool:", self.Target_pool)
 		self.Trial_targets = list(np.random.choice(self.Target_pool, size=targetnumber, replace=False))
 
 		print("Trial targets: ", self.Trial_targets)
