@@ -609,14 +609,17 @@ class myExperiment(viz.EventClass):
 					
 					return(end)
 
-				waitRoad = viztask.waitTrue (RoadRunout)
-				waitManual = viztask.waitTime(5)
+				#waitRoad = viztask.waitTrue (RoadRunout)
+				#waitManual = viztask.waitTime(5)
 
-				d = yield viztask.waitAny( [ waitRoad, waitManual ] )
-				if d.condition is waitRoad:
-					print ('Run out of Road')
-				elif d.condition is waitManual:
-					print ('Manual Time Elapsed')
+				#d = yield viztask.waitAny( [ waitRoad, waitManual ] )
+
+				yield viztask.waitTrue (RoadRunout)
+				print ("Run out of Road")
+				#if d.condition is waitRoad:
+				#	print ('Run out of Road')
+				#elif d.condition is waitManual:
+				#	print ('Manual Time Elapsed')
 
 			##### END STEERING TASK ######
 
