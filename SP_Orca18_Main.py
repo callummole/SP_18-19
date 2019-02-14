@@ -229,7 +229,7 @@ class myExperiment(viz.EventClass):
 
 		#Onset time pool is from 4 to 6s in .25s increments. The straight is ~ 2s of travel, so this is 2-4s into the bend. 
 		#Trial time is 15s, so this onset range gives a minimum of 9s of bend travel, and a maximum of 11s of bend travel. 
-		self.OnsetTimePool = np.arange(4, 6.25, step = .25) #
+		self.OnsetTimePool = np.arange(6, 8.25, step = .25) #
 
 		#offsets chosen for trials that do not intend to cross the road need to keep within the road within 11s.
 		#For offsets that cross the road, let's pick one that produces maximally quick responses (1 s), through to responses that require more judgement (4 - 8 s)
