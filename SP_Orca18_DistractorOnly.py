@@ -30,9 +30,11 @@ pname = viz.input('Participant code: ')
 
 ########### CHANGE HERE TO TOGGLE PRACTICE ANDS BLOCK #############
 
+#SP CHANGE HERE
+
 PRACTICE = True #if practice, they only do one of each.
 BLOCK = 1 #1 or 2. #switch to not save over previous file.
-DISTRACTOR_TYPE = "Hard" #"Easy" (1 target) or "Hard" (3 targets). 
+DISTRACTOR_TYPE = "Easy" #"Easy" (1 target) or "Hard" (3 targets). 
 
 #### ORDER TRIALS #####
 

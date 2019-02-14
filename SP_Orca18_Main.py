@@ -872,10 +872,14 @@ if __name__ == '__main__':
 	DEBUG = False
 	DEBUG_PLOT = False #flag for the debugger plot. only active if Debug == True.
 
+
+	#SP CHANGE HERE
+	
 	#distractor_type takes 'None', 'Easy' (1 target, 40% probability), and 'Hard' (3 targets, 40% probability)
 	#DISTRACTOR_TYPE = "Hard" #Case sensitive
 	DISTRACTOR_TYPE = "Easy" #Case sensitive
-	#DISTRACTOR_TYPE = None #Case sensitive
+	#DISTRACTOR_TYPE = None #Case sensitive. Shouldn't have speech marks since None is a special word.
+	BLOCK = 1 #SP. change to one or two.
 
 	#determine amount of trials
 	if DISTRACTOR_TYPE is None:
@@ -883,7 +887,10 @@ if __name__ == '__main__':
 	else:
 		trials = 6
 
-	EXP_ID = EXP_ID + '_' + str(DISTRACTOR_TYPE) #build string for file saving.
+	if DISTRACTOR_TYPE is None:
+		EXP_ID = EXP_ID + '_' + str(DISTRACTOR_TYPE) + '_' + str(BLOCK) #build string for file saving.
+	else:
+		EXP_ID = EXP_ID + '_' + str(DISTRACTOR_TYPE) #build string for file saving.
 
 	PP_ID = viz.input('Participant code: ') #add participant code
 
