@@ -12,7 +12,7 @@ For perspective correct rendering - myCave.py
 For motion through the virtual world - vizdriver.py
 
 """
-
+import sys
 #doc strings needed
 rootpath = 'C:\\VENLAB data\\shared_modules\\Logitech_force_feedback'
 sys.path.append(rootpath)
@@ -24,7 +24,6 @@ rootpath = 'C:\\VENLAB data\\TrackMaker\\'
 sys.path.append(rootpath)
 
 #standard libraries
-import sys
 from timeit import default_timer as timer
 import csv
 import io #for efficient data saving
