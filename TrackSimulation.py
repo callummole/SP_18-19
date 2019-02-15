@@ -1,11 +1,13 @@
+import sys
+rootpath = 'C:\\VENLAB data\\TrackMaker\\'
+sys.path.append(rootpath)
+
 import numpy as np
 import matplotlib.pyplot as plt
 import pdb
 import pandas as pd
-import sys
-rootpath = 'C:\\VENLAB data\\TrackMaker\\'
-sys.path.append(rootpath)
-from simTrackMaker import lineBend, lineStraight
+
+import simTrackMaker
 
 class vehicle:
     
@@ -15,11 +17,12 @@ class vehicle:
         self.yawrate_readout = yawrate_readout 
         self.playback_length = len(yawrate_readout)
         
-        self.pos = np.array([Course.RoadStart[0], Course.RoadStart[1]])
+        self.pos = np.array(Course[0])
         self.yaw = initialyaw #heading angle, radians
         self.speed = speed 
         self.dt = dt       
-        self.trackorigin = Course.CurveOrigin
+        self.midline = Course[1]
+        self.trackorigin = Course[2]
         
         self.yawrate = 0
         
@@ -39,15 +42,24 @@ class vehicle:
     def calculatebias(self):
 
         #TODO: cut down on processing but only selecting a window of points based on lastmidindex.
-        midlinedist = np.sqrt(((self.pos[0]-self.Course.midline[:,0])**2)+((self.pos[1]-self.Course.midline[:,1])**2)) #get a 4000 array of distances from the midline
+        midlinedist = np.sqrt(
+            ((self.pos[0]-self.midline[:,0])**2)
+            +((self.pos[1]-self.midline[:,1])**2)
+            ) #get a 4000 array of distances from the midline
         idx = np.argmin(abs(midlinedist)) #find smallest difference. This is the closest index on the midline.	
 
-        closestpt = self.Course.midline[idx,:] #xy of closest point
+        closestpt = self.midline[idx,:] #xy of closest point
         dist = midlinedist[idx] #distance from closest point				
 
         #Sign bias from assessing if the closest point on midline is closer to the track origin than the driver position. Since the track is an oval, closer = understeering, farther = oversteering.
-        middist_from_origin = np.sqrt(((closestpt[0]-self.trackorigin[0])**2)+((closestpt[1]-self.trackorigin[1])**2))  #distance of midline to origin
-        pos_from_trackorigin = np.sqrt(((self.pos[0]-self.trackorigin[0])**2)+((self.pos[1]-self.trackorigin[1])**2)) #distance of driver pos to origin
+        middist_from_origin = np.sqrt(
+            ((closestpt[0]-self.trackorigin[0])**2)
+            +((closestpt[1]-self.trackorigin[1])**2)
+            )  #distance of midline to origin
+        pos_from_trackorigin = np.sqrt(
+            ((self.pos[0]-self.trackorigin[0])**2)
+            +((self.pos[1]-self.trackorigin[1])**2)
+            ) #distance of driver pos to origin
         distdiff = middist_from_origin - pos_from_trackorigin #if driver distance is greater than closest point distance, steering position should be understeering
         steeringbias = dist * np.sign(distdiff)     
 
@@ -91,7 +103,7 @@ class vehicle:
 
     
 
-def runSimulation(Course, yawrate_readout, yawrateoffset= 0):
+def runSimulation(Course, yawrate_readout, yawrateoffset= 0, onsettime = 0):
 
     """run simulation and return RMS"""
 
@@ -109,26 +121,29 @@ def runSimulation(Course, yawrate_readout, yawrateoffset= 0):
     Car = vehicle(0.0, speed, dt, yawrate_readout, Course)
 
     i = 0
-    onset = 0 #in seconds
+    
     crossed = False
-    time_til_crossing = -1
-    while time < run_time and crossed == False:
-        
-       # print i
-        time += dt        
-       
-        i += 1
+    time_til_crossing = float('nan')
+
+    print ("playback lenght", Car.playback_length)
+    while (time < run_time) and (crossed==False) and (i < Car.playback_length):
+
+        #print i
+
+        time += dt              
 
         newyawrate = np.deg2rad(Car.yawrate_readout[i])
         
-        if time > onset:
+        if time > onsettime:
             newyawrate += yawrateoffset_rads
         
         Car.move_vehicle(newyawrate)           
         
         if crossed == False and abs(Car.currenterror) > 1.5:
-            time_til_crossing = time - onset
+            time_til_crossing = time - onsettime
             crossed = True
+
+        i += 1
 
     return Car, time_til_crossing
     
@@ -148,11 +163,7 @@ def plotCar(plt, Car):
     if max(abs(steeringbias)) > 1.5:
         plt.plot(positions[:,0], positions[:,1], 'ro', markersize=.2)						
     else:
-        plt.plot(positions[:,0], positions[:,1], 'go', markersize=.2)						
-
-
-        
-    
+        plt.plot(positions[:,0], positions[:,1], 'go', markersize=.2)			            
     
 if __name__ == '__main__':
     
@@ -163,30 +174,36 @@ if __name__ == '__main__':
 
     #Create Bend
     myrads = 40
-    myBend = simTrackMaker.lineBend(startpos = Straight.RoadEnd, rads = myrads, x_dir = 1, road_width=3.0) 
+    myBend = simTrackMaker.lineBend(startpos = myStraight.RoadEnd, rads = myrads, x_dir = 1, road_width=3.0) 
 
     #midline and edges
-    Course.midline = np.vstack((myStraight.midline, myBend.midline))
-    Course.OutsideLine = np.vstack(myStraight.OutsideLine, myBend.OutsideLine)
-    Course.InsideLine = np.vstack(myStraight.InsideLine, myBend.InsideLine)
-    Course.CurveOrigin = myBend.CurveOrigin
+    Course_RoadStart = myStraight.RoadStart
+    Course_midline = np.vstack((myStraight.midline, myBend.midline))
+    Course_OutsideLine = np.vstack(
+        (myStraight.OutsideLine, myBend.OutsideLine)
+        )
+    Course_InsideLine = np.vstack((myStraight.InsideLine, myBend.InsideLine))
+    Course_CurveOrigin = myBend.CurveOrigin
     
     #Plot Bend
     plt.figure(1)
-    plt.plot(Course.midline[:,0], Course.midline[:,1], '--k')
+    plt.plot(Course_midline[:,0], Course_midline[:,1], '--k')
     
-    xlimits = Course.CurveOrigin[0]*2
+    xlimits = Course_CurveOrigin[0]*2
         
     plt.xlim([0-5, xlimits+5])
-    plt.ylim([-Course.CurveOrigin[0]-5, Course.CurveOrigin[1]*2 + Course.CurveOrigin[0]+5])
-    plt.plot(Course.OutsideLine[:,0], Course.OutsideLine[:,1],'-k')
-    plt.plot(Course.InsideLine[:,0], Course.InsideLine[:,1],'-k')
+    plt.ylim([-Course_CurveOrigin[0]-5, Course_CurveOrigin[1]*2 + Course_CurveOrigin[0]+5])
+    plt.plot(Course_OutsideLine[:,0], Course_OutsideLine[:,1],'-k')
+    plt.plot(Course_InsideLine[:,0], Course_InsideLine[:,1],'-k')
     plt.axis('equal')    
     plt.title("Radius: " + str(myrads))
 
-    plt.show()
-
-    pause
+    #Temp HACK to store in list while I improve trackmaker.
+    Course = [
+        Course_RoadStart,
+        Course_midline, Course_CurveOrigin,
+        Course_OutsideLine, Course_InsideLine
+        ]
 #
 
     #list of filenames
@@ -199,37 +216,51 @@ if __name__ == '__main__':
         raise Exception('Unrecognised radius')
 
     #onset pool times
-    self.OnsetTimePool = np.arange(4, 6.25, step = .25) #from 4 to 6s in .25 steps.
+    OnsetTimePool = np.arange(5, 9.25, step = .25) 
 
-    #loop through filename and onset times.
-    playbackdata = pd.read_csv("Data//"+filename) 	
-    yawrate_readout = playbackdata.get("YawRate_seconds")
-
-    #yawrateoffsets = [-2, -1, 0, 1, 2] #in degrees per second
     yawrateoffsets = np.linspace(-10,10,200)
-    simResults = np.empty([len(yawrateoffsets),2])
+    #columns: yr_offset, file_i, onsettime, time_til_crossing
+    totalrows = len(yawrateoffsets) \
+            * len(OnsetTimePool)\
+            * len(filename_list)
     
-    for i,yr in enumerate(yawrateoffsets):        
-        Car, t = runSimulation(Course, yawrate_readout, yr)
-        #Plot Car
-        plotCar(plt, Car)
+    simResults = np.empty([totalrows,4]) 
+    
+    #self.FACTOR_YawRate_offsets = [-.2, -.05, .15, -9, -1.5, -.5].
+#   need two leave (one urgent and one non-urgent), and two stay.
 
-        simResults[i] = [yr, t]        
-        print ("Yr: ", yr, "Time til Crossing: ", t)
+    row_i = 0    
+    for file_i, file in enumerate(filename_list):
+        #loop through filename and onset times.
+        playbackdata = pd.read_csv("Data//"+file) 	
+        yawrate_readout = playbackdata.get("YawRate_seconds")
 
-    plt.savefig(str(myrads) + '_Trajs.png', dpi=800)
+        for yr_i,yr in enumerate(yawrateoffsets):        
+            for onset_i, onset in enumerate(OnsetTimePool):
+
+                Car, t = runSimulation(Course, yawrate_readout, yr, onset)
+                #Plot Car
+                plotCar(plt, Car)
+
+                simResults[row_i] = [yr, file_i, onset, t]        
+
+                print ("Yr: ", yr, "Onset: ", onset, "Time til Crossing: ", t)
+
+                row_i += 1
+
+    #plt.savefig(str(myrads) + '_Trajs.png', dpi=800)
     #plt.show()
     
-    np.savetxt("SimResults_"+str(myrads)+".csv", simResults, delimiter=",")
+    np.savetxt("SimResults_OnsetTimes_"+str(myrads)+".csv", simResults, delimiter=",")
 
     #plot yr and time til crossing functions.
-    plt.figure(2)
-    plt.plot(simResults[:,0], simResults[:,1], 'k-')
-    plt.xlabel("Yaw Rate Offset (deg/s)")
-    plt.ylabel("Time from Onset to Lane Crossing (s)")
-    plt.title("Radius: " + str(myrads))
-    plt.savefig(str(myrads) + '_Sims.png', dpi = 300)
-    #plt.show()
+    # plt.figure(2)
+    # plt.plot(simResults[:,0], simResults[:,1], 'k-')
+    # plt.xlabel("Yaw Rate Offset (deg/s)")
+    # plt.ylabel("Time from Onset to Lane Crossing (s)")
+    # plt.title("Radius: " + str(myrads))
+    # plt.savefig(str(myrads) + '_Sims_OnsetTimes.png', dpi = 300)
+    # #plt.show()
     
 
     
