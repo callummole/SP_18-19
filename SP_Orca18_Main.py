@@ -12,39 +12,41 @@ For perspective correct rendering - myCave.py
 For motion through the virtual world - vizdriver.py
 
 """
-import sys
-from timeit import default_timer as timer
 
+#doc strings needed
 rootpath = 'C:\\VENLAB data\\shared_modules\\Logitech_force_feedback'
 sys.path.append(rootpath)
 rootpath = 'C:\\VENLAB data\\shared_modules'
 sys.path.append(rootpath)
 rootpath = 'C:\\VENLAB data\\shared_modules\\pupil\\capture_settings\\plugins\\drivinglab_pupil\\'
 sys.path.append(rootpath)
-
-import viz # vizard library
-import numpy as np # numpy library - such as matrix calculation
-import random # python library
-import vizdriver_Orca18 as vizdriver # vizard library
-import viztask # vizard library
-import math as mt # python library
-import vizshape
-import vizact
-import vizmat
-import myCave
-import pandas as pd
-import Count_Adjustable #distractor task
-
-import csv, io #for efficient data saving
-
-import vizmatplot
-import matplotlib.pyplot as plt
-
 rootpath = 'C:\\VENLAB data\\TrackMaker\\'
 sys.path.append(rootpath)
 
+#standard libraries
+import sys
+from timeit import default_timer as timer
+import csv
+import io #for efficient data saving
+import numpy as np # numpy library - such as matrix calculation
+import random # python library
+import math as mt # python library
+import pandas as pd
+import matplotlib.pyplot as plt
+
+#vizard libraries
+import viz # vizard library
+import viztask # vizard library
+import vizshape
+import vizact
+import vizmat
+import vizmatplot
+
+#personal libraries
+import vizdriver_Orca18 as vizdriver
+import myCave
+import Count_Adjustable #distractor task
 from vizTrackMaker import vizBend, vizStraight
-import random
 #import PPinput
 
 def LoadEyetrackingModules():
@@ -90,7 +92,7 @@ def LoadAutomationModules():
 
 	return(mywheel)
 
-def GenerateConditionLists(FACTOR_radiiPool, FACTOR_YawRate_offsets, TrialsPerCondition):
+def GenerateConditionLists(FACTOR_radiiPool, FACTOR_YawRate_offsets,        	TrialsPerCondition):
 	"""Based on two factor lists and TrialsPerCondition, create a factorial design and return trialarray and condition lists"""
 
 	NCndts = len(FACTOR_radiiPool) * len(FACTOR_YawRate_offsets)	
@@ -170,7 +172,7 @@ def BendMaker(radlist, start):
 
 class myExperiment(viz.EventClass):
 
-	def __init__(self, eyetracking, practice, exp_id, autowheel, debug, debug_plot, distractor_type = None, ppid = 1, trialspercondition = 6):
+	def __init__(self, eyetracking, practice, exp_id, autowheel, debug, 		debug_plot, distractor_type = None, ppid = 1, trialspercondition = 6):
 
 		viz.EventClass.__init__(self)
 	
@@ -185,7 +187,7 @@ class myExperiment(viz.EventClass):
 		self.DISTRACTOR_TYPE = distractor_type
 
 		if self.DISTRACTOR_TYPE not in (None, "Easy", "Hard"):
-			raise Exception ("Unrecognised Distractor Type. Specify 'None', 'Easy', or 'Hard'. Case sensitive.")
+			raise Exception ("Unrecognised Distractor Type. Specify 'None', 	'Easy', or 'Hard'. Case sensitive.")
 			#pass
 		
 		###set distractor parameters.
@@ -250,7 +252,9 @@ class myExperiment(viz.EventClass):
 
 		self.FACTOR_YawRate_offsets = [-.2, -.05, .15, -9, -1.5, -.5] #6 yawrate offsets, specified in degrees per second. 
 		self.TrialsPerCondition = trialspercondition
-		[trialsequence_signed, cl_radii, cl_yawrates]  = GenerateConditionLists(self.FACTOR_radiiPool, self.FACTOR_YawRate_offsets, self.TrialsPerCondition)
+		[trialsequence_signed, cl_radii, cl_yawrates]  = GenerateConditionList(
+			self.FACTOR_radiiPool, self.FACTOR_YawRate_offsets, self.TrialsPerCondition
+			)
 
 		self.TRIALSEQ_signed = trialsequence_signed #list of trialtypes in a randomised order. -ve = leftwards, +ve = rightwards.
 		self.ConditionList_radii = cl_radii
@@ -262,18 +266,21 @@ class myExperiment(viz.EventClass):
 		
 		#### MAKE STRAIGHT OBJECT ####
 		L = 16#2sec.
-		self.Straight = vizStraight(startpos = [0,0], primitive_width=1.5, road_width = 0, length = L, colour = [.6, .6, .6])#, texturefile='strong_edge_soft.bmp')
+		self.Straight = vizStraight(
+			startpos = [0,0], primitive_width=1.5, road_width = 0, length = L, colour = [.6, .6, .6]
+			)#, texturefile='strong_edge_soft.bmp')
 		self.Straight.ToggleVisibility(viz.ON)
 		self.Straight.setAlpha(.5)
 
 		##### MAKE BEND OBJECTS #####
-		[leftbends,rightbends] = BendMaker(self.FACTOR_radiiPool, self.Straight.RoadEnd)
+		[leftbends,rightbends] = BendMaker(
+			self.FACTOR_radiiPool, self.Straight.RoadEnd
+			)
 		self.leftbends = leftbends
 		self.rightbends = rightbends 
 
 		self.callback(viz.TIMER_EVENT,self.updatePositionLabel, priority = -1)
 		self.starttimer(0,1.0/60.0,viz.FOREVER) #self.update position label is called every frame.
-
 		
 		self.UPDATELOOP = False
 
@@ -283,7 +290,7 @@ class myExperiment(viz.EventClass):
 		
 		####### DATA SAVING ######
 		#datacolumns = ['ppid', 'radius','yawrate_offset','trialn','timestamp','trialtype_signed','World_x','World_z','WorldYaw','SWA','YawRate_seconds','TurnAngle_frames','Distance_frames','dt', 'WheelCorrection', 'SteeringBias', 'Closestpt', 'AutoFlag', 'AutoFile', 'OnsetTime']
-		datacolumns = ('ppid', 'radius','yawrate_offset','trialn','timestamp','trialtype_signed','World_x','World_z','WorldYaw','SWA','YawRate_seconds','TurnAngle_frames','Distance_frames','dt', 'WheelCorrection', 'SteeringBias', 'Closestpt', 'AutoFlag', 'AutoFile', 'OnsetTime')
+		datacolumns = ('ppid', 'radius','yawrate_offset','trialn','timestamp',	'trialtype_signed','World_x','World_z','WorldYaw','SWA',			'YawRate_seconds','TurnAngle_frames','Distance_frames','dt', 		'WheelCorrection', 'SteeringBias', 'Closestpt', 'AutoFlag', 		'AutoFile', 'OnsetTime')
 		self.datacolumns = datacolumns		
 		self.OutputWriter = None #dataframe that gets renewed each trial.
 		self.OutputFile = None #for csv.		
@@ -337,8 +344,8 @@ class myExperiment(viz.EventClass):
 		self.SWA_readouts_40 = []
 		self.YR_readouts_80 = []
 		self.SWA_readouts_80 = []
-		self.PlaybackPool40 = ["Midline_40_0.csv","Midline_40_1.csv","Midline_40_2.csv","Midline_40_3.csv","Midline_40_4.csv","Midline_40_5.csv"]
-		self.PlaybackPool80 = ["Midline_80_0.csv","Midline_80_1.csv","Midline_80_2.csv","Midline_80_3.csv","Midline_80_4.csv","Midline_80_5.csv"]
+		self.PlaybackPool40 = ["Midline_40_0.csv","Midline_40_1.csv",			"Midline_40_2.csv","Midline_40_3.csv","Midline_40_4.csv",			"Midline_40_5.csv"]
+		self.PlaybackPool80 = ["Midline_80_0.csv","Midline_80_1.csv",			"Midline_80_2.csv","Midline_80_3.csv","Midline_80_4.csv",			"Midline_80_5.csv"]
 
 		
 		#pre-load playback data at start of experiment.
@@ -372,7 +379,6 @@ class myExperiment(viz.EventClass):
 			self.txtCurrent.setPosition(.2,.2)
 			self.txtCurrent.fontSize(36)
 			self.txtCurrent.visible(viz.OFF)
-
 			
 			if self.DEBUG_PLOT:
 				#for inset plot
@@ -395,10 +401,16 @@ class myExperiment(viz.EventClass):
 				
 				self.plot_positionarray_x, self.plot_positionarray_z, self.plot_closestpt_x,  self.plot_closestpt_z = [], [], [], [] #arrays to store plot data in
 
-				self.dots_position, = self.plot_ax.plot(self.plot_positionarray_x, self.plot_positionarray_z, 'ko', markersize = .5)
-				self.dots_closestpt, = self.plot_ax.plot(self.plot_closestpt_x, self.plot_closestpt_z, 'bo', markersize = .2)
+				self.dots_position, = self.plot_ax.plot(
+					self.plot_positionarray_x, self.plot_positionarray_z, 'ko',markersize = .5
+					)
+				self.dots_closestpt, = self.plot_ax.plot(
+					self.plot_closestpt_x, self.plot_closestpt_z, 'bo', markersize = .2
+					)
 				self.line_midline, = self.plot_ax.plot([],[],'r-')
-				self.dot_origin, = self.plot_ax.plot([], [], 'b*', markersize = 5)	
+				self.dot_origin, = self.plot_ax.plot(
+					[], [], 'b*', markersize = 5
+					)	
 							
 
 	def runtrials(self):
@@ -707,9 +719,11 @@ class myExperiment(viz.EventClass):
 		# self.Current_pos_x, self.Current_pos_z, self.Current_yaw, self.Current_SWA, self.Current_YawRate_seconds, self.Current_TurnAngle_frames, 
 		# self.Current_distance, self.Current_dt, self.Current_WheelCorrection, self.Current_steeringbias, self.Current_closestpt, self.AUTOMATION, self.Trial_playbackfilename, self.Trial_OnsetTime] #output array.
 
-		output = (self.PP_id, self.Trial_radius, self.Trial_YawRate_Offset, self.Trial_N, self.Current_Time, self.Trial_trialtype_signed, 
-		self.Current_pos_x, self.Current_pos_z, self.Current_yaw, self.Current_SWA, self.Current_YawRate_seconds, self.Current_TurnAngle_frames, 
-		self.Current_distance, self.Current_dt, self.Current_WheelCorrection, self.Current_steeringbias, self.Current_closestpt, self.AUTOMATION, self.Trial_playbackfilename, self.Trial_OnsetTime) #output array
+		output = (
+			self.PP_id, self.Trial_radius, self.Trial_YawRate_Offset, self.Trial_N, self.Current_Time, self.Trial_trialtype_signed, 
+			self.Current_pos_x, self.Current_pos_z, self.Current_yaw, self.Current_SWA, self.Current_YawRate_seconds, self.Current_TurnAngle_frames, 
+			self.Current_distance, self.Current_dt, self.Current_WheelCorrection, self.Current_steeringbias, self.Current_closestpt, self.AUTOMATION, self.Trial_playbackfilename, self.Trial_OnsetTime
+			) #output array
 		
 		
 		#self.OutputWriter.loc[self.Current_RowIndex,:] = output #this dataframe is actually just one line. 		
@@ -730,18 +744,28 @@ class myExperiment(viz.EventClass):
 
 	def calculatebias(self):
 		
-		midlinedist = np.sqrt(((self.Current_pos_x-self.Trial_midline[:,0])**2)+((self.Current_pos_z-self.Trial_midline[:,1])**2)) #get a 4000 array of distances from the midline
+		#get a 4000 array of distances from the midline
+		midlinedist = np.sqrt(
+			((self.Current_pos_x-self.Trial_midline[:,0])**2)
+			+((self.Current_pos_z-self.Trial_midline[:,1])**2)
+			) 
 		idx = np.argmin(abs(midlinedist)) #find smallest difference. This is the closest index on the midline.	
 
 		closestpt = self.Trial_midline[idx,:] #xy of closest point
 		dist = midlinedist[idx] #distance from closest point				
-
 		CurveOrigin = self.Trial_BendObject.CurveOrigin
 
 		#Sign bias from assessing if the closest point on midline is closer to the track origin than the driver position. Since the track is an oval, closer = understeering, farther = oversteering.
-		middist_from_origin = np.sqrt(((closestpt[0]-CurveOrigin[0])**2)+((closestpt[1]-CurveOrigin[1])**2))  #distance of midline to origin
-		pos_from_trackorigin = np.sqrt(((self.Current_pos_x-CurveOrigin[0])**2)+((self.Current_pos_z-CurveOrigin[1])**2)) #distance of driver pos to origin
-		distdiff = middist_from_origin - pos_from_trackorigin #if driver distance is greater than closest point distance, steering position should be understeering
+		middist_from_origin = np.sqrt(
+			((closestpt[0]-CurveOrigin[0])**2)
+			+((closestpt[1]-CurveOrigin[1])**2)
+			)  #distance of midline to origin
+		pos_from_trackorigin = np.sqrt(
+			((self.Current_pos_x-CurveOrigin[0])**2)
+			+((self.Current_pos_z-CurveOrigin[1])**2)
+			) #distance of driver pos to origin
+		#if driver distance is greater than closest point distance, steering position should be understeering
+		distdiff = middist_from_origin - pos_from_trackorigin 
 		steeringbias = dist * np.sign(distdiff)     
 
 		steeringbias *= np.sign(self.Trial_trialtype_signed)
@@ -832,8 +856,12 @@ class myExperiment(viz.EventClass):
 		"""for debugging, update inset plot in real-time"""
 
 		# Update plot data
-		self.dots_position.set_data(self.plot_positionarray_x, self.plot_positionarray_z)
-		self.dots_closestpt.set_data(self.plot_closestpt_x, self.plot_closestpt_z)
+		self.dots_position.set_data(
+			self.plot_positionarray_x, self.plot_positionarray_z
+			)
+		self.dots_closestpt.set_data(
+			self.plot_closestpt_x, self.plot_closestpt_z
+			)
 
 		self.fig_texture.redraw()
 
@@ -908,7 +936,9 @@ if __name__ == '__main__':
 		from UDP_comms import pupil_comms
 	
 
-	myExp = myExperiment(EYETRACKING, PRACTICE, EXP_ID, AUTOWHEEL, DEBUG, DEBUG_PLOT, DISTRACTOR_TYPE, ppid = PP_ID, trialspercondition=trials)
+	myExp = myExperiment(
+		EYETRACKING, PRACTICE, EXP_ID, AUTOWHEEL, DEBUG, DEBUG_PLOT, DISTRACTOR_TYPE, ppid = PP_ID, trialspercondition=trials
+		)
 
 	#viz.callback(viz.EXIT_EVENT,CloseConnections, myExp.EYETRACKING)
 
