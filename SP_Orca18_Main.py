@@ -251,7 +251,7 @@ class myExperiment(viz.EventClass):
 
 		self.FACTOR_YawRate_offsets = [-.2, -.05, .15, -9, -1.5, -.5] #6 yawrate offsets, specified in degrees per second. 
 		self.TrialsPerCondition = trialspercondition
-		[trialsequence_signed, cl_radii, cl_yawrates]  = GenerateConditionList(
+		[trialsequence_signed, cl_radii, cl_yawrates] = GenerateConditionLists(
 			self.FACTOR_radiiPool, self.FACTOR_YawRate_offsets, self.TrialsPerCondition
 			)
 
@@ -531,7 +531,9 @@ class myExperiment(viz.EventClass):
 			self.Trial_BendObject = trialbend	
 			self.Trial_trialtype_signed	= trialtype_signed
 			self.Trial_playbacklength = len(self.Trial_YR_readout)				
-			self.Trial_midline = np.vstack((self.Straight.midline, self.Trial_BendObject.midline))
+			self.Trial_midline = np.vstack(
+				(self.Straight.midline, self.Trial_BendObject.midline)
+				)
 			self.Trial_OnsetTime = np.random.choice(self.OnsetTimePool, size=1)[0]
 			self.Trial_SaveName = str(self.EXP_ID) + '_' + str(self.PP_id) + '_' + str(self.Trial_radius) + '_' + str(self.Trial_N)
 
