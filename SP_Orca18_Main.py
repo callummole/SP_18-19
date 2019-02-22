@@ -432,6 +432,11 @@ class myExperiment(viz.EventClass):
 		viz.mouse.setVisible(viz.OFF) #switch mouse off
 		viz.clearcolor(viz.SKYBLUE) #HACK, since eyetracker background is white.
 
+		#add message after calibration to give the experimenter and participant time to prepare for the simulation.
+
+		viz.message('\t\tYou will now begin the experiment \n\n The automated vehicle will attempt to navigate a series of bends. \nYour task as the supervisory driver is to make sure the automation stays within the road edges. \nDuring automation please keep your hands loosely on the wheel. \nYou may take control by pressing the gear pads. \nOnce pressed, you will immediately be in control of the vehicle')			
+
+
 		self.ToggleTextVisibility(viz.ON)
 	
 		if self.EYETRACKING: 
