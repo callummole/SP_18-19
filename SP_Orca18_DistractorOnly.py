@@ -32,9 +32,9 @@ pname = viz.input('Participant code: ')
 
 #SP CHANGE HERE
 
-PRACTICE = True #if practice, they only do one of each.
-BLOCK = 1 #1 or 2. #switch to not save over previous file.
-DISTRACTOR_TYPE = "Easy" #"Easy" (1 target) or "Hard" (3 targets). 
+PRACTICE = False #if practice, they only do one of each.
+BLOCK = 2 #1 or 2. #switch to not save over previous file.
+DISTRACTOR_TYPE = "Hard" #"Easy" (1 target) or "Hard" (3 targets). 
 
 #### ORDER TRIALS #####
 
@@ -46,7 +46,7 @@ DISTRACTOR_TYPE = "Easy" #"Easy" (1 target) or "Hard" (3 targets).
 ##Create array of trials.
 if PRACTICE:
 	TrialsPerCondition = 1 #for practice, do one trial each
-	ExpID = ExpID + '_' + str(PRACTICE) #file name	
+	ExpID = ExpID + '_' + 'PRAC' #file name	
 	if DISTRACTOR_TYPE == "Easy":
 		FACTOR_targetnumber = [1] #number of targets to keep count of.
 	elif DISTRACTOR_TYPE == "Hard":
