@@ -157,12 +157,12 @@ def BendMaker(radlist, start):
 	grey = [.6,.6,.6]	
 
 	for r in radlist:
-		rightbend = vizBend(startpos = start, rads = r, x_dir = 1, colour = grey, road_width=0, primitive_width=1.5)#, texturefile='strong_edge_soft.bmp')
+		rightbend = vizBend(startpos = start, rads = r, x_dir = 1, colour = grey, road_width=0, primitive_width=1.5, arc_angle = 1.5 * np.pi)#, texturefile='strong_edge_soft.bmp')
 		rightbend.setAlpha(.5)
 			
 		rightbendlist.append(rightbend)
 
-		leftbend = vizBend(startpos = start, rads = r, x_dir = -1, colour = grey, road_width=0, primitive_width=1.5)#, texturefile='strong_edge_soft.bmp')
+		leftbend = vizBend(startpos = start, rads = r, x_dir = -1, colour = grey, road_width=0, primitive_width=1.5, arc_angle = 1.5 * np.pi)#, texturefile='strong_edge_soft.bmp')
 		
 		leftbend.setAlpha(.5)	
 		leftbendlist.append(leftbend)
@@ -913,9 +913,9 @@ if __name__ == '__main__':
 	EYETRACKING = False
 	
 	#distractor_type takes 'None', 'Easy' (1 target, 40% probability), and 'Hard' (3 targets, 40% probability)
-	DISTRACTOR_TYPE = "Hard" #Case sensitive
+	#DISTRACTOR_TYPE = "Hard" #Case sensitive
 	#DISTRACTOR_TYPE = "Easy" #Case sensitive
-	#DISTRACTOR_TYPE = None #Case sensitive. Shouldn't have speech marks since None is a special word.
+	DISTRACTOR_TYPE = None #Case sensitive. Shouldn't have speech marks since None is a special word.
 	BLOCK = 1 #SP. change to one or two.
 
 	#determine amount of trials
