@@ -267,7 +267,7 @@ class myExperiment(viz.EventClass):
 		
 		####### DATA SAVING ######
 		#datacolumns = ['ppid', 'radius','yawrate_offset','trialn','timestamp','trialtype_signed','World_x','World_z','WorldYaw','SWA','YawRate_seconds','TurnAngle_frames','Distance_frames','dt', 'WheelCorrection', 'SteeringBias', 'Closestpt', 'AutoFlag', 'AutoFile', 'OnsetTime']
-		datacolumns = ('ppid','trialn','timestamp','World_x','World_z','WorldYaw','SWA','YawRate_seconds','TurnAngle_frames','Distance_frames','dt', 'WheelCorrection', 'AutoFlag', 'AutoFile')
+		datacolumns = ('ppid','trialn','timestamp_exp','timestamp_trial','World_x','World_z','WorldYaw','SWA','YawRate_seconds','TurnAngle_frames','Distance_frames','dt', 'WheelCorrection', 'AutoFlag')
 		self.datacolumns = datacolumns		
 		self.OutputWriter = None #dataframe that gets renewed each trial.
 		self.OutputFile = None #for csv.		
@@ -636,9 +636,9 @@ class myExperiment(viz.EventClass):
 		# self.Current_pos_x, self.Current_pos_z, self.Current_yaw, self.Current_SWA, self.Current_YawRate_seconds, self.Current_TurnAngle_frames, 
 		# self.Current_distance, self.Current_dt, self.Current_WheelCorrection, self.Current_steeringbias, self.Current_closestpt, self.AUTOMATION, self.Trial_playbackfilename, self.Trial_OnsetTime] #output array.
 
-		output = (self.PP_id, self.Trial_N, self.Current_Time, self.Current_pos_x, 
+		output = (self.PP_id, self.Trial_N, self.Current_Time, self.Trial_Timer, self.Current_pos_x, 
 		self.Current_pos_z, self.Current_yaw, self.Current_SWA, self.Current_YawRate_seconds, self.Current_TurnAngle_frames, 
-		self.Current_distance, self.Current_dt, self.Current_WheelCorrection, self.AUTOMATION, self.Trial_playbackfilename) #output array
+		self.Current_distance, self.Current_dt, self.Current_WheelCorrection, self.AUTOMATION) #output array
 		
 		
 		#self.OutputWriter.loc[self.Current_RowIndex,:] = output #this dataframe is actually just one line. 		

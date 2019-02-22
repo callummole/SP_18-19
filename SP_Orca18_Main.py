@@ -288,7 +288,7 @@ class myExperiment(viz.EventClass):
 		
 		####### DATA SAVING ######
 		#datacolumns = ['ppid', 'radius','yawrate_offset','trialn','timestamp','trialtype_signed','World_x','World_z','WorldYaw','SWA','YawRate_seconds','TurnAngle_frames','Distance_frames','dt', 'WheelCorrection', 'SteeringBias', 'Closestpt', 'AutoFlag', 'AutoFile', 'OnsetTime']
-		datacolumns = ('ppid', 'radius','yawrate_offset','trialn','timestamp',	'trialtype_signed','World_x','World_z','WorldYaw','SWA',			'YawRate_seconds','TurnAngle_frames','Distance_frames','dt', 		'WheelCorrection', 'SteeringBias', 'Closestpt', 'AutoFlag', 		'AutoFile', 'OnsetTime')
+		datacolumns = ('ppid', 'radius','yawrate_offset','trialn','timestamp_exp', 'timestamp_trial','trialtype_signed','World_x','World_z','WorldYaw','SWA', 'YawRate_seconds','TurnAngle_frames','Distance_frames','dt','WheelCorrection', 'SteeringBias', 'Closestpt', 'AutoFlag', 'AutoFile', 'OnsetTime')
 		self.datacolumns = datacolumns		
 		self.OutputWriter = None #dataframe that gets renewed each trial.
 		self.OutputFile = None #for csv.		
@@ -592,6 +592,9 @@ class myExperiment(viz.EventClass):
 					#begin = timer()
 					if self.AUTOWHEEL:
 						self.Wheel.control_off()
+
+					if self.EYETRACKING:
+						self.comms.annotate('Disengage_' + self.Trial_SaveName)	
 						#pass
 					#print ("WheelControlOff", timer() - begin)
 					end = True
@@ -601,6 +604,8 @@ class myExperiment(viz.EventClass):
 			#create viztask functions.
 			waitPlayback = viztask.waitTrue( PlaybackReached )
 			waitDisengage = viztask.waitTrue( CheckDisengage )
+
+			
 
 			
 			d = yield viztask.waitAny( [ waitPlayback, waitDisengage ] )		
@@ -720,9 +725,7 @@ class myExperiment(viz.EventClass):
 		# self.Current_distance, self.Current_dt, self.Current_WheelCorrection, self.Current_steeringbias, self.Current_closestpt, self.AUTOMATION, self.Trial_playbackfilename, self.Trial_OnsetTime] #output array.
 
 		output = (
-			self.PP_id, self.Trial_radius, self.Trial_YawRate_Offset, self.Trial_N, self.Current_Time, self.Trial_trialtype_signed, 
-			self.Current_pos_x, self.Current_pos_z, self.Current_yaw, self.Current_SWA, self.Current_YawRate_seconds, self.Current_TurnAngle_frames, 
-			self.Current_distance, self.Current_dt, self.Current_WheelCorrection, self.Current_steeringbias, self.Current_closestpt, self.AUTOMATION, self.Trial_playbackfilename, self.Trial_OnsetTime
+			self.PP_id, self.Trial_radius, self.Trial_YawRate_Offset, self.Trial_N, self.Current_Time, self.Trial_Timer, self.Trial_trialtype_signed, self.Current_pos_x, self.Current_pos_z, self.Current_yaw, self.Current_SWA, self.Current_YawRate_seconds, self.Current_TurnAngle_frames, self.Current_distance, self.Current_dt, self.Current_WheelCorrection, self.Current_steeringbias, self.Current_closestpt, self.AUTOMATION, self.Trial_playbackfilename, self.Trial_OnsetTime
 			) #output array
 		
 		
@@ -831,8 +834,7 @@ class myExperiment(viz.EventClass):
 
 			#update txtCurrent.
 			if self.DEBUG:
-				currentmessage = 'TrialTime: ' + str(round(self.Trial_Timer,2)) + \
-					'\nLanePos: ' + str(round(self.Current_steeringbias,2))
+				currentmessage = 'TrialTime: ' + str(round(self.Trial_Timer,2)) + '\nLanePos: ' + str(round(self.Current_steeringbias,2))
 				self.txtCurrent.message(currentmessage)
 
 				if self.DEBUG_PLOT:
@@ -898,15 +900,16 @@ class myExperiment(viz.EventClass):
 if __name__ == '__main__':
 
 	###### SET EXPERIMENT OPTIONS ######	
-	EYETRACKING = False#True
+	
 	AUTOWHEEL = True
 	PRACTICE = False	#keep false. no practice trial at the moment.
 	EXP_ID = "Orca18"
 	DEBUG = True
 	DEBUG_PLOT = False #flag for the debugger plot. only active if Debug == True.
 
-
+	
 	#SP CHANGE HERE
+	EYETRACKING = True 
 	
 	#distractor_type takes 'None', 'Easy' (1 target, 40% probability), and 'Hard' (3 targets, 40% probability)
 	DISTRACTOR_TYPE = "Hard" #Case sensitive
