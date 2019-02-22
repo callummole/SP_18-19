@@ -430,6 +430,7 @@ class myExperiment(viz.EventClass):
 
 		viz.MainScene.visible(viz.ON,viz.WORLD)		
 		viz.mouse.setVisible(viz.OFF) #switch mouse off
+		viz.clearcolor(viz.SKYBLUE) #HACK, since eyetracker background is white.
 
 		self.ToggleTextVisibility(viz.ON)
 	
@@ -904,12 +905,12 @@ if __name__ == '__main__':
 	AUTOWHEEL = True
 	PRACTICE = False	#keep false. no practice trial at the moment.
 	EXP_ID = "Orca18"
-	DEBUG = True
+	DEBUG = False
 	DEBUG_PLOT = False #flag for the debugger plot. only active if Debug == True.
 
 	
 	#SP CHANGE HERE
-	EYETRACKING = True 
+	EYETRACKING = False
 	
 	#distractor_type takes 'None', 'Easy' (1 target, 40% probability), and 'Hard' (3 targets, 40% probability)
 	DISTRACTOR_TYPE = "Hard" #Case sensitive
