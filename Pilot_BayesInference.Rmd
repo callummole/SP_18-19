@@ -1,0 +1,71 @@
+---
+title: "Piloting Cognitive Difficulty: Bayes Inference."
+output:
+  html_document:
+    df_print: paged
+  html_notebook: default
+  pdf_document: default
+---
+
+A script for a comparing different levels of cognitive load difficulty. N = 3.
+
+## Loading the Data 
+
+First, we want to add the files into one big data frame. For each participant we have two files. One 'EndofTrial' file that records counts, and one 'WithinTrial' file that records responses to stimuli.
+
+
+```{r Load data and packages, echo=TRUE, message=FALSE}
+
+library("tidyverse") #load code libraries for analysis
+library(brms)
+library(knitr)
+
+data <- read_csv("Orca18_Pilot_SummaryMeasures.csv")
+
+kable(data[1:10, ])    
+
+```
+
+```{r Prepare data for models, message = FALSE, warning=FALSE}
+
+#There are some NA values for meanRT for trials where no targets were presented for the entire trial. We can just remove these since they are only a few.
+data_removedNAs <- data %>% 
+  select(ppid, meanRT, targetnumber, targetoccurence) %>% 
+  na.omit()
+
+
+#brm fit for Perc_Correct. Use a ZOIB model
+#ggplot(data, aes(x = Perc_Correct)) + geom_density()
+if (!file.exists("m_perc_correct.rda")) {
+  m_perc_correct = brm(Perc_Correct ~ targetnumber * targetoccurence + (1 + targetnumber * targetoccurence | ppid), data = data,
+            family = zero_one_inflated_beta(),
+            iter = 3000, cores = 4, refresh = 500, chains = 1, warmup = 1000)
+  save(m_perc_correct, file ="m_perc_correct.rda")
+} else {load("m_perc_correct.rda")}
+
+
+#for the meanRT use a gaussian or a weibull.
+#ggplot(data, aes(x = meanRT)) + geom_density()
+if (!file.exists("m_rt.rda")) {
+  m_rt = brm(AvgCountError ~ targetnumber * targetoccurence + (1 + targetnumber * targetoccurence | ppid), data = data,
+            family = weibull(),
+            iter = 3000, cores = 4, refresh = 500, chains = 1, warmup = 1000)
+  save(m_rt, file ="m_rt.rda")
+} else {load("m_rt.rda")}
+
+
+#the distribution for avg count error would be the folded normal. However, this fella used a log normal https://groups.google.com/forum/#!topic/brms-users/nke_Dd1scEs 
+#ggplot(data, aes(x = AvgCountError)) + geom_density()
+if (!file.exists("m_count_error.rda")) {
+  m_count_error = brm(AvgCountError ~ targetnumber * targetoccurence + (1 + targetnumber * targetoccurence | ppid), data = data,
+            family = lognormal(),
+            iter = 3000, cores = 4, refresh = 500, chains = 1, warmup = 1000)
+  save(m_count_error, file ="m_count_error.rda")
+} else {load("m_count_error.rda")}
+
+
+
+
+```
+
+
