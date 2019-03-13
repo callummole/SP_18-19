@@ -23,6 +23,8 @@ library(knitr)
 data <- read_csv("Orca18_Pilot_SummaryMeasures.csv")
 
 kable(data[1:10, ])    
+data$targetnumber <- factor(data$targetnumber)
+data$targetoccurence <- factor(data$targetoccurence)
 
 ```
 
@@ -39,33 +41,95 @@ data_removedNAs <- data %>%
 if (!file.exists("m_perc_correct.rda")) {
   m_perc_correct = brm(Perc_Correct ~ targetnumber * targetoccurence + (1 + targetnumber * targetoccurence | ppid), data = data,
             family = zero_one_inflated_beta(),
-            iter = 3000, cores = 4, refresh = 500, chains = 1, warmup = 1000)
+            iter = 10000, cores = 4, refresh = 500, chains = 1, warmup = 1000)
   save(m_perc_correct, file ="m_perc_correct.rda")
 } else {load("m_perc_correct.rda")}
 
+summary(m_perc_correct)
+pp_check(m_perc_correct)
 
 #for the meanRT use a gaussian or a weibull.
 #ggplot(data, aes(x = meanRT)) + geom_density()
 if (!file.exists("m_rt.rda")) {
-  m_rt = brm(AvgCountError ~ targetnumber * targetoccurence + (1 + targetnumber * targetoccurence | ppid), data = data,
+  m_rt = brm(meanRT ~ targetnumber * targetoccurence + (1 + targetnumber * targetoccurence | ppid), data = data_removedNAs,
             family = weibull(),
             iter = 3000, cores = 4, refresh = 500, chains = 1, warmup = 1000)
   save(m_rt, file ="m_rt.rda")
 } else {load("m_rt.rda")}
 
+if (!file.exists("m_rt_g.rda")) {
+  m_rt_g = brm(meanRT ~ targetnumber * targetoccurence + (1 + targetnumber * targetoccurence | ppid), data = data_removedNAs,
+            family = gaussian(),
+            iter = 3000, cores = 4, refresh = 500, chains = 1, warmup = 1000)
+  save(m_rt_g, file ="m_rt_g.rda")
+} else {load("m_rt_g.rda")}
+
+
+summary(m_rt_g)
+pp_check(m_rt)
+
+#gaussian is better
+pp_check(m_rt_g)
+loo(m_rt, m_rt_g)
+loo_model_weights(m_rt, m_rt_g)
 
 #the distribution for avg count error would be the folded normal. However, this fella used a log normal https://groups.google.com/forum/#!topic/brms-users/nke_Dd1scEs 
-#ggplot(data, aes(x = AvgCountError)) + geom_density()
+ggplot(data, aes(x = AvgCountError)) + geom_density()
+
+#might need to centre the variable so that there are no zero values.
+#hurdle_lognormal seems good enough
 if (!file.exists("m_count_error.rda")) {
   m_count_error = brm(AvgCountError ~ targetnumber * targetoccurence + (1 + targetnumber * targetoccurence | ppid), data = data,
-            family = lognormal(),
-            iter = 3000, cores = 4, refresh = 500, chains = 1, warmup = 1000)
+            family = hurdle_lognormal(),
+            #prior = set_prior("normal(0,.5)", class = "b", coef = "" , lb = 0),
+            iter = 50000, cores = 4, refresh = 500, chains = 1, warmup = 5000)
   save(m_count_error, file ="m_count_error.rda")
 } else {load("m_count_error.rda")}
+
+summary(m_count_error)
+pp_check(m_count_error)
+  
+#set_prior("normal(0,.5)", class = "b", coef = "" , lb = 0))
 
 
 
 
 ```
+```{r Plotting Models, message = FALSE, warning=FALSE}
 
+#deal with samples 
+tnum_levels <- levels(data$targetnumber)
+tocc_levels <- levels(data$targetoccurence)
+condition_list <- data.frame(targetnumber =  rep(tnum_levels, times = length(tocc_levels)),
+                             targetoccurence = rep(tocc_levels, each = length(tnum_levels))
+)
+                                                  
+kable(condition_list)
+
+#m_perc_correct
+pc_draws <- add_fitted_draws(newdata = condition_list, model = m_perc_correct, re_formula = NA) %>% 
+  select(targetnumber, targetoccurence, .draw, .value)
+  
+pc_plot <- ggplot(data = pc_draws, aes(x = .value, y = targetnumber, col = targetoccurence)) +
+  stat_pointintervalh(.width = c(.95)) 
+  
+
+
+#m_rt_g
+rt_draws <- add_fitted_draws(newdata = condition_list, model = m_rt_g, re_formula = NA) %>% 
+  select(targetnumber, targetoccurence, .draw, .value)
+
+rt_plot <- ggplot(data = rt_draws, aes(x = .value, y = targetnumber, col = targetoccurence)) +
+  stat_pointintervalh(.width = c(.95)) 
+
+
+#m_count_error
+counterr_draws <- add_fitted_draws(newdata = condition_list, model = m_count_error, re_formula = NA) %>% 
+  select(targetnumber, targetoccurence, .draw, .value)
+
+
+counterr_plot <- ggplot(data = counterr_draws, aes(x = .value, y = targetnumber, col = targetoccurence)) +
+  stat_pointintervalh(.width = c(.95)) 
+
+```
 
