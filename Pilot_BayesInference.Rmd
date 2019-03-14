@@ -18,6 +18,7 @@ First, we want to add the files into one big data frame. For each participant we
 
 library("tidyverse") #load code libraries for analysis
 library(brms)
+library(tidybayes)
 library(knitr)
 
 data <- read_csv("Orca18_Pilot_SummaryMeasures.csv")
@@ -47,6 +48,7 @@ if (!file.exists("m_perc_correct.rda")) {
 
 summary(m_perc_correct)
 pp_check(m_perc_correct)
+plot(m_perc_correct)
 
 #for the meanRT use a gaussian or a weibull.
 #ggplot(data, aes(x = meanRT)) + geom_density()
@@ -58,20 +60,29 @@ if (!file.exists("m_rt.rda")) {
 } else {load("m_rt.rda")}
 
 if (!file.exists("m_rt_g.rda")) {
-  m_rt_g = brm(meanRT ~ targetnumber * targetoccurence + (1 + targetnumber * targetoccurence | ppid), data = data_removedNAs,
-            family = gaussian(),
+  m_rt_g = brm(meanRT  ~ targetnumber * targetoccurence + (1 + targetnumber * targetoccurence | ppid), data = data_removedNAs,
+            family = weibull(),
             iter = 3000, cores = 4, refresh = 500, chains = 1, warmup = 1000)
   save(m_rt_g, file ="m_rt_g.rda")
 } else {load("m_rt_g.rda")}
 
+if (!file.exists("m_rt.rda_logn")) {
+  m_rt_logn = brm(meanRT ~ targetnumber * targetoccurence + (1 + targetnumber * targetoccurence | ppid), data = data_removedNAs,
+            family = lognormal(),
+            iter = 3000, cores = 4, refresh = 500, chains = 1, warmup = 1000)
+  save(m_rt_logn, file ="m_rt_logn.rda")
+} else {load("m_rt_logn.rda")}
+
 
 summary(m_rt_g)
 pp_check(m_rt)
+summary(m_rt_logn)
 
 #gaussian is better
 pp_check(m_rt_g)
-loo(m_rt, m_rt_g)
-loo_model_weights(m_rt, m_rt_g)
+pp_check(m_rt_logn)
+loo(m_rt_g, m_rt_logn)
+loo_model_weights(m_rt_g, m_rt_logn)
 
 #the distribution for avg count error would be the folded normal. However, this fella used a log normal https://groups.google.com/forum/#!topic/brms-users/nke_Dd1scEs 
 ggplot(data, aes(x = AvgCountError)) + geom_density()
@@ -110,26 +121,85 @@ kable(condition_list)
 pc_draws <- add_fitted_draws(newdata = condition_list, model = m_perc_correct, re_formula = NA) %>% 
   select(targetnumber, targetoccurence, .draw, .value)
   
-pc_plot <- ggplot(data = pc_draws, aes(x = .value, y = targetnumber, col = targetoccurence)) +
-  stat_pointintervalh(.width = c(.95)) 
+pc_plot <- ggplot(data = pc_draws, aes(x = .value, y = targetoccurence)) +
+  geom_halfeyeh() +
+  #facet_wrap( ~ targetoccurence) +
+  theme_minimal() + 
   
-
+  
+show(pc_plot)
 
 #m_rt_g
 rt_draws <- add_fitted_draws(newdata = condition_list, model = m_rt_g, re_formula = NA) %>% 
   select(targetnumber, targetoccurence, .draw, .value)
 
-rt_plot <- ggplot(data = rt_draws, aes(x = .value, y = targetnumber, col = targetoccurence)) +
-  stat_pointintervalh(.width = c(.95)) 
+rt_plot <- ggplot(data = rt_draws, aes(x = .value, y = targetnumber)) +
+  geom_halfeyeh() +
+  theme_minimal() +
+  scale_x_continuous(limits = c(0, 2))
 
+show(rt_plot)
 
 #m_count_error
 counterr_draws <- add_fitted_draws(newdata = condition_list, model = m_count_error, re_formula = NA) %>% 
   select(targetnumber, targetoccurence, .draw, .value)
 
+counterr_plot <- ggplot(data = counterr_draws, aes(x = .value, y = targetnumber)) +
+  geom_halfeyeh() +
+  theme_minimal() +
+  #scale_x_continuous(limits = c(0,5))
 
-counterr_plot <- ggplot(data = counterr_draws, aes(x = .value, y = targetnumber, col = targetoccurence)) +
-  stat_pointintervalh(.width = c(.95)) 
+show(counterr_plot)
 
 ```
+```{r Plot contrasts, message = FALSE, warning=FALSE}
 
+#m_perc_correct
+pc_contrast <- pc_draws %>% 
+  group_by(.draw, targetoccurence) %>% 
+  summarise(contrast = .value[targetnumber == 1] - .value[targetnumber == 3])
+
+
+pc_cont_plot <- ggplot(data = pc_contrast, aes(x = contrast * 100, y = targetoccurence)) +
+  geom_halfeyeh() +
+  #facet_wrap( ~ targetoccurence) +
+  scale_x_continuous(limits = c(-15, 15)) +
+  theme_minimal() + 
+  geom_vline(xintercept=0, linetype="dashed") + theme(panel.grid.major.x = element_line(color="grey40",size=.2, linetype = 2)) +
+  xlab("Percentage Correctly Responded: Target number 1 - Target number 3") 
+  
+show(pc_cont_plot)
+ggsave('pc_contrast.png', plot=pc_cont_plot, width=15, height=7, units = "cm", dpi=300, type = "cairo")
+
+#m_rt_g
+rt_contrast <- rt_draws %>% 
+  group_by(.draw, targetoccurence) %>% 
+  summarise(contrast = .value[targetnumber == 1] - .value[targetnumber == 3])
+
+rt_cont_plot <- ggplot(data = rt_contrast, aes(x = contrast, y = targetoccurence)) +
+  geom_halfeyeh() +
+  #facet_wrap( ~ targetoccurence) +
+  theme_minimal() + 
+  scale_x_continuous(limits = c(-1, 1)) +
+  geom_vline(xintercept=0, linetype="dashed") + theme(panel.grid.major.x = element_line(color="grey40",size=.2, linetype = 2)) +
+  xlab("RT: Target number 1 - Target number 3") 
+  
+show(rt_cont_plot)
+ggsave('rt_contrast.png', plot=rt_cont_plot, width=15, height=7, units = "cm", dpi=300, type = "cairo")
+
+#m_count_error
+counterr_contrast <- counterr_draws %>% 
+  group_by(.draw, targetoccurence) %>% 
+  summarise(contrast = .value[targetnumber == 1] - .value[targetnumber == 3])
+
+counterr_cont_plot <- ggplot(data = counterr_contrast, aes(x = contrast, y = targetoccurence)) +
+  geom_halfeyeh() +
+  #facet_wrap( ~ targetoccurence) +
+  theme_minimal() + 
+  scale_x_continuous(limits = c(-1, 2)) +
+  geom_vline(xintercept=0, linetype="dashed") + theme(panel.grid.major.x = element_line(color="grey40",size=.2, linetype = 2)) +
+  xlab("Avg absolute count error: Target number 1 - Target number 3") 
+  
+show(counterr_cont_plot)
+ggsave('counterr_contrast.png', plot=counterr_cont_plot, width=15, height=7, units = "cm", dpi=300, type = "cairo")
+```
