@@ -4,3 +4,5 @@ Data/*
 *.zip
 *.pyc
 CalibrationData/*
+*.vscode
+*.nb.html
