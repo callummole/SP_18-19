@@ -173,7 +173,7 @@ if __name__ == '__main__':
     myStraight  = simTrackMaker.lineStraight(startpos = [0,0], length= 16)#, texturefile='strong_edge_soft.bmp')
 
     #Create Bend
-    myrads = 40
+    myrads = 80
     myBend = simTrackMaker.lineBend(startpos = myStraight.RoadEnd, rads = myrads, x_dir = 1, road_width=3.0) 
 
     #midline and edges
@@ -208,17 +208,31 @@ if __name__ == '__main__':
 
     #list of filenames
     if myrads == 40:
-        filename_list = ["Midline_40_0.csv","Midline_40_1.csv","Midline_40_2.csv","Midline_40_3.csv","Midline_40_4.csv","Midline_40_5.csv"]
+        #filename_list = ["Midline_40_0.csv","Midline_40_1.csv","Midline_40_2.csv","Midline_40_3.csv","Midline_40_4.csv","Midline_40_5.csv"]
+
+        filename_list = ["Midline_40_0.csv"]
+		
 		
     elif myrads == 80:
-        filename_list = ["Midline_80_0.csv","Midline_80_1.csv","Midline_80_2.csv","Midline_80_3.csv","Midline_80_4.csv","Midline_80_5.csv"]
+      #  filename_list = ["Midline_80_0.csv","Midline_80_1.csv","Midline_80_2.csv","Midline_80_3.csv","Midline_80_4.csv","Midline_80_5.csv"]
+
+        filename_list = ["Midline_80_0.csv"]
     else:
         raise Exception('Unrecognised radius')
 
     #onset pool times
-    OnsetTimePool = np.arange(5, 9.25, step = .25) 
+    #OnsetTimePool = np.arange(5, 9.25, step = .25) 
 
-    yawrateoffsets = np.linspace(-10,10,200)
+    #onset time pool = 6 s
+    OnsetTimePool = [6]
+
+    #yawrateoffsets = np.linspace(-4,2,1000)
+
+    bend_yr = np.rad2deg(8.0 / myrads)
+    ##yawrateoffsets = [-bend_yr]
+    
+    yawrateoffsets = np.linspace(-bend_yr,bend_yr,1000)
+    print(-bend_yr)
     #columns: yr_offset, file_i, onsettime, time_til_crossing
     totalrows = len(yawrateoffsets) \
             * len(OnsetTimePool)\
@@ -251,7 +265,9 @@ if __name__ == '__main__':
     #plt.savefig(str(myrads) + '_Trajs.png', dpi=800)
     #plt.show()
     
-    np.savetxt("SimResults_OnsetTimes_"+str(myrads)+".csv", simResults, delimiter=",")
+    #np.savetxt("SimResults_OnsetTimes_"+str(myrads)+".csv", simResults, delimiter=",")
+
+    np.savetxt("SimResults_onset_6_traj_40_0.csv", simResults, delimiter=",")
 
     #plot yr and time til crossing functions.
     # plt.figure(2)
