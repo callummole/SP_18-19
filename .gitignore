@@ -5,3 +5,5 @@ Data/*
 *.pyc
 CalibrationData/*
 *.bmp
+*.vscode
+*.nb.html

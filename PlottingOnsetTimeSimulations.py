@@ -17,15 +17,15 @@ filename = "SimResults_OnsetTimes_"+str(myrads)+".csv"
 simresults = np.genfromtxt(filename, delimiter=',')
 
 #what to plot?
-filemask = simresults[:,1] == 0 #first file mask
+#filemask = simresults[:,1] == 0 #first file mask
 
-simresults_file = simresults[filemask]
+#simresults_file = simresults[filemask]
         
 #plot yr and time til crossing functions.
 plt.figure(2)
-plt.plot(simresults[:,0], simresults[:,3], 'k.', markersize=5, alpha = .2)
-plt.xlabel("Yaw Rate Offset (deg/s)")
-plt.ylabel("Time from Onset to Lane Crossing (s)")
-#plt.title("Radius: " + str(myrads))
-#plt.savefig(str(myrads) + '_Sims_OnsetTimes.png', dpi = 300)
+plt.plot(simresults[:,3], simresults[:,0], 'k.', markersize=5, alpha = .2)
+plt.ylabel("Yaw Rate Offset (deg/s)")
+plt.xlabel("Time from Onset to Lane Crossing (s)")
+plt.title("Radius: " + str(myrads))
+plt.savefig(str(myrads) + '_Sims_OnsetTimes.png', dpi = 300)
 plt.show()
