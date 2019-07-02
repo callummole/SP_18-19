@@ -170,6 +170,9 @@ def BendMaker(radlist, start):
 			
 	return leftbendlist,rightbendlist 
 
+f = lambda t: np.exp(-1/t)*(t > 0)
+smooth_step = lambda t: f(t)/(f(t) + f(1 - t))
+
 class myExperiment(viz.EventClass):
 
 	def __init__(self, eyetracking, practice, exp_id, autowheel, debug, 		debug_plot, distractor_type = None, ppid = 1, trialspercondition = 6):
@@ -842,8 +845,11 @@ class myExperiment(viz.EventClass):
 				newyawrate = self.Trial_YR_readout[self.Current_playbackindex]
 
 				#add yawrateoffset.
-				if self.Trial_Timer > self.Trial_OnsetTime: #2 seconds into the bend.
-					newyawrate += self.Trial_YawRate_Offset #positive offset = greater oversteering.
+
+				#if self.Trial_Timer > self.Trial_OnsetTime: #2 seconds into the bend.
+				time_after_offset = self.Trial_Timer - self.Trial_OnsetTime
+				transition_duration = 1.0
+				newyawrate += smooth_step(time_after_onset/transition_duration)*self.Trial_YawRate_Offset #positive offset = greater oversteering.
 				
 				self.Current_playbackindex += 1
 
