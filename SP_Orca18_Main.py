@@ -126,17 +126,21 @@ def setStage():
 	"""Creates grass textured groundplane"""
 	
 	###should set this hope so it builds new tiles if you are reaching the boundary.
-	fName = 'C:/VENLAB data/shared_modules/textures/strong_edge.bmp'
+	#fName = 'C:/VENLAB data/shared_modules/textures/strong_edge.bmp'
+	fName = 'C:/VENLAB data/shared_modules/textures/ground_moon.png'
 	
 	# add groundplane (wrap mode)
 	groundtexture = viz.addTexture(fName)
 	groundtexture.wrap(viz.WRAP_T, viz.REPEAT)	
 	groundtexture.wrap(viz.WRAP_S, viz.REPEAT)	
+	groundtexture.anisotropy(16)
 	
 	groundplane = viz.addTexQuad() ##ground for right bends (tight)
 	tilesize = 500
-	planesize = tilesize/5
+	#planesize = tilesize/5
+	planesize = 40
 	groundplane.setScale(tilesize, tilesize, tilesize)
+	
 	groundplane.setEuler((0, 90, 0),viz.REL_LOCAL)
 	#groundplane.setPosition((0,0,1000),viz.REL_LOCAL) #move forward 1km so don't need to render as much.
 	matrix = vizmat.Transform()
@@ -232,9 +236,9 @@ class myExperiment(viz.EventClass):
 
 		We adopt a hybrid experiment design of two sub-experiments.
 
-		The first (50% of the hybrid) experiment (FROZEN) is a factorial design (5 SAB levels, 3 Loads) without jitter (fixed onset time at 6 s, fixed automated trajectory at 'Midline_40_0.csv'), with 6 repetitions per trial so we have repetitions of participant performance at identical trajectories for hypotheses testing.
+		The first (50% of the hybrid) experiment (BALANCED) is a factorial design (5 SAB levels, 3 Loads) without jitter (fixed onset time at 6 s, fixed automated trajectory at 'Midline_40_0.csv'), with 6 repetitions per trial so we have repetitions of participant performance at identical trajectories for hypotheses testing.
 
-		The second experiment (SOBEL) includes the three levels of cognitive load, but dispenses with levels with SAB. Instead, it treats SAB as a continuous measure from which it samples quasi-randomly in a SOBEL fashion, with jitter induced by variable onset times and automated trajectories. The second experiment explores the parameters space more widely for modelling purposes.
+		The second experiment (RANDOM) includes the three levels of cognitive load, but dispenses with levels with SAB. Instead, it treats SAB as a continuous measure from which it samples quasi-randomly in a SOBEL fashion, with jitter induced by variable onset times and automated trajectories. The second experiment explores the parameters space more widely for modelling purposes.
 
 
 		***TAKEOVER DESIGN NOTES***
@@ -254,9 +258,8 @@ class myExperiment(viz.EventClass):
 		
         When decided the limits of steering angle biases, we thought that the limit case of severity should be 'straight ahead' failure. On the first run the sudden failure of was unnecessarily severe and caused capping of steering wheel angles.
 
-		At 8m/s with a bend radius of 40 the yaw rate is: 8 / 40 = .2 rads per s = 3.141 degrees per second.
+		At 8m/s with a bend radius of 80 the yaw rate is: 8 / 80 = 5.72  degrees per second, which has a ttlc of 2.016 and also will have the capping confound.
 
-		At 3.141 
 
 		If we make this our limit, this has an estimated TTLC of 
 
@@ -271,14 +274,16 @@ class myExperiment(viz.EventClass):
 		-1.5			~4s				~3.8s			leave - middle
 
 		"""
+		
+		self.HYBRID_type = ['BALANCED','RANDOM'] 
+
 		#self.OnsetTimePool = np.arange(5, 9.25, step = .25) #
 		self.OnsetTimePool = [6] #
-
 		self.FACTOR_radiiPool = [80] # A gradual bend
 
 		#self.FACTOR_YawRate_offsets = [-.2, .15, -9, -1.5] #6 yawrate offsets, specified in degrees per second. 
 
-		self.FACTOR_YawRate_offsets = [-5.76,-5.76] #6 yawrate offsets, 
+		self.FACTOR_YawRate_offsets = [-5.72957795130823,-5.72957795130823] #6 yawrate offsets, 
 		self.TrialsPerCondition = trialspercondition
 		[trialsequence_signed, cl_radii, cl_yawrates] = GenerateConditionLists(
 			self.FACTOR_radiiPool, self.FACTOR_YawRate_offsets, self.TrialsPerCondition
@@ -847,9 +852,10 @@ class myExperiment(viz.EventClass):
 				#add yawrateoffset.
 
 				#if self.Trial_Timer > self.Trial_OnsetTime: #2 seconds into the bend.
-				time_after_offset = self.Trial_Timer - self.Trial_OnsetTime
-				transition_duration = 1.0
-				newyawrate += smooth_step(time_after_onset/transition_duration)*self.Trial_YawRate_Offset #positive offset = greater oversteering.
+				time_after_onset = self.Trial_Timer - self.Trial_OnsetTime
+				transition_duration = .5
+				if time_after_onset > 0:
+					newyawrate += smooth_step(time_after_onset/transition_duration)*self.Trial_YawRate_Offset #positive offset = greater oversteering.
 				
 				self.Current_playbackindex += 1
 
