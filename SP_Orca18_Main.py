@@ -32,6 +32,7 @@ import random # python library
 import math as mt # python library
 import pandas as pd
 import matplotlib.pyplot as plt
+import gzip
 
 #vizard libraries
 import viz # vizard library
@@ -91,7 +92,7 @@ def LoadAutomationModules():
 
 	return(mywheel)
 
-def GenerateConditionLists(FACTOR_radiiPool, FACTOR_YawRate_offsets,        	TrialsPerCondition):
+def GenerateConditionLists(FACTOR_radiiPool, FACTOR_YawRate_offsets, TrialsPerCondition):
 	"""Based on two factor lists and TrialsPerCondition, create a factorial design and return trialarray and condition lists"""
 
 	NCndts = len(FACTOR_radiiPool) * len(FACTOR_YawRate_offsets)	
@@ -444,6 +445,12 @@ class myExperiment(viz.EventClass):
 			viz.MainScene.visible(viz.OFF,viz.WORLD)		
 			filename = str(self.EXP_ID) + "_Calibration_" + str(self.PP_id) #+ str(demographics[0]) + "_" + str(demographics[2]) #add experimental block to filename
 			print (filename)
+			# Start logging the pupil data
+			pupilfile = gzip.open(
+				os.path.join("Data", filename + ".pupil.jsons.gz"),
+				'a')
+			self.pupil_killer = pupil_logger.start_logging(pupilfile, timestamper=viz.tick)
+
 			yield run_calibration(self.comms, filename)
 			yield run_accuracy(self.comms, filename)	
 
@@ -641,7 +648,7 @@ class myExperiment(viz.EventClass):
 
 			
 			d = yield viztask.waitAny( [ waitPlayback, waitDisengage ] )		
-        
+	
 			if d.condition is waitPlayback:
 				print ('Playback Limit Reached')
 			elif d.condition is waitDisengage:
@@ -920,7 +927,8 @@ class myExperiment(viz.EventClass):
 		
 		print ("Closing connections")
 		if self.EYETRACKING: 
-			self.comms.stop_trial() #closes recording			
+			self.comms.stop_trial() #closes recording
+			self.pupil_killer()
 		
 		#kill automation
 		if self.AUTOWHEEL:
@@ -969,6 +977,7 @@ if __name__ == '__main__':
 		from eyetrike_calibration_standard import Markers, run_calibration
 		from eyetrike_accuracy_standard import run_accuracy
 		from UDP_comms import pupil_comms
+		import pupil_logger
 	
 
 	myExp = myExperiment(
