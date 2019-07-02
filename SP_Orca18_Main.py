@@ -163,13 +163,13 @@ def BendMaker(radlist, start):
 
 	for r in radlist:
 		rightbend = vizBend(startpos = start, rads = r, x_dir = 1, colour = grey, road_width=0, primitive_width=1.5, arc_angle = 1.5 * np.pi)#, texturefile='strong_edge_soft.bmp')
-		rightbend.setAlpha(.5)
+		rightbend.setAlpha(.25)
 			
 		rightbendlist.append(rightbend)
 
 		leftbend = vizBend(startpos = start, rads = r, x_dir = -1, colour = grey, road_width=0, primitive_width=1.5, arc_angle = 1.5 * np.pi)#, texturefile='strong_edge_soft.bmp')
 		
-		leftbend.setAlpha(.5)	
+		leftbend.setAlpha(.25)	
 		leftbendlist.append(leftbend)
 			
 	return leftbendlist,rightbendlist 
@@ -303,7 +303,7 @@ class myExperiment(viz.EventClass):
 			startpos = [0,0], primitive_width=1.5, road_width = 0, length = L, colour = [.6, .6, .6]
 			)#, texturefile='strong_edge_soft.bmp')
 		self.Straight.ToggleVisibility(viz.ON)
-		self.Straight.setAlpha(.5)
+		self.Straight.setAlpha(.25)
 
 		##### MAKE BEND OBJECTS #####
 		[leftbends,rightbends] = BendMaker(
