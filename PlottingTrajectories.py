@@ -13,7 +13,14 @@ import seaborn as sns
 
 simresults = pd.read_csv('Data//Untouched_Trajectories.csv')
 
-fig, ax = plt.subplots()
-simresults.groupby('UID').plot(x='World_x', y='World_z', ax=ax, legend=False)
-
+simresults = simresults.loc[simresults['radius']==80]
+for g, d in simresults.groupby('AutoFile'):
+    d = d.iloc[:180]
+    plt.plot(d.YawRate_radspersec.values, label = g)
+plt.legend()
 plt.show()
+
+#fig, ax = plt.subplots()
+#simresults.groupby('AutoFile').plot(x='f', y='YawRate_radspersec', ax=ax, legend=False)
+
+#plt.show()

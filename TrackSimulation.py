@@ -125,6 +125,9 @@ def runSimulation(Course, yawrate_readout, yawrateoffset= 0, onsettime = 0):
     crossed = False
     time_til_crossing = float('nan')
 
+    f = lambda t: np.exp(-1/t)*(t > 0)
+    smooth_step = lambda t: f(t)/(f(t) + f(1 - t))
+
     print ("playback lenght", Car.playback_length)
     while (time < run_time) and (crossed==False) and (i < Car.playback_length):
 
@@ -133,9 +136,13 @@ def runSimulation(Course, yawrate_readout, yawrateoffset= 0, onsettime = 0):
         time += dt              
 
         newyawrate = np.deg2rad(Car.yawrate_readout[i])
-        
+
+
         if time > onsettime:
-            newyawrate += yawrateoffset_rads
+            time_after_onset = time - onsettime
+            transition_duration = .5
+            newyawrate += smooth_step(time_after_onset/transition_duration)*yawrateoffset_rads
+            
         
         Car.move_vehicle(newyawrate)           
         
@@ -216,7 +223,7 @@ if __name__ == '__main__':
     elif myrads == 80:
       #  filename_list = ["Midline_80_0.csv","Midline_80_1.csv","Midline_80_2.csv","Midline_80_3.csv","Midline_80_4.csv","Midline_80_5.csv"]
 
-        filename_list = ["Midline_80_0.csv"]
+        filename_list = ["Midline_80_1.csv"]
     else:
         raise Exception('Unrecognised radius')
 
@@ -229,9 +236,9 @@ if __name__ == '__main__':
     #yawrateoffsets = np.linspace(-4,2,1000)
 
     bend_yr = np.rad2deg(8.0 / myrads)
-    ##yawrateoffsets = [-bend_yr]
+    yawrateoffsets = [-bend_yr]
     
-    yawrateoffsets = np.linspace(-bend_yr,bend_yr,1000)
+    #yawrateoffsets = np.linspace(-bend_yr,bend_yr,1000)
     print(-bend_yr)
     #columns: yr_offset, file_i, onsettime, time_til_crossing
     totalrows = len(yawrateoffsets) \
@@ -258,6 +265,8 @@ if __name__ == '__main__':
 
                 simResults[row_i] = [yr, file_i, onset, t]        
 
+                print(t)
+
                 print ("Yr: ", yr, "Onset: ", onset, "Time til Crossing: ", t)
 
                 row_i += 1
@@ -267,7 +276,7 @@ if __name__ == '__main__':
     
     #np.savetxt("SimResults_OnsetTimes_"+str(myrads)+".csv", simResults, delimiter=",")
 
-    np.savetxt("SimResults_onset_6_traj_40_0.csv", simResults, delimiter=",")
+    #np.savetxt("SimResults_onset_6_traj_80_1.csv", simResults, delimiter=",")
 
     #plot yr and time til crossing functions.
     # plt.figure(2)
