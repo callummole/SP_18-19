@@ -21,7 +21,6 @@ x = dsolve(
         ).rhs.simplify()
 critical = Eq(x, w/2)
 b_to_t = solve(critical, t)[1]
-print(b_to_t)
 cosa = solve(Eq(b, 1 - t**2/2), t)[1].simplify()
 b_to_t_approx = cosa.subs({b: -b*w/(2*v) + 1})/b
 #b_to_t_approx = cosa.subs({b: (-b*w + v)/(2*v)})/b
