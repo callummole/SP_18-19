@@ -9,6 +9,8 @@ import pandas as pd
 
 import simTrackMaker
 
+import sobol_seq
+
 class vehicle:
     
     def __init__(self, initialyaw, speed, dt, yawrate_readout, Course):
@@ -115,7 +117,7 @@ def runSimulation(Course, yawrate_readout, myrads, yawrateoffset= 0, onsettime =
    # print ("speed; ", speed)
 
     dt = 1.0 / fps
-    run_time = 50 #seconds
+    run_time = 15 #seconds
     time = 0
 
     Car = vehicle(0.0, speed, dt, yawrate_readout, Course)
@@ -173,9 +175,9 @@ def plotCar(plt, Car):
     steeringbias = np.array(Car.error_history)
 
     if max(abs(steeringbias)) > 1.5:
-        plt.plot(positions[:,0], positions[:,1], 'ro', markersize=.2)						
+        plt.plot(positions[:,0], positions[:,1], 'ro', markersize=.1)						
     else:
-        plt.plot(positions[:,0], positions[:,1], 'go', markersize=.2)			            
+        plt.plot(positions[:,0], positions[:,1], 'go', markersize=.1)			            
     
 if __name__ == '__main__':
     
@@ -201,14 +203,18 @@ if __name__ == '__main__':
     plt.figure(1)
     plt.plot(Course_midline[:,0], Course_midline[:,1], '--k')
     
-    xlimits = Course_CurveOrigin[0]*2
+    #xlimits = Course_CurveOrigin[0]*2
         
-    plt.xlim([0-5, xlimits+5])
-    plt.ylim([-Course_CurveOrigin[0]-5, Course_CurveOrigin[1]*2 + Course_CurveOrigin[0]+5])
+    #plt.xlim([0-5, xlimits+5])
+    
+    #plt.ylim([-Course_CurveOrigin[0]-5, Course_CurveOrigin[1]*2 + Course_CurveOrigin[0]+5])
     plt.plot(Course_OutsideLine[:,0], Course_OutsideLine[:,1],'-k')
     plt.plot(Course_InsideLine[:,0], Course_InsideLine[:,1],'-k')
     plt.axis('equal')    
-    plt.title("Radius: " + str(myrads))
+    plt.title("Sample Participant, Sobol selection")
+
+    plt.xlim([0-5, 65])
+    plt.ylim([20, Course_CurveOrigin[1]*2 + Course_CurveOrigin[0]+5])
 
     #Temp HACK to store in list while I improve trackmaker.
     Course = [
@@ -226,62 +232,131 @@ if __name__ == '__main__':
 		
 		
     elif myrads == 80:
-      #  filename_list = ["Midline_80_0.csv","Midline_80_1.csv","Midline_80_2.csv","Midline_80_3.csv","Midline_80_4.csv","Midline_80_5.csv"]
+        #removing _80_0 because of unusual yawrate changes.
+        #removing _80_1 because the balanced portion of the experiment uses it.
+        filename_list = ["Midline_80_2.csv","Midline_80_3.csv","Midline_80_4.csv","Midline_80_5.csv"]
 
-        filename_list = ["Midline_80_1.csv"]
+        
     else:
         raise Exception('Unrecognised radius')
 
-    #onset pool times
-    #OnsetTimePool = np.arange(5, 9.25, step = .25) 
+    Trials = 30
+    sobol = sobol_seq.i4_sobol_generate(4, Trials) # 0,1 scale
 
-    #onset time pool = 6 s
-    OnsetTimePool = [6]
+    #print(sobol_3D)
 
-    #yawrateoffsets = np.linspace(-4,2,1000)
+    #rescale
+    onset_sobol = sobol[:,2] * 4 + 5
+    autofile_sobol = np.round(sobol[:,1] * 3,0) 
 
-    bend_yr = np.rad2deg(8.0 / myrads)
-    #yawrateoffsets = [-bend_yr]
+    ttlc_limit = 2.23
+    ttlc_stay = 15
+
+    ttlc_sobol = sobol[:,0] * (ttlc_stay-ttlc_limit) + ttlc_limit
+    steer_sobol = sobol[:,2] #flag for understeering or oversteering
     
-    yawrateoffsets = np.linspace(-bend_yr,bend_yr,1000)
-    print(-bend_yr)
+    #***** retrieve approximations of SAB ******
+        
+    filename = "SimResults_onset_6_traj_80_1.csv"
+    #columns are: yr_offset, file_i, onsettime, time_til_crossing
+    balanced_results = np.genfromtxt(filename, delimiter=',')
+
+    sab_sobol = np.ones(Trials)    
+
+    balanced_results_notnan = balanced_results[~np.isnan(balanced_results[:,3])]
+    balanced_results_understeer = balanced_results_notnan[balanced_results_notnan[:,0]<= 0]
+    balanced_results_oversteer = balanced_results_notnan[balanced_results_notnan[:,0]>= 0]
+
+    for i, ttlc in enumerate(ttlc_sobol):
+        print(ttlc)
+        steer = steer_sobol[i]
+        if steer >= .7:
+            sim = balanced_results_oversteer
+        else:
+            sim = balanced_results_understeer
+
+        diffs = sim[:,3] - ttlc
+        idx = np.argmin(abs(diffs)) 
+        print(idx)
+        sab = sim[idx, 0] #closest sab
+        print("sab", sab)
+        sab_sobol[i] = sab
+
+
     #columns: yr_offset, file_i, onsettime, time_til_crossing
-    totalrows = len(yawrateoffsets) \
-            * len(OnsetTimePool)\
-            * len(filename_list)
+    totalrows = Trials
     
     simResults = np.empty([totalrows,4]) 
     
-    #self.FACTOR_YawRate_offsets = [-.2, -.05, .15, -9, -1.5, -.5].
-#   need two leave (one urgent and one non-urgent), and two stay.
 
-    row_i = 0    
-    for file_i, file in enumerate(filename_list):
-        #loop through filename and onset times.
+    #each run has pre-set parameters
+    for i, sab in enumerate(sab_sobol):
+        
+        file_i = int(autofile_sobol[i])
+        file = filename_list[file_i]        
         playbackdata = pd.read_csv("Data//"+file) 	
         yawrate_readout = playbackdata.get("YawRate_seconds")
 
-        for yr_i,yr in enumerate(yawrateoffsets):        
-            for onset_i, onset in enumerate(OnsetTimePool):
+        onset = onset_sobol[i]  
+            
 
-                Car, t = runSimulation(Course, yawrate_readout, myrads, yr, onset)
+        Car, t = runSimulation(Course, yawrate_readout, myrads, sab, onset)
                 #Plot Car
-                plotCar(plt, Car)
+        plotCar(plt, Car)
 
-                simResults[row_i] = [yr, file_i, onset, t]        
+        simResults[i] = [sab, file_i, onset, t]        
 
-                print(t)
+                #print(t)
+        print ("SAB: ", sab, "Onset: ", onset, "Time til Crossing: ", t)
 
-                print ("Yr: ", yr, "Onset: ", onset, "Time til Crossing: ", t)
-
-                row_i += 1
-
-    #plt.savefig(str(myrads) + '_Trajs.png', dpi=800)
+    plt.savefig('sample_participant.png', dpi=800)
     #plt.show()
     
     #np.savetxt("SimResults_OnsetTimes_"+str(myrads)+".csv", simResults, delimiter=",")
 
-    np.savetxt("SimResults_onset_6_traj_80_1.csv", simResults, delimiter=",")
+    np.savetxt("SimResults_samplesobol_onsettimes.csv", simResults, delimiter=",")
+
+    #***** plot against distribution of onset_times ******
+
+    
+    balanced_ttlc =  [2.23333333, 4.16666667, 6.08333333, 8.1       , 9.95       ]
+    balanced_sab = [-5.72957795, -1.53132864, -0.69397291, -0.40720724, -0.28103035]
+    
+    #calculate proportion of takeovers
+    def prop_stay(ttlcs, thresh = 9):
+        stay_mask = ttlcs[ttlcs>=thresh]
+        prop_stay = float(len(stay_mask)) / float(len(ttlcs))
+        return prop_stay
+
+    repetitions = 6
+    balanced_ttlcs_reps = np.repeat(balanced_ttlc, 	repetitions)
+    all_ttlcs = np.concatenate((ttlc_sobol,balanced_ttlcs_reps))
+    print("all_ttlcs", all_ttlcs)
+
+    proportion_stay = prop_stay(all_ttlcs)
+    print("proportion_stay", proportion_stay)
+
+    stay_sobol = prop_stay(ttlc_sobol)
+    print("stay_sobol", stay_sobol)
+
+    stay_balanced = prop_stay(balanced_ttlcs_reps)
+    print("stay_balanced", stay_balanced)
+
+    
+
+    plt.figure(2)
+    plt.plot(balanced_results[:,0], balanced_results[:,3], 'k.', markersize=5, alpha = .2)
+    plt.xlabel("Yaw Rate Offset (deg/s)")
+    plt.ylabel("Time from Onset to Lane Crossing (s)")
+    plt.plot(sab_sobol, ttlc_sobol, 'r.', markersize = 5)
+    plt.plot(balanced_sab, balanced_ttlc, 'b.', markersize = 10)
+    plt.title("Sample Participant, Proportion Takeover: " + str(1-proportion_stay))
+    plt.axhline(y = 9)
+    plt.ylim([2, 15])
+    plt.savefig('sample_sobol.png', dpi = 300)
+    plt.show()
+
+
 
     #plot yr and time til crossing functions.
     # plt.figure(2)

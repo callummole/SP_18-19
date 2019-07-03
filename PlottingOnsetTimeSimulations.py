@@ -22,22 +22,41 @@ simresults = np.genfromtxt(filename, delimiter=',')
         
 #plot yr and time til crossing functions.
 
-onset_time = 6 #fixed onset time.
-simresults= simresults[simresults[:,2]==onset_time]
+#onset_time = 6 #fixed onset time.
+#simresults= simresults[simresults[:,2]==onset_time]
 
-yr = -np.rad2deg(8.0 / myrads)
-print(yr)
+bend_yr = -np.rad2deg(8.0 / myrads)
+print("limit yr", bend_yr)
 #retrieve ttlc for 3.141. 
-yr_mask = simresults[simresults[:,0]<= yr]
-ttlc_max = max(yr_mask[:,3])
-print(ttlc_max)
+bend_yr_mask = simresults[simresults[:,0]<= bend_yr]
+ttlc_limit = max(bend_yr_mask[:,3])
+print("limit ttlc", ttlc_limit)
 
+#noyr = simresults[abs(simresults[:,0]) < .2]
+#print("noyr", noyr[:,3])
+
+print("max ttlc", max(simresults[:,3]))
+#simresults columns: [yr, file_i, onset, t]       
+nan_mask = simresults[np.isnan(simresults[:,3])]
+print("min nan yr", min(nan_mask[:,0]))
+print("max nan yr", max(nan_mask[:,0]))
+
+"""
+For the balanced experiment we want five levels for SAB (yr offset).
+To stay on the road the TTLC needs to be > 9 s.
+
+So, let's take the limit case of 2.23 s, and conservative estimate of 10 s, then three spaces in between.
+
+"""
+
+ttlc_stay = 10
+ttlc_balanced = np.linspace(ttlc_limit, ttlc_stay, 5)
 
 plt.figure(2)
 plt.plot(simresults[:,0], simresults[:,3], 'k.', markersize=5, alpha = .2)
 plt.xlabel("Yaw Rate Offset (deg/s)")
 plt.ylabel("Time from Onset to Lane Crossing (s)")
 plt.title("Radius: " + str(myrads))
-plt.plot(yr, ttlc_max, 'r.', markersize= 10)
-plt.savefig(str(myrads) + '_simulated_onsettimes_6s_midline_80_1.png', dpi = 300)
+plt.plot(bend_yr, ttlc_limit, 'r.', markersize= 10)
+#plt.savefig(str(myrads) + '_simulated_onsettimes_6s_midline_80_1.png', dpi = 300)
 plt.show()
