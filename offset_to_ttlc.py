@@ -23,16 +23,13 @@ critical = Eq(x, w/2)
 b_to_t = solve(critical, t)[1]
 cosa = solve(Eq(b, 1 - t**2/2), t)[1].simplify()
 b_to_t_approx = cosa.subs({b: -b*w/(2*v) + 1})/b
-#b_to_t_approx = cosa.subs({b: (-b*w + v)/(2*v)})/b
 
 t_to_b_approx = solve(Eq(t, b_to_t_approx), b)[0]
-#pprint(t_to_b_approx)
 
-vals = {v: 8, w: 1.5}
+vals = {v: 8, w: 3.0}
 numa = lambdify(b, b_to_t_approx.subs(vals))
 numinv = lambdify(t, t_to_b_approx.subs(vals))
 num = b_to_t.subs(vals)
-#print(solve(Eq(t, num), b))
 num = lambdify(b, num)
 rng = np.radians(np.linspace(-10, 10, 1000))
 plt.plot(np.degrees(rng), num(np.abs(rng)), label="True")
@@ -55,4 +52,3 @@ plt.ylabel("Inversion approximation error (degrees)")
 
 print("b =", t_to_b_approx)
 plt.show()
-#pprint(sol.simplify())
