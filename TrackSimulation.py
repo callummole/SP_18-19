@@ -103,7 +103,7 @@ class vehicle:
 
     
 
-def runSimulation(Course, yawrate_readout, yawrateoffset= 0, onsettime = 0):
+def runSimulation(Course, yawrate_readout, myrads, yawrateoffset= 0, onsettime = 0):
 
     """run simulation and return RMS"""
 
@@ -115,7 +115,7 @@ def runSimulation(Course, yawrate_readout, yawrateoffset= 0, onsettime = 0):
    # print ("speed; ", speed)
 
     dt = 1.0 / fps
-    run_time = 15 #seconds
+    run_time = 20 #seconds
     time = 0
 
     Car = vehicle(0.0, speed, dt, yawrate_readout, Course)
@@ -123,19 +123,24 @@ def runSimulation(Course, yawrate_readout, yawrateoffset= 0, onsettime = 0):
     i = 0
     
     crossed = False
-    time_til_crossing = float('nan')
+    time_til_crossing = None
 
     f = lambda t: np.exp(-1/t)*(t > 0)
     smooth_step = lambda t: f(t)/(f(t) + f(1 - t))
 
     print ("playback lenght", Car.playback_length)
-    while (time < run_time) and (crossed==False) and (i < Car.playback_length):
+    while (time < run_time) and (crossed==False):
 
         #print i
 
         time += dt              
 
-        newyawrate = np.deg2rad(Car.yawrate_readout[i])
+
+        if (i < Car.playback_length):
+            newyawrate = np.deg2rad(Car.yawrate_readout[i])
+        else:
+            #if exceeding playback just put the bend yawrate in.
+            newyawrate = speed / myrads
 
 
         if time > onsettime:
@@ -236,9 +241,9 @@ if __name__ == '__main__':
     #yawrateoffsets = np.linspace(-4,2,1000)
 
     bend_yr = np.rad2deg(8.0 / myrads)
-    yawrateoffsets = [-bend_yr]
+    #yawrateoffsets = [-bend_yr]
     
-    #yawrateoffsets = np.linspace(-bend_yr,bend_yr,1000)
+    yawrateoffsets = np.linspace(-bend_yr,bend_yr,1000)
     print(-bend_yr)
     #columns: yr_offset, file_i, onsettime, time_til_crossing
     totalrows = len(yawrateoffsets) \
@@ -259,7 +264,7 @@ if __name__ == '__main__':
         for yr_i,yr in enumerate(yawrateoffsets):        
             for onset_i, onset in enumerate(OnsetTimePool):
 
-                Car, t = runSimulation(Course, yawrate_readout, yr, onset)
+                Car, t = runSimulation(Course, yawrate_readout, myrads, yr, onset)
                 #Plot Car
                 plotCar(plt, Car)
 
@@ -276,7 +281,7 @@ if __name__ == '__main__':
     
     #np.savetxt("SimResults_OnsetTimes_"+str(myrads)+".csv", simResults, delimiter=",")
 
-    #np.savetxt("SimResults_onset_6_traj_80_1.csv", simResults, delimiter=",")
+    np.savetxt("SimResults_onset_6_traj_80_1.csv", simResults, delimiter=",")
 
     #plot yr and time til crossing functions.
     # plt.figure(2)
