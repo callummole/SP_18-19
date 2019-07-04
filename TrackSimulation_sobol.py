@@ -257,7 +257,8 @@ if __name__ == '__main__':
     
     #***** retrieve approximations of SAB ******
         
-    filename = "SimResults_onset_6_traj_80_1.csv"
+    #filename = "SimResults_onset_6_traj_80_1.csv"
+    filename = "simulated_roadcrossing.csv"
     #columns are: yr_offset, file_i, onsettime, time_til_crossing
     balanced_results = np.genfromtxt(filename, delimiter=',')
 
@@ -283,11 +284,22 @@ if __name__ == '__main__':
         sab_sobol[i] = sab
 
 
+    def map_ttlc_to_sab(ttlc, width = 1.5, vel = 8.0):
+
+        sab = width / ((ttlc**2)*  vel)
+        return (np.degrees(sab))
+
+    print("2.23", map_ttlc_to_sab(2.23))
+    sab_mapped = map_ttlc_to_sab(ttlc_sobol)
+    print ("sab_sobol:", sab_sobol[1:5])
+    print ("sab_mapped:", sab_mapped[1:5])
+
     #columns: yr_offset, file_i, onsettime, time_til_crossing
     totalrows = Trials
     
     simResults = np.empty([totalrows,4]) 
     
+
 
     #each run has pre-set parameters
     for i, sab in enumerate(sab_sobol):
@@ -342,7 +354,8 @@ if __name__ == '__main__':
     stay_balanced = prop_stay(balanced_ttlcs_reps)
     print("stay_balanced", stay_balanced)
 
-    
+    sab_rng = np.linspace(-6, 6, 1000)
+    approx_ttlc = np.sqrt(3.0/(np.radians(np.abs(sab_rng))*8))
 
     plt.figure(2)
     plt.plot(balanced_results[:,0], balanced_results[:,3], 'k.', markersize=5, alpha = .2)
@@ -352,7 +365,8 @@ if __name__ == '__main__':
     plt.plot(balanced_sab, balanced_ttlc, 'b.', markersize = 10)
     plt.title("Sample Participant, Proportion Takeover: " + str(1-proportion_stay))
     plt.axhline(y = 9)
-    plt.ylim([2, 15])
+    plt.ylim([0, 15])
+    plt.plot(sab_rng, approx_ttlc)
     plt.savefig('sample_sobol.png', dpi = 300)
     plt.show()
 

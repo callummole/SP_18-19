@@ -236,14 +236,14 @@ if __name__ == '__main__':
     #OnsetTimePool = np.arange(5, 9.25, step = .25) 
 
     #onset time pool = 6 s
-    OnsetTimePool = [6]
+    OnsetTimePool = [5, 7, 9]
 
     #yawrateoffsets = np.linspace(-4,2,1000)
 
     bend_yr = np.rad2deg(8.0 / myrads)
     #yawrateoffsets = [-bend_yr]
     
-    yawrateoffsets = np.linspace(-bend_yr,bend_yr,1000)
+    yawrateoffsets = np.linspace(-bend_yr,bend_yr,500)
     print(-bend_yr)
     #columns: yr_offset, file_i, onsettime, time_til_crossing
     totalrows = len(yawrateoffsets) \
@@ -281,7 +281,8 @@ if __name__ == '__main__':
     
     #np.savetxt("SimResults_OnsetTimes_"+str(myrads)+".csv", simResults, delimiter=",")
 
-    np.savetxt("SimResults_onset_6_traj_80_1.csv", simResults, delimiter=",")
+   # np.savetxt("SimResults_onset_6_traj_80_1.csv", simResults, delimiter=",")
+    np.savetxt("simulated_roadcrossing.csv", simResults, delimiter=",")
 
     #plot yr and time til crossing functions.
     # plt.figure(2)
