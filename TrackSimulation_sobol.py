@@ -249,8 +249,8 @@ if __name__ == '__main__':
     onset_sobol = sobol[:,2] * 4 + 5
     autofile_sobol = np.round(sobol[:,1] * 3,0) 
 
-    ttlc_limit = 2.23
-    ttlc_stay = 15
+    ttlc_limit = 2
+    ttlc_stay = 18
 
     ttlc_sobol = sobol[:,0] * (ttlc_stay-ttlc_limit) + ttlc_limit
     steer_sobol = sobol[:,2] #flag for understeering or oversteering
@@ -331,8 +331,8 @@ if __name__ == '__main__':
     #***** plot against distribution of onset_times ******
 
     
-    balanced_ttlc =  [2.23333333, 4.16666667, 6.08333333, 8.1       , 9.95       ]
-    balanced_sab = [-5.72957795, -1.53132864, -0.69397291, -0.40720724, -0.28103035]
+    balanced_ttlc =  [2.23333333,  4.68333333,  7.1       ,  9.5       , 12.15      ]
+    balanced_sab = [-5.72957795, -1.19868047, -0.52191351, -0.3039716 , -0.20073596]
     
     #calculate proportion of takeovers
     def prop_stay(ttlcs, thresh = 9):
@@ -365,7 +365,7 @@ if __name__ == '__main__':
     plt.plot(balanced_sab, balanced_ttlc, 'b.', markersize = 10)
     plt.title("Sample Participant, Proportion Takeover: " + str(1-proportion_stay))
     plt.axhline(y = 9)
-    plt.ylim([0, 15])
+    plt.ylim([0, 20])
     plt.plot(sab_rng, approx_ttlc)
     plt.savefig('sample_sobol.png', dpi = 300)
     plt.show()

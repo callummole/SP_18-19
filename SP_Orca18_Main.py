@@ -203,7 +203,11 @@ def BendMaker(radlist, start):
 	return leftbendlist,rightbendlist 
 
 f = lambda t: np.exp(-1/t)*(t > 0)
-smooth_step = lambda t: f(t)/(f(t) + f(1 - t))
+_smooth_step = lambda t: f(t)/(f(t) + f(1 - t))
+def smooth_step(t):
+	if t <= 0: return 0.0
+	if t >= 1: return 1.0
+	return _smooth_step(t)
 
 class myExperiment(viz.EventClass):
 
@@ -290,8 +294,8 @@ class myExperiment(viz.EventClass):
 
 		Using simulations (TrackSimulation.py; PlottingOnsetTimeSimulations_balancedparameters.py) we choose the sab values that correspond to the 5 equally spaced ttlcs from 2.23 s to 10 s.
 
-		ttlc: 2.23333333, 4.16666667, 6.08333333, 8.1       , 9.95       
-		sab: -5.72957795, -1.53132864, -0.69397291, -0.40720724, -0.28103035
+		ttlc: 2.23333333,  4.68333333,  7.1       ,  9.5       , 12.15          
+		sab: -5.72957795, -1.19868047, -0.52191351, -0.3039716 , -0.20073596
 
 
 		Failure parameters from first run:
@@ -305,8 +309,8 @@ class myExperiment(viz.EventClass):
 
 		"""
 		sobol_condition_list = GenerateSobolConditionLists()
-		self.FACTOR_YawRate_offsets = [-5.72957795, -1.53132864, -0.69397291, -0.40720724, -0.28103035] 
-		simulated_ttlc = [2.23333333, 4.16666667, 6.08333333, 8.1       , 9.95]
+		self.FACTOR_YawRate_offsets = [-5.72957795, -1.19868047, -0.52191351, -0.3039716 , -0.20073596] 
+		simulated_ttlc = [2.23333333,  4.68333333,  7.1       ,  9.5       , 12.15     ]
 		self.TrialsPerCondition = trialspercondition
 		self.FACTOR_radiiPool = [80]
 
@@ -444,13 +448,13 @@ class myExperiment(viz.EventClass):
 		if self.DEBUG:
 			#add text to denote trial status.
 			self.txtTrial = viz.addText("Condition",parent = viz.SCREEN)
-			self.txtTrial.setPosition(.7,.2)
+			self.txtTrial.setPosition(.7,.35)
 			self.txtTrial.fontSize(36)
 			self.txtTrial.visible(viz.OFF)
 
 			#add text to denote condition status
 			self.txtCurrent = viz.addText("Current",parent = viz.SCREEN)
-			self.txtCurrent.setPosition(.2,.2)
+			self.txtCurrent.setPosition(.2,.15)
 			self.txtCurrent.fontSize(36)
 			self.txtCurrent.visible(viz.OFF)
 			
@@ -657,10 +661,12 @@ class myExperiment(viz.EventClass):
 			yield viztask.waitTime(.5) #pause at beginning of trial
 
 			if self.DEBUG:
-				conditionmessage = 'YR_offset: ' + str(self.Trial_YawRate_Offset) + \
+				conditionmessage = 'SAB: ' + str(self.Trial_YawRate_Offset) + \
 				'\nRadius: ' +str(self.Trial_radius) + \
 				'\nOnsetTime: ' + str(self.Trial_OnsetTime) + \
 				'\nAutoFile: ' + str(self.Trial_autofile_i) + \
+				'\nsim TTLC: ' + str(self.Trial_simulatedttlc) + \
+				'\nDesign: ' + str(self.Trial_design) + \
 				'\nTask: ' + str(self.DISTRACTOR_TYPE) 
 				self.txtTrial.message(conditionmessage)
 	
@@ -1013,7 +1019,7 @@ if __name__ == '__main__':
 	AUTOWHEEL = True
 	PRACTICE = False	#keep false. no practice trial at the moment.
 	EXP_ID = "Orca19"
-	DEBUG = False
+	DEBUG = True
 	DEBUG_PLOT = False #flag for the debugger plot. only active if Debug == True.
 
 	

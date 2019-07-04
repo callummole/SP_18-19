@@ -46,7 +46,7 @@ So, let's take the limit case of 2.23 s, and conservative estimate of 10 s, then
 
 """
 
-ttlc_stay = 10
+ttlc_stay = 12
 ttlc_balanced = np.linspace(ttlc_limit, ttlc_stay, 5)
 print("ttlc_balanced", ttlc_balanced)
 
@@ -78,5 +78,5 @@ plt.xlabel("Steering Angle Biases (deg/s)")
 plt.ylabel("Time from Onset to Lane Crossing (s)")
 plt.title("Balanced, Radius: " + str(myrads))
 plt.plot(sab_balanced, ttlc_balanced_predicted, 'r.', markersize= 10)
-#plt.savefig(str(myrads) + '_simulated_onsettimes_6s_midline_80_1_chosenparams.png', dpi = 300)
+plt.savefig(str(myrads) + '_simulated_onsettimes_6s_midline_80_1_chosenparams.png', dpi = 300)
 plt.show()
