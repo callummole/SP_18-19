@@ -11,10 +11,10 @@ from numpy import sqrt, abs, sign
 # v is the velocity (m/s)
 
 def ttlc_from_offset(b, w, r, v):
-    return sign(b)*sqrt(w*(2*r - sign(b)*w)/(abs(b)*r*v))
+    return sign(b)*sqrt(w*(2*r + sign(b)*w)/(abs(b)*r*v))
 
 def offset_from_ttlc(t, w, r, v):
-    return sign(t)*w*(2*r - sign(t)*w)/(r*t**2*v)
+    return sign(t)*w*(2*r + sign(t)*w)/(r*t**2*v)
 
 if __name__ == "__main__":
     import numpy as np
