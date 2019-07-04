@@ -12,7 +12,7 @@ For perspective correct rendering - myCave.py
 For motion through the virtual world - vizdriver.py
 
 """
-import sys
+import sys,os
 #doc strings needed
 rootpath = 'C:\\VENLAB data\\shared_modules\\Logitech_force_feedback'
 sys.path.append(rootpath)
@@ -92,33 +92,61 @@ def LoadAutomationModules():
 
 	return(mywheel)
 
-def GenerateConditionLists(FACTOR_radiiPool, FACTOR_YawRate_offsets, TrialsPerCondition):
-	"""Based on two factor lists and TrialsPerCondition, create a factorial design and return trialarray and condition lists"""
+def GenerateBalancedConditionLists(radius, FACTOR_YawRate_offsets, repetitions, onset, simulated_ttlc):
+    """create dataframe with equal repetitions per yawrate offset """
 
-	NCndts = len(FACTOR_radiiPool) * len(FACTOR_YawRate_offsets)	
-	print ("number of conditiosn", NCndts)
-#	ConditionList = range(NCndts) 
+    #only one factor. Yawrate offset
 
-	#automatically generate factor lists so you can adjust levels using the FACTOR variables
-	ConditionList_radii = np.repeat(FACTOR_radiiPool, len(FACTOR_YawRate_offsets)	)
-	ConditionList_YawRate_offsets = np.tile(FACTOR_YawRate_offsets, len(FACTOR_radiiPool)	)
+    simulated_ttlc_tiled = np.tile(simulated_ttlc, repetitions)  #tile to matchh yawrate offsets
+    ConditionList_YawRate_offsets = np.tile(FACTOR_YawRate_offsets, repetitions)
 
-	print (ConditionList_radii)
-	print (ConditionList_YawRate_offsets)
+    #print (ConditionList_YawRate_offsets)
 
-	TotalN = NCndts * TrialsPerCondition
+    balanced_condition_list = pd.DataFrame(data = np.transpose([ConditionList_YawRate_offsets, simulated_ttlc_tiled]), columns = ['sab','simulated_ttlc'])
 
-	TRIALSEQ = range(1,NCndts+1)*TrialsPerCondition
-	np.random.shuffle(TRIALSEQ)
+    #print (balanced_condition_list)
 
-	direc = [1,-1]*(TotalN/2) #makes half left and half right.
-	np.random.shuffle(direc) 
+    trials = len(balanced_condition_list)
 
-	TRIALSEQ_signed = np.array(direc)*np.array(TRIALSEQ)
-	
-	print("TrialSeq_signed", TRIALSEQ_signed)
+    #print("my trials: ", trials)
+    direc = [1,-1]*(trials/2) #makes half left and half right.
+    np.random.shuffle(direc) 	
+    balanced_condition_list['bend'] = direc
+    balanced_condition_list['radius'] = radius
+    balanced_condition_list['design'] = 'balanced'
+    balanced_condition_list['autofile_i'] = 0
+    balanced_condition_list['onsettime'] = onset
 
-	return (TRIALSEQ_signed, ConditionList_radii, ConditionList_YawRate_offsets)
+    balanced_condition_list = balanced_condition_list.sample(frac=1).reset_index(drop=True)
+
+    return(balanced_condition_list)
+
+def GenerateSobolConditionLists():
+	"""loads sobol generation from file. see TrackSimulation_sobol.py for details"""
+
+	filename = "SimResults_samplesobol_onsettimes.csv"
+	#columns are: yr_offset, file_i, onsettime, predicted_time_til_crossing
+	#sobol_condition_list = np.genfromtxt(filename, delimiter=',')
+
+	sobol_condition_list = pd.read_csv(filename, 
+					sep=',', 
+					names=["sab", "autofile_i", "onsettime", "simulated_ttlc"])
+
+		
+	#print(sobol_condition_list[1:10])
+
+	trials = len(sobol_condition_list)
+	direc = [1,-1]*(trials/2) #makes half left and half right.
+	np.random.shuffle(direc) 	
+	sobol_condition_list['bend'] = direc
+	sobol_condition_list['design'] = 'random'
+	sobol_condition_list['radius'] = 80
+	sobol_condition_list['autofile_i'] = sobol_condition_list['autofile_i'] + 1 #increment autofile because index = 0 is reserved for balanced design
+
+	#shuffle entire rows.
+	sobol_condition_list = sobol_condition_list.sample(frac=1).reset_index(drop=True)
+
+	return(sobol_condition_list)
 
 # ground texture setting
 def setStage():
@@ -253,18 +281,20 @@ class myExperiment(viz.EventClass):
 		#offsets chosen for trials that do not intend to cross the road need to keep within the road within 11s.
 
 		#For offsets that cross the road, let's pick one that produces maximally quick responses (1 s), through to responses that require more judgement (4 - 8 s)
-		
+
 		*****CHOOSING STEERING ANGLE BIASES (yawrate offsets)*****
-		
-        When decided the limits of steering angle biases, we thought that the limit case of severity should be 'straight ahead' failure. On the first run the sudden failure of was unnecessarily severe and caused capping of steering wheel angles.
 
-		At 8m/s with a bend radius of 80 the yaw rate is: 8 / 80 = 5.72  degrees per second, which has a ttlc of 2.016 and also will have the capping confound.
+		When decided the limits of steering angle biases, we thought that the limit case of severity should be 'straight ahead' failure. On the first run the sudden failure of was unnecessarily severe and caused capping of steering wheel angles.
+
+		At 8m/s with a bend radius of 80 the yaw rate is: 8 / 80 = 5.72  degrees per second, which has a ttlc of 2.016 and also will have the capping confound. With the gradual onset duration of .5s there is a ttlc of ~ 2.23 s.
+
+		Using simulations (TrackSimulation.py; PlottingOnsetTimeSimulations_balancedparameters.py) we choose the sab values that correspond to the 5 equally spaced ttlcs from 2.23 s to 10 s.
+
+		ttlc: 2.23333333, 4.16666667, 6.08333333, 8.1       , 9.95       
+		sab: -5.72957795, -1.53132864, -0.69397291, -0.40720724, -0.28103035
 
 
-		If we make this our limit, this has an estimated TTLC of 
-
-		
-		Failures from first run:
+		Failure parameters from first run:
 		YR OFFSET (deg /s)	40m radius		80m radius		category
 		-.2				~11s			~11s			stay		
 		.15				~11s			~12s			stay
@@ -274,24 +304,22 @@ class myExperiment(viz.EventClass):
 		-1.5			~4s				~3.8s			leave - middle
 
 		"""
-		
-		self.HYBRID_type = ['BALANCED','RANDOM'] 
-
-		#self.OnsetTimePool = np.arange(5, 9.25, step = .25) #
-		self.OnsetTimePool = [6] #
-		self.FACTOR_radiiPool = [80] # A gradual bend
-
-		#self.FACTOR_YawRate_offsets = [-.2, .15, -9, -1.5] #6 yawrate offsets, specified in degrees per second. 
-
-		self.FACTOR_YawRate_offsets = [-5.72957795130823,-5.72957795130823] #6 yawrate offsets, 
+		sobol_condition_list = GenerateSobolConditionLists()
+		self.FACTOR_YawRate_offsets = [-5.72957795, -1.53132864, -0.69397291, -0.40720724, -0.28103035] 
+		simulated_ttlc = [2.23333333, 4.16666667, 6.08333333, 8.1       , 9.95]
 		self.TrialsPerCondition = trialspercondition
-		[trialsequence_signed, cl_radii, cl_yawrates] = GenerateConditionLists(
-			self.FACTOR_radiiPool, self.FACTOR_YawRate_offsets, self.TrialsPerCondition
-			)
+		self.FACTOR_radiiPool = [80]
 
-		self.TRIALSEQ_signed = trialsequence_signed #list of trialtypes in a randomised order. -ve = leftwards, +ve = rightwards.
-		self.ConditionList_radii = cl_radii
-		self.ConditionList_YawRate_offsets = cl_yawrates
+		balanced_condition_list = GenerateBalancedConditionLists(radius = 80, FACTOR_YawRate_offsets = self.FACTOR_YawRate_offsets, repetitions = 6, onset = 6,
+		simulated_ttlc = simulated_ttlc)
+
+		#make sure they are in the right column order before concatenation.
+		cols = list(sobol_condition_list.columns.values)
+		balanced_condition_list = balanced_condition_list[cols]		
+
+		self.TRIALSEQ_df =  pd.concat([sobol_condition_list, balanced_condition_list])
+
+		self.TRIALSEQ_df = self.TRIALSEQ_df.sample(frac=1).reset_index(drop=True)
 
 		##### ADD GRASS TEXTURE #####
 		gplane1 = setStage()
@@ -323,7 +351,10 @@ class myExperiment(viz.EventClass):
 		
 		####### DATA SAVING ######
 		#datacolumns = ['ppid', 'radius','yawrate_offset','trialn','timestamp','trialtype_signed','World_x','World_z','WorldYaw','SWA','YawRate_seconds','TurnAngle_frames','Distance_frames','dt', 'WheelCorrection', 'SteeringBias', 'Closestpt', 'AutoFlag', 'AutoFile', 'OnsetTime']
-		datacolumns = ('ppid', 'radius','yawrate_offset','trialn','timestamp_exp', 'timestamp_trial','trialtype_signed','World_x','World_z','WorldYaw','SWA', 'YawRate_seconds','TurnAngle_frames','Distance_frames','dt','WheelCorrection', 'SteeringBias', 'Closestpt', 'AutoFlag', 'AutoFile', 'OnsetTime')
+
+		##TRIALSEQ_df as column names = ('autofile_i','bend','design','onsettime','radius','sab','simulated_ttlc')
+
+		datacolumns = ('autofile_i','bend','design','onsettime','radius','sab','simulated_ttlc','ppid','trialn','timestamp_exp', 'timestamp_trial','world_x','world_z','world_yaw','swa', 'yawrate_seconds','turnangle_frames','distance_frames','dt','wheelcorrection', 'steeringbias', 'closestpt', 'autoflag', 'autofile')
 		self.datacolumns = datacolumns		
 		self.OutputWriter = None #dataframe that gets renewed each trial.
 		self.OutputFile = None #for csv.		
@@ -350,9 +381,13 @@ class myExperiment(viz.EventClass):
 		self.Trial_YR_readout = []
 		self.Trial_playbacklength = 0
 		self.Trial_playbackfilename = ""
+		self.Trial_autofile_i = ""
+		self.Trial_dir = 0
 		self.Trial_midline = [] #midline for the entire track.
 		self.Trial_OnsetTime = 0 #onset time for the trial.
 		self.Trial_SaveName = "" #filename for saving data
+		self.Trial_design = "" #balanced or random
+		self.Trial_simulatedttlc = 0 #simulated time to lane crossing.
 		
 		#### parameters that are updated each timestamp ####
 		self.Current_pos_x = 0
@@ -378,10 +413,13 @@ class myExperiment(viz.EventClass):
 		self.YR_readouts_80 = []
 		self.SWA_readouts_80 = []
 		self.PlaybackPool40 = ["Midline_40_0.csv","Midline_40_1.csv",			"Midline_40_2.csv","Midline_40_3.csv","Midline_40_4.csv",			"Midline_40_5.csv"]
-		self.PlaybackPool80 = ["Midline_80_0.csv","Midline_80_1.csv",			"Midline_80_2.csv","Midline_80_3.csv","Midline_80_4.csv",			"Midline_80_5.csv"]
 
-		
+		#"Midline_80_1" is reserved for the balanced design.
+		#_2 to _5 are for the random design.
+		self.PlaybackPool80 = ["Midline_80_1.csv","Midline_80_2.csv","Midline_80_3.csv","Midline_80_4.csv","Midline_80_5.csv"]
+
 		#pre-load playback data at start of experiment.
+		"""
 		for i, file40 in enumerate(self.PlaybackPool40):
 
 			#load radii 40
@@ -389,6 +427,9 @@ class myExperiment(viz.EventClass):
 			self.YR_readouts_40.append(data40.get("YawRate_seconds"))
 			self.SWA_readouts_40.append(data40.get("SWA"))
 
+		"""
+
+		for i, file80 in enumerate(self.PlaybackPool80):
 			#load radii 80
 			file80 = self.PlaybackPool80[i]
 			data80 = self.OpenTrial(file80)
@@ -475,9 +516,7 @@ class myExperiment(viz.EventClass):
 
 		#add message after calibration to give the experimenter and participant time to prepare for the simulation.
 
-		viz.message('\t\tYou will now begin the experiment \n\n The automated vehicle will attempt to navigate a series of bends. \nYour task as the supervisory driver is to make sure the automation stays within the road edges. \nDuring automation please keep your hands loosely on the wheel. \nYou may take control by pressing the gear pads. \nOnce pressed, you will immediately be in control of the vehicle')			
-
-
+		viz.message('\t\tYou will now begin the experiment \n\n The automated vehicle will attempt to navigate a series of bends. \nYour task as the supervisory driver is to make sure the vehicle stays within the road edges. \nDuring automation please keep your hands loosely on the wheel. \nYou may take control by pressing the gear pads. \nOnce pressed, you will immediately be in control of the vehicle')			
 		self.ToggleTextVisibility(viz.ON)
 	
 		if self.EYETRACKING: 
@@ -485,17 +524,19 @@ class myExperiment(viz.EventClass):
 			et_file = str(self.EXP_ID) + '_' + str(self.PP_id) #one file for the whole task.
 			self.comms.start_trial(fname = et_file, timestamp = viz.tick())
 		
-		for i, trialtype_signed in enumerate(self.TRIALSEQ_signed):
+		for i, trial in self.TRIALSEQ_df.iterrows():
+
 			#import vizjoy		
-			print("Trial: ", str(i))
-			print("TrialType: ", str(trialtype_signed))
+			print("Trialn: ", str(i))
 			
-			trialtype = abs(trialtype_signed)
+			print("current trial:", trial)
 
-			#trialtype is indexed from one. so need to minus one from it.
-			trial_radii = self.ConditionList_radii[trialtype-1] #set radii for that trial
-			trial_yawrate_offset = self.ConditionList_YawRate_offsets[trialtype-1] #set target number for the trial.
-
+			#trial is now a row from a dataframe
+			print("current trial radius:", trial["radius"])
+			trial_radii = trial['radius'] 
+			trial_yawrate_offset = trial['sab']
+			trial_dir = trial['bend']
+			
 			print(str([trial_radii, trial_yawrate_offset]))
 
 			txtDir = ""
@@ -532,7 +573,8 @@ class myExperiment(viz.EventClass):
 			radius_index = self.FACTOR_radiiPool.index(trial_radii)
 
 			#choose correct road object.
-			if trialtype_signed > 0: #right bend
+
+			if trial_dir > 0: #right bend
 				trialbend = self.rightbends[radius_index]
 				txtDir = "R"
 			else:
@@ -554,6 +596,15 @@ class myExperiment(viz.EventClass):
 			
 
 			#pick file. Put this in dedicated function. TODO: Should open all of these at the start of the file to save on processing.
+
+			self.Trial_autofile_i = int(trial['autofile_i'])
+
+
+			self.Trial_YR_readout = self.YR_readouts_80[self.Trial_autofile_i ]
+			self.Trial_SWA_readout = self.SWA_readouts_80[self.Trial_autofile_i]
+			self.Trial_playbackfilename = self.PlaybackPool80[self.Trial_autofile_i]
+				
+			"""
 			if self.Trial_radius == 40:
 				i = random.choice(range(len(self.YR_readouts_40)))
 				self.Trial_YR_readout = self.YR_readouts_40[i]
@@ -570,18 +621,24 @@ class myExperiment(viz.EventClass):
 			else:
 				raise Exception("Something bad happened")
 
+			"""
+
 			
 			#update class#
+			self.Trial_simulatedttlc = trial['simulated_ttlc']
+			self.Trial_design = trial['design']
+			self.Trial_dir = trial_dir
 			self.Trial_N = i			
 			self.Trial_YawRate_Offset = trial_yawrate_offset			
 			self.Trial_BendObject = trialbend	
-			self.Trial_trialtype_signed	= trialtype_signed
+			self.Trial_trialtype_signed	= trial_dir
 			self.Trial_playbacklength = len(self.Trial_YR_readout)				
 			self.Trial_midline = np.vstack(
 				(self.Straight.midline, self.Trial_BendObject.midline)
 				)
-			self.Trial_OnsetTime = np.random.choice(self.OnsetTimePool, size=1)[0]
-			self.Trial_SaveName = str(self.EXP_ID) + '_' + str(self.PP_id) + '_' + str(self.Trial_radius) + '_' + str(self.Trial_N)
+			self.Trial_OnsetTime = trial['onsettime']	
+			#self.Trial_OnsetTime = np.random.choice(self.OnsetTimePool, size=1)[0]
+			self.Trial_SaveName = str(self.EXP_ID) + '_' + str(self.PP_id) + '_' + str(self.Trial_N)
 
 			#renew data frame.
 			#self.OutputWriter = pd.DataFrame(index = range(self.TrialLength*60), columns=self.datacolumns) #make new empty EndofTrial data
@@ -596,12 +653,14 @@ class myExperiment(viz.EventClass):
 			if self.EYETRACKING:
 					self.comms.annotate('Start_' + self.Trial_SaveName)	
 
+			#TODO: add 1 s calibration dot.
 			yield viztask.waitTime(.5) #pause at beginning of trial
 
 			if self.DEBUG:
 				conditionmessage = 'YR_offset: ' + str(self.Trial_YawRate_Offset) + \
 				'\nRadius: ' +str(self.Trial_radius) + \
 				'\nOnsetTime: ' + str(self.Trial_OnsetTime) + \
+				'\nAutoFile: ' + str(self.Trial_autofile_i) + \
 				'\nTask: ' + str(self.DISTRACTOR_TYPE) 
 				self.txtTrial.message(conditionmessage)
 	
@@ -651,9 +710,6 @@ class myExperiment(viz.EventClass):
 			#create viztask functions.
 			waitPlayback = viztask.waitTrue( PlaybackReached )
 			waitDisengage = viztask.waitTrue( CheckDisengage )
-
-			
-
 			
 			d = yield viztask.waitAny( [ waitPlayback, waitDisengage ] )		
 	
@@ -766,14 +822,8 @@ class myExperiment(viz.EventClass):
 		
 		"""Records Data into Dataframe"""
 
-		#'ppid', 'radius','yawrate_offset','trialn','timestamp','trialtype_signed','World_x','World_z','WorldYaw','SWA','YawRate_seconds','TurnAngle_frames','Distance_frames','dt', 'WheelCorrection', 'SteeringBias', 'Closestpt' 'AutoFlag', 'AutoFile'#		
-		# output = [self.PP_id, self.Trial_radius, self.Trial_YawRate_Offset, self.Trial_N, self.Current_Time, self.Trial_trialtype_signed, 
-		# self.Current_pos_x, self.Current_pos_z, self.Current_yaw, self.Current_SWA, self.Current_YawRate_seconds, self.Current_TurnAngle_frames, 
-		# self.Current_distance, self.Current_dt, self.Current_WheelCorrection, self.Current_steeringbias, self.Current_closestpt, self.AUTOMATION, self.Trial_playbackfilename, self.Trial_OnsetTime] #output array.
-
-		output = (
-			self.PP_id, self.Trial_radius, self.Trial_YawRate_Offset, self.Trial_N, self.Current_Time, self.Trial_Timer, self.Trial_trialtype_signed, self.Current_pos_x, self.Current_pos_z, self.Current_yaw, self.Current_SWA, self.Current_YawRate_seconds, self.Current_TurnAngle_frames, self.Current_distance, self.Current_dt, self.Current_WheelCorrection, self.Current_steeringbias, self.Current_closestpt, self.AUTOMATION, self.Trial_playbackfilename, self.Trial_OnsetTime
-			) #output array
+		output = (self.Trial_autofile_i, self.Trial_dir, self.Trial_design,self.Trial_OnsetTime, self.Trial_radius, self.Trial_YawRate_Offset,
+		self.Trial_simulatedttlc,self.PP_id, self.Trial_N, self.Current_Time, self.Trial_Timer, self.Current_pos_x, self.Current_pos_z, self.Current_yaw, self.Current_SWA, self.Current_YawRate_seconds, self.Current_TurnAngle_frames, self.Current_distance, self.Current_dt, self.Current_WheelCorrection, self.Current_steeringbias, self.Current_closestpt, self.AUTOMATION, self.Trial_playbackfilename) #output array
 		
 		
 		#self.OutputWriter.loc[self.Current_RowIndex,:] = output #this dataframe is actually just one line. 		
@@ -788,7 +838,14 @@ class myExperiment(viz.EventClass):
 
 		data.seek(0)
 		df = pd.read_csv(data) #grab bytesIO object.		
-		df.to_csv('Data//' + filename + '.csv') #save to file.
+
+		complete_path = 'Data//' + filename + '.csv'
+		if os.path.exists(complete_path):
+			
+			rint = np.random.randint(1, 100)
+			complete_path = complete_path + '_copy_' + str(rint)			
+
+		df.to_csv(complete_path) #save to file.
 
 		print ("Saved file: ", filename)
 
@@ -955,7 +1012,7 @@ if __name__ == '__main__':
 	
 	AUTOWHEEL = True
 	PRACTICE = False	#keep false. no practice trial at the moment.
-	EXP_ID = "Orca18"
+	EXP_ID = "Orca19"
 	DEBUG = False
 	DEBUG_PLOT = False #flag for the debugger plot. only active if Debug == True.
 
