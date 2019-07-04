@@ -11,10 +11,10 @@ from numpy import sqrt, abs, sign
 # v is the velocity (m/s)
 
 def ttlc_from_offset(b, w, r, v):
-    return -sign(b)*sqrt(w*(2*r + sign(b)*w)/(abs(b)*r*v))
+    return sign(b)*sqrt(w*(2*r - sign(b)*w)/(abs(b)*r*v))
 
 def offset_from_ttlc(t, w, r, v):
-    return -sign(t)*w*(2*r - sign(t)*w)/(r*t**2*v)
+    return sign(t)*w*(2*r - sign(t)*w)/(r*t**2*v)
 
 if __name__ == "__main__":
     import numpy as np
@@ -26,8 +26,8 @@ if __name__ == "__main__":
     undoed = offset_from_ttlc(ttlc_from_offset(rng, **param), **param)
     plt.plot(rng, undoed - rng)
     plt.figure()
-    plt.plot(np.degrees(rng[rng > 0.01]), -ttlc_from_offset(rng[rng > 0.01], **param), label='Understeer')
-    plt.plot(-np.degrees(rng[rng < -0.01]), ttlc_from_offset(rng[rng < -0.01], **param), label='Oversteer')
+    plt.plot(-np.degrees(rng[rng < -0.01]), -ttlc_from_offset(rng[rng < -0.01], **param), label='Understeer')
+    plt.plot(np.degrees(rng[rng > 0.01]), ttlc_from_offset(rng[rng > 0.01], **param), label='Oversteer')
     plt.xlabel("Yaw rate bias (degrees)")
     plt.ylabel("TTLC (seconds)")
     plt.legend()
