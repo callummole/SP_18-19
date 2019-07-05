@@ -119,17 +119,20 @@ def setStage():
 	"""Creates grass textured groundplane"""
 	
 	###should set this hope so it builds new tiles if you are reaching the boundary.
-	fName = 'C:/VENLAB data/shared_modules/textures/strong_edge.bmp'
+	fName = 'C:/VENLAB data/shared_modules/textures/ground_moon.png'
 	
 	# add groundplane (wrap mode)
 	groundtexture = viz.addTexture(fName)
 	groundtexture.wrap(viz.WRAP_T, viz.REPEAT)	
 	groundtexture.wrap(viz.WRAP_S, viz.REPEAT)	
+	groundtexture.anisotropy(16)
 	
 	groundplane = viz.addTexQuad() ##ground for right bends (tight)
 	tilesize = 500
-	planesize = tilesize/5
+	#planesize = tilesize/5
+	planesize = 40
 	groundplane.setScale(tilesize, tilesize, tilesize)
+	
 	groundplane.setEuler((0, 90, 0),viz.REL_LOCAL)
 	#groundplane.setPosition((0,0,1000),viz.REL_LOCAL) #move forward 1km so don't need to render as much.
 	matrix = vizmat.Transform()
@@ -152,13 +155,13 @@ def BendMaker(radlist, start):
 
 	for r in radlist:
 		rightbend = vizBend(startpos = start, rads = r, x_dir = 1, colour = grey, road_width=0, primitive_width=1.5)#, texturefile='strong_edge_soft.bmp')
-		rightbend.setAlpha(.5)
+		rightbend.setAlpha(.25)
 			
 		rightbendlist.append(rightbend)
 
 		leftbend = vizBend(startpos = start, rads = r, x_dir = -1, colour = grey, road_width=0, primitive_width=1.5)#, texturefile='strong_edge_soft.bmp')
 		
-		leftbend.setAlpha(.5)	
+		leftbend.setAlpha(.25)	
 		leftbendlist.append(leftbend)
 			
 	return leftbendlist,rightbendlist 
@@ -216,7 +219,7 @@ class myExperiment(viz.EventClass):
 		##### SET CONDITION VALUES #####
 		self.BendRadius = 60	 # 60m radii sinusoidal
 		
-		self.TRIAL_SEQ = [1, 1, 2, 2, 2] #1 = manual, 2 = automated.		
+		self.TRIAL_SEQ = [1, 2, 2] #1 = manual, 2 = automated.		
 
 		##### ADD GRASS TEXTURE #####
 		gplane1 = setStage()

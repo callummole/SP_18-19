@@ -6,7 +6,7 @@ import math
 import viztask
 import pandas as pd
 
-import csv, io
+import csv, io, os
 
 import threading
 
@@ -351,14 +351,31 @@ class Distractor(viz.EventClass):
 
 		##save all data to file.
 
-		self.EndofTrial_Data.to_csv('Data//' + str(self.filename) + '_EndofTrial.csv')
+		fileext = '.csv'
+		eot_file_path = 'Data//' + self.filename + '_EndofTrial'
+		eot_path = eot_file_path + fileext
+			
+		if os.path.exists(eot_path):
+			
+			rint = np.random.randint(1, 100)
+			eot_path = eot_file_path + '_copy_' + str(rint) + fileext
+	
+		self.EndofTrial_Data.to_csv(eot_path)
 
 		#self.WithinTrial_Data = self.WithinTrial_Data.dropna() #drop trailing zeros
 		#self.WithinTrial_Data.to_csv('Data//' + str(self.filename) + '_WithinTrial.csv')
 
+		
+		wit_file_path = 'Data//' + self.filename + '_WithinTrial'
+		wit_path = wit_file_path + fileext
+		if os.path.exists(wit_path):
+			
+			rint = np.random.randint(1, 100)
+			wit_path = wit_file_path + '_copy_' + str(rint) + fileext	
+
 		self.WithinTrial_Data_file.seek(0) #start from beginning
 		data = pd.read_csv(self.WithinTrial_Data_file) #read bytes stream
-		data.to_csv('Data//' + str(self.filename) + '_WithinTrial.csv') #save to csv
+		data.to_csv(wit_path) #save to csv
 
 		print ("Saved Data")
 		

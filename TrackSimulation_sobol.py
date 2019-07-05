@@ -240,7 +240,7 @@ if __name__ == '__main__':
     else:
         raise Exception('Unrecognised radius')
 
-    Trials = 30
+    Trials = 24
     sobol = sobol_seq.i4_sobol_generate(4, Trials) # 0,1 scale
 
     #print(sobol_3D)
@@ -331,8 +331,10 @@ if __name__ == '__main__':
     #***** plot against distribution of onset_times ******
 
     
-    balanced_ttlc =  [2.23333333,  4.68333333,  7.1       ,  9.5       , 12.15      ]
-    balanced_sab = [-5.72957795, -1.19868047, -0.52191351, -0.3039716 , -0.20073596]
+    #balanced_ttlc =  [2.23333333,  4.68333333,  7.1       ,  9.5       , 12.15      ]
+    
+    balanced_ttlc =  [2.23333333,  4.68333333,  7.1,  9.5]
+    balanced_sab = [-5.72957795, -1.19868047, -0.52191351, -0.3039716]
     
     #calculate proportion of takeovers
     def prop_stay(ttlcs, thresh = 9):

@@ -242,7 +242,7 @@ def run_calibration(comms, fname):
 	print(fname)
 
 	##MAKE WHITE BACKGROUND COLOUR FOR BETTER CALIBRATION
-	viz.MainWindow.clearcolor(viz.WHITE)
+	#viz.MainWindow.clearcolor(viz.WHITE)
 	
 	#addGroundPlane()
 	
@@ -250,11 +250,13 @@ def run_calibration(comms, fname):
 	#run through calibration programme
 	#throw two 9 point fleixble grid. Can simple keep going until satisfied.
 	#Needs a separate save function than the original to be completely self-sufficient.
-	boxsize = [.9,.8] #xy box size
-	lowerleft = [.05,.1] #starting corner
+	#boxsize = [.9,.8] #xy box size
+	#lowerleft = [.05,.1] #starting corner
+	boxsize = [.6,.4] #xy box size
+	lowerleft = [.2,.2] #starting corner
 	#start from top right
-	nrow = 5
-	ncol = 7
+	nrow = 4
+	ncol = 3
 	Grid = MakeGrid(nrow, ncol, boxsize, lowerleft)	
 	nmarkers = nrow * ncol
 
@@ -342,6 +344,10 @@ def run_calibration(comms, fname):
 						calib_precision = out.split('//')[1]
 						# calib_accuracy = out.split('calibration.Accuracy')[1].split('.Precision')[0]
 						# calib_precision = out.split('calibration.Accuracy')[1].split('.Precision')[0]
+						
+						pt.visible(0)
+						pt_buffer.visible(0)
+
 						
 						happy = vizinput.ask("Calibration Accuracy: " + calib_accuracy + "\nAre you satisfied?")
 						

@@ -93,33 +93,36 @@ def LoadAutomationModules():
 	return(mywheel)
 
 def GenerateBalancedConditionLists(radius, FACTOR_YawRate_offsets, repetitions, onset, simulated_ttlc):
-    """create dataframe with equal repetitions per yawrate offset """
+	"""create dataframe with equal repetitions per yawrate offset """
 
-    #only one factor. Yawrate offset
+	#only one factor. Yawrate offset
 
-    simulated_ttlc_tiled = np.tile(simulated_ttlc, repetitions)  #tile to matchh yawrate offsets
-    ConditionList_YawRate_offsets = np.tile(FACTOR_YawRate_offsets, repetitions)
+	simulated_ttlc_tiled = np.tile(simulated_ttlc, repetitions)  #tile to matchh yawrate offsets
+	ConditionList_YawRate_offsets = np.tile(FACTOR_YawRate_offsets, repetitions)
 
-    #print (ConditionList_YawRate_offsets)
+	#print (ConditionList_YawRate_offsets)
 
-    balanced_condition_list = pd.DataFrame(data = np.transpose([ConditionList_YawRate_offsets, simulated_ttlc_tiled]), columns = ['sab','simulated_ttlc'])
+	balanced_condition_list = pd.DataFrame(data = np.transpose([ConditionList_YawRate_offsets, simulated_ttlc_tiled]), columns = ['sab','simulated_ttlc'])
 
-    #print (balanced_condition_list)
+	#print (balanced_condition_list)
 
-    trials = len(balanced_condition_list)
+	trials = len(balanced_condition_list)
 
-    #print("my trials: ", trials)
-    direc = [1,-1]*(trials/2) #makes half left and half right.
-    np.random.shuffle(direc) 	
-    balanced_condition_list['bend'] = direc
-    balanced_condition_list['radius'] = radius
-    balanced_condition_list['design'] = 'balanced'
-    balanced_condition_list['autofile_i'] = 0
-    balanced_condition_list['onsettime'] = onset
+	#print("my trials: ", trials)
+	direc = [1,-1]*int(np.ceil(trials/2.0)) #makes half left and half right. #if odd it should round up.
+	#print ("length", len(direc))
+	#print ("trials", trials)
+	direc = direc[:trials]
+	np.random.shuffle(direc) 	
+	balanced_condition_list['bend'] = direc
+	balanced_condition_list['radius'] = radius
+	balanced_condition_list['design'] = 'balanced'
+	balanced_condition_list['autofile_i'] = 0
+	balanced_condition_list['onsettime'] = onset
+	
+	balanced_condition_list = balanced_condition_list.sample(frac=1).reset_index(drop=True)
 
-    balanced_condition_list = balanced_condition_list.sample(frac=1).reset_index(drop=True)
-
-    return(balanced_condition_list)
+	return(balanced_condition_list)
 
 def GenerateSobolConditionLists():
 	"""loads sobol generation from file. see TrackSimulation_sobol.py for details"""
@@ -225,7 +228,7 @@ class myExperiment(viz.EventClass):
 			distractor_type = None
 		self.DISTRACTOR_TYPE = distractor_type
 
-		if self.DISTRACTOR_TYPE not in (None, "Easy", "Hard"):
+		if self.DISTRACTOR_TYPE not in (None, "Easy", "Hard","Middle"):
 			raise Exception ("Unrecognised Distractor Type. Specify 'None', 	'Easy', or 'Hard'. Case sensitive.")
 			#pass
 		
@@ -236,6 +239,10 @@ class myExperiment(viz.EventClass):
 		elif self.DISTRACTOR_TYPE == "Hard":
 			self.targetoccurence_prob = .4
 			self.targetnumber = 3
+		elif self.DISTRACTOR_TYPE == "Middle":
+			self.targetoccurence_prob = .4
+			self.targetnumber = 2
+
 		self.StartScreenTime = 2		
 
 		if EYETRACKING:	
@@ -309,12 +316,12 @@ class myExperiment(viz.EventClass):
 
 		"""
 		sobol_condition_list = GenerateSobolConditionLists()
-		self.FACTOR_YawRate_offsets = [-5.72957795, -1.19868047, -0.52191351, -0.3039716 , -0.20073596] 
-		simulated_ttlc = [2.23333333,  4.68333333,  7.1       ,  9.5       , 12.15     ]
+		self.FACTOR_YawRate_offsets = [-5.72957795, -1.19868047, -0.52191351, -0.3039716] 
+		simulated_ttlc = [2.23333333,  4.68333333,  7.1,  9.5]
 		self.TrialsPerCondition = trialspercondition
 		self.FACTOR_radiiPool = [80]
 
-		balanced_condition_list = GenerateBalancedConditionLists(radius = 80, FACTOR_YawRate_offsets = self.FACTOR_YawRate_offsets, repetitions = 6, onset = 6,
+		balanced_condition_list = GenerateBalancedConditionLists(radius = 80, FACTOR_YawRate_offsets = self.FACTOR_YawRate_offsets, repetitions = self.TrialsPerCondition, onset = 6,
 		simulated_ttlc = simulated_ttlc)
 
 		#make sure they are in the right column order before concatenation.
@@ -323,7 +330,9 @@ class myExperiment(viz.EventClass):
 
 		self.TRIALSEQ_df =  pd.concat([sobol_condition_list, balanced_condition_list])
 
-		self.TRIALSEQ_df = self.TRIALSEQ_df.sample(frac=1).reset_index(drop=True)
+		self.TRIALSEQ_df = self.TRIALSEQ_df.sample(frac=1).reset_index(drop=True) #data frame for trial sequence.
+
+		self.total_trials = len(self.TRIALSEQ_df.index)
 
 		##### ADD GRASS TEXTURE #####
 		gplane1 = setStage()
@@ -358,7 +367,7 @@ class myExperiment(viz.EventClass):
 
 		##TRIALSEQ_df as column names = ('autofile_i','bend','design','onsettime','radius','sab','simulated_ttlc')
 
-		datacolumns = ('autofile_i','bend','design','onsettime','radius','sab','simulated_ttlc','ppid','trialn','timestamp_exp', 'timestamp_trial','world_x','world_z','world_yaw','swa', 'yawrate_seconds','turnangle_frames','distance_frames','dt','wheelcorrection', 'steeringbias', 'closestpt', 'autoflag', 'autofile')
+		datacolumns = ('autofile_i','bend','design','onsettime','radius','sab','simulated_ttlc','ppid','trialn','timestamp_exp', 'timestamp_trial','world_x','world_z','world_yaw','swa', 'yawrate_seconds','turnangle_frames','distance_frames','dt','wheelcorrection', 'steeringbias', 'closestpt', 'autoflag', 'autofile','cogload')
 		self.datacolumns = datacolumns		
 		self.OutputWriter = None #dataframe that gets renewed each trial.
 		self.OutputFile = None #for csv.		
@@ -373,6 +382,28 @@ class myExperiment(viz.EventClass):
 		self.txtMode.fontSize(36)
 		self.txtMode.color(viz.WHITE)
 		self.txtMode.visible(viz.OFF)
+
+
+		##### add calibration marker #####
+		imagepath = 'C:/VENLAB data/shared_modules/textures/'
+		fn = imagepath + 'calibmarker_white.png' #seems to work best with this one. 			
+
+		def loadimage(fn):
+			"""Loads a and scales a texture from a given image path""" 
+			defaultscale = 800.0/600.0
+			aspect = 1920.0 / 1080.0		
+			scale = aspect/defaultscale
+			ttsize = 1
+			pt = viz.add(viz.TEXQUAD, viz.SCREEN)
+			pt.scale(ttsize, ttsize*scale, ttsize)
+			pt.texture(viz.add(fn))
+			
+			pt.visible(0)
+			return (pt)
+
+		self.calib_pt = loadimage(fn)
+		self.calib_pt.visible(0)
+		self.calib_pt.translate(.5,.4)
 
 		### parameters that are set at the start of each trial ####
 		self.Trial_radius = 0
@@ -433,6 +464,8 @@ class myExperiment(viz.EventClass):
 
 		"""
 
+		self.markers = []
+
 		for i, file80 in enumerate(self.PlaybackPool80):
 			#load radii 80
 			file80 = self.PlaybackPool80[i]
@@ -443,7 +476,7 @@ class myExperiment(viz.EventClass):
 		self.AUTOMATION = True
 		self.txtMode.message('A')
 
-		self.callback(viz.EXIT_EVENT,self.CloseConnections) #if exited, save the data. 
+		#self.callback(viz.EXIT_EVENT,self.CloseConnections) #if exited, save the data. 
 
 		if self.DEBUG:
 			#add text to denote trial status.
@@ -493,44 +526,80 @@ class myExperiment(viz.EventClass):
 
 	def runtrials(self):
 		"""Loops through the trial sequence"""
-		
+
+		viz.MainScene.visible(viz.ON,viz.WORLD)		
+		viz.mouse.setVisible(viz.OFF) #switch mouse off
+		viz.clearcolor(viz.SKYBLUE) #HACK, since eyetracker background is white.
+		if self.EYETRACKING: 
+			#pass it the filename, and also the timestamp.
+			et_file = str(self.EXP_ID) + '_' + str(self.PP_id) #one file for the whole task.
+			self.comms.start_trial(fname = et_file, timestamp = viz.tick())
+
 		if self.EYETRACKING:
-			viz.MainScene.visible(viz.OFF,viz.WORLD)		
+			#viz.MainScene.visible(viz.OFF,viz.WORLD)	
+
+			#remove straight
+			self.Straight.ToggleVisibility(0)	
 			filename = str(self.EXP_ID) + "_Calibration_" + str(self.PP_id) #+ str(demographics[0]) + "_" + str(demographics[2]) #add experimental block to filename
 			print (filename)
 			# Start logging the pupil data
 			pupilfile = gzip.open(
 				os.path.join("Data", filename + ".pupil.jsons.gz"),
 				'a')
-			self.pupil_killer = pupil_logger.start_logging(pupilfile, timestamper=viz.tick)
+			closer = pupil_logger.start_logging(pupilfile, timestamper=viz.tick)
 
-			yield run_calibration(self.comms, filename)
+			def stop_pupil_logging():
+				closer()
+				pupilfile.close()
+			EXIT_CALLBACKS.insert(0, stop_pupil_logging)
+
+			
+			yield run_calibration(self.comms, filename)			
 			yield run_accuracy(self.comms, filename)	
+			
 
-		#set up distractor task
-		if self.DISTRACTOR_TYPE is not None:
-			Distractor = Count_Adjustable.Distractor("distractor_", self.targetnumber, ppid = 1, startscreentime = self.StartScreenTime, triallength = 15, ntrials = len(self.TRIALSEQ_signed))
-		else:
-			Distractor = None
-		self.driver = vizdriver.Driver(self.caveview, Distractor)	
-
-		viz.MainScene.visible(viz.ON,viz.WORLD)		
-		viz.mouse.setVisible(viz.OFF) #switch mouse off
-		viz.clearcolor(viz.SKYBLUE) #HACK, since eyetracker background is white.
-
+			#put straight visible
+			self.Straight.ToggleVisibility(1)	
 		#add message after calibration to give the experimenter and participant time to prepare for the simulation.
 
-		viz.message('\t\tYou will now begin the experiment \n\n The automated vehicle will attempt to navigate a series of bends. \nYour task as the supervisory driver is to make sure the vehicle stays within the road edges. \nDuring automation please keep your hands loosely on the wheel. \nYou may take control by pressing the gear pads. \nOnce pressed, you will immediately be in control of the vehicle')			
-		self.ToggleTextVisibility(viz.ON)
+			self.markers = Markers()
+
+			#set up distractor task
+		if self.DISTRACTOR_TYPE is not None:
+			distractorfilename = str(self.EXP_ID) + '_' + str(self.PP_id) + '_distractor_'
+			Distractor = Count_Adjustable.Distractor(distractorfilename, self.targetnumber, ppid = 1, startscreentime = self.StartScreenTime, triallength = 15, ntrials = len(self.TRIALSEQ_df.index))
+		else:
+			Distractor = None
+
+		#set up scene before eyetracking	
+		self.driver = vizdriver.Driver(self.caveview, Distractor)		
+
+		viz.message('\t\tYou will now begin the experiment \n\n The automated vehicle will attempt to navigate a series of bends. \nYour task as the supervisory driver is to make sure the vehicle stays within the road edges. \nDuring automation please keep your hands loosely on the wheel. \nYou may take control by pressing the gear pads. \nOnce pressed, you will immediately be in control of the vehicle \n\n Please fixate the centre of the calibration point in between trials')			
+		self.ToggleTextVisibility(viz.ON)	
+
+				
 	
-		if self.EYETRACKING: 
-			#pass it the filename, and also the timestamp.
-			et_file = str(self.EXP_ID) + '_' + str(self.PP_id) #one file for the whole task.
-			self.comms.start_trial(fname = et_file, timestamp = viz.tick())
+
+		
 		
 		for i, trial in self.TRIALSEQ_df.iterrows():
 
+			#if half-way through do accuracy test.
+					#Trial loop has finished.
+			if i == int(np.round(self.total_trials/2,0)):
+				if self.EYETRACKING:
+					self.markers.markers_visibility(0) #remove markers for calibration
+					self.Straight.ToggleVisibility(0)	
+
+					accuracy_filename = filename + '_middle'
+					yield run_accuracy(self.comms, accuracy_filename)
+					yield viztask.waitTime(1) #a second pause before going into 
+
+					self.markers.markers_visibility(1) #remove markersthe next trial 
+					self.Straight.ToggleVisibility(1)	
+				
 			#import vizjoy		
+
 			print("Trialn: ", str(i))
 			
 			print("current trial:", trial)
@@ -554,6 +623,7 @@ class myExperiment(viz.EventClass):
 				self.Wheel.control_on()
 
 			if self.DISTRACTOR_TYPE is not None:
+
 				if i == 0: #the first trial.			
 					
 					#annotate eyetracking
@@ -562,16 +632,18 @@ class myExperiment(viz.EventClass):
 					
 					
 					#switch texts off for the first trial.
-
-
+					
 					self.ToggleTextVisibility(viz.OFF)
 
 					Distractor.StartTrial(self.targetoccurence_prob, self.targetnumber, trialn = i, displayscreen=True)	#starts trial								
 					yield viztask.waitTrue(Distractor.getStartFlag)
 
 					self.ToggleTextVisibility(viz.ON)
+
+					
 				else:
 					Distractor.StartTrial(self.targetoccurence_prob, self.targetnumber, trialn = i, displayscreen=False)	#starts trial								
+				
 
 
 			radius_index = self.FACTOR_radiiPool.index(trial_radii)
@@ -651,14 +723,21 @@ class myExperiment(viz.EventClass):
 			self.OutputFile = io.BytesIO()
 			self.OutputWriter = csv.writer(self.OutputFile)
 			self.OutputWriter.writerow(self.datacolumns) #write headers.
-
 			
 			#annotate eyetracking
 			if self.EYETRACKING:
 					self.comms.annotate('Start_' + self.Trial_SaveName)	
 
-			#TODO: add 1 s calibration dot.
 			yield viztask.waitTime(.5) #pause at beginning of trial
+
+			#annotate eyetracking
+			if self.EYETRACKING:
+					#remove calib_pt and wait a further .5 s	
+					#TODO: add 1 s calibration dot.
+					self.calib_pt.visible(1)
+					yield viztask.waitTime(1.5) #pause at beginning of trial
+					self.calib_pt.visible(0)
+					yield viztask.waitTime(.5) #pause at beginning of trial
 
 			if self.DEBUG:
 				conditionmessage = 'SAB: ' + str(self.Trial_YawRate_Offset) + \
@@ -769,6 +848,10 @@ class myExperiment(viz.EventClass):
 
 				if self.AUTOWHEEL:
 					self.Wheel.control_off()
+
+				#switch text off 
+				self.ToggleTextVisibility(viz.OFF)				
+
 				Distractor.EndofTrial() #throw up the screen to record counts.
 				###interface with End of Trial Screen		
 				pressed = 0
@@ -788,11 +871,19 @@ class myExperiment(viz.EventClass):
 					#Distractor.EoTScreen_Visibility(viz.OFF)
 				Distractor.RecordCounts()
 
+				self.ToggleTextVisibility(viz.ON)
+
 			#annotate eyetracking
 			if self.EYETRACKING:
 				self.comms.annotate('End_' + self.Trial_SaveName)	
 	
-		#loop has finished.
+		#Trial loop has finished.
+		if self.EYETRACKING:
+			self.markers.remove_markers() #remove markers
+			self.Straight.ToggleVisibility(0)
+			accuracy_filename = filename + '_end'
+			yield run_accuracy(self.comms, accuracy_filename)
+
 		self.CloseConnections()
 		#viz.quit() 
 
@@ -829,7 +920,7 @@ class myExperiment(viz.EventClass):
 		"""Records Data into Dataframe"""
 
 		output = (self.Trial_autofile_i, self.Trial_dir, self.Trial_design,self.Trial_OnsetTime, self.Trial_radius, self.Trial_YawRate_Offset,
-		self.Trial_simulatedttlc,self.PP_id, self.Trial_N, self.Current_Time, self.Trial_Timer, self.Current_pos_x, self.Current_pos_z, self.Current_yaw, self.Current_SWA, self.Current_YawRate_seconds, self.Current_TurnAngle_frames, self.Current_distance, self.Current_dt, self.Current_WheelCorrection, self.Current_steeringbias, self.Current_closestpt, self.AUTOMATION, self.Trial_playbackfilename) #output array
+		self.Trial_simulatedttlc,self.PP_id, self.Trial_N, self.Current_Time, self.Trial_Timer, self.Current_pos_x, self.Current_pos_z, self.Current_yaw, self.Current_SWA, self.Current_YawRate_seconds, self.Current_TurnAngle_frames, self.Current_distance, self.Current_dt, self.Current_WheelCorrection, self.Current_steeringbias, self.Current_closestpt, self.AUTOMATION, self.Trial_playbackfilename, str(self.DISTRACTOR_TYPE)) #output array
 		
 		
 		#self.OutputWriter.loc[self.Current_RowIndex,:] = output #this dataframe is actually just one line. 		
@@ -844,12 +935,14 @@ class myExperiment(viz.EventClass):
 
 		data.seek(0)
 		df = pd.read_csv(data) #grab bytesIO object.		
-
-		complete_path = 'Data//' + filename + '.csv'
+		
+		fileext = '.csv'
+		file_path = 'Data//' + filename 
+		complete_path = file_path + fileext
 		if os.path.exists(complete_path):
 			
 			rint = np.random.randint(1, 100)
-			complete_path = complete_path + '_copy_' + str(rint)			
+			complete_path = file_path + '_copy_' + str(rint) + fileext			
 
 		df.to_csv(complete_path) #save to file.
 
@@ -1003,7 +1096,7 @@ class myExperiment(viz.EventClass):
 		print ("Closing connections")
 		if self.EYETRACKING: 
 			self.comms.stop_trial() #closes recording
-			self.pupil_killer()
+			#self.pupil_killer()
 		
 		#kill automation
 		if self.AUTOWHEEL:
@@ -1015,31 +1108,36 @@ class myExperiment(viz.EventClass):
 if __name__ == '__main__':
 
 	###### SET EXPERIMENT OPTIONS ######	
-	
+	EXIT_CALLBACKS = [] #list for functions to call on programme exit
+
 	AUTOWHEEL = True
 	PRACTICE = False	#keep false. no practice trial at the moment.
-	EXP_ID = "Orca19"
-	DEBUG = True
+	EXP_ID = "Orca19" #Orca18 for original dataset. Orca19 for rerun.
+	DEBUG = False
 	DEBUG_PLOT = False #flag for the debugger plot. only active if Debug == True.
 
-	
 	#SP CHANGE HERE
-	EYETRACKING = False
+	EYETRACKING = True
 	
 	#distractor_type takes 'None', 'Easy' (1 target, 40% probability), and 'Hard' (3 targets, 40% probability)
 	#DISTRACTOR_TYPE = "Hard" #Case sensitive
 	#DISTRACTOR_TYPE = "Easy" #Case sensitive
-	DISTRACTOR_TYPE = None #Case sensitive. Shouldn't have speech marks since None is a special word.
-	BLOCK = 1 #SP. change to one or two.
+	DISTRACTOR_TYPE = "Middle" #PICK THIS FOR TWO TARGETS
+	#DISTRACTOR_TYPE = None #Case sensitive. Shouldn't have speech marks since None is a special word.
+	#BLOCK = 1 #SP. change to one or two.
 
 	#determine amount of trials
-	if DISTRACTOR_TYPE is None:
-		trials = 3
-	else:
-		trials = 6
+	
+	#if DISTRACTOR_TYPE is None:
+#		trials = 3
+		#trials = 6
+	#else:
+#		trials = 6
+	
+	trials = 6 #results in about five minutes quicker than six repetitions.
 
 	if DISTRACTOR_TYPE is None:
-		EXP_ID = EXP_ID + '_' + str(DISTRACTOR_TYPE) + '_' + str(BLOCK) #build string for file saving.
+		EXP_ID = EXP_ID + '_' + str(DISTRACTOR_TYPE) #+ '_' + str(BLOCK) #build string for file saving.
 	else:
 		EXP_ID = EXP_ID + '_' + str(DISTRACTOR_TYPE) #build string for file saving.
 
@@ -1059,7 +1157,13 @@ if __name__ == '__main__':
 		EYETRACKING, PRACTICE, EXP_ID, AUTOWHEEL, DEBUG, DEBUG_PLOT, DISTRACTOR_TYPE, ppid = PP_ID, trialspercondition=trials
 		)
 
-	#viz.callback(viz.EXIT_EVENT,CloseConnections, myExp.EYETRACKING)
+	
+EXIT_CALLBACKS.append(myExp.CloseConnections)
+def do_exit_callback():
+	for cb in EXIT_CALLBACKS:
+		cb()
 
-	viztask.schedule(myExp.runtrials())
+viz.callback(viz.EXIT_EVENT,do_exit_callback)
+
+viztask.schedule(myExp.runtrials())
 

@@ -204,7 +204,7 @@ def run_accuracy(comms, fname):
 
 	print(fname)
 	##MAKE WHITE BACKGROUND COLOUR FOR BETTER CALIBRATION
-	viz.MainWindow.clearcolor(viz.WHITE)
+	#viz.MainWindow.clearcolor(viz.WHITE)
 	#draw roadedges
 	
 	#fName = 'textures\strong_edge.bmp'
@@ -231,11 +231,13 @@ def run_accuracy(comms, fname):
 	#run through calibration programme
 	#throw two 9 point fleixble grid. Can simple keep going until satisfied.
 	#Needs a separate save function than the original to be completely self-sufficient.
-	boxsize = [.9,.8] #xy box size
-	lowerleft = [.05,.1] #starting corner
+	#boxsize = [.9,.8] #xy box size
+	#lowerleft = [.05,.1] #starting corner
+	boxsize = [.6,.4] #xy box size
+	lowerleft = [.2,.2] #starting corner
 	#start from top right
-	nrow = 5
-	ncol = 7
+	nrow = 4
+	ncol = 3
 	Grid = MakeGrid(nrow, ncol, boxsize, lowerleft)	
 	nmarkers = nrow * ncol
 	

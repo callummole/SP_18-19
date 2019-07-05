@@ -23,7 +23,7 @@ viz.window.setFullscreenMonitor(2)
 viz.window.setFullscreen(viz.ON)
 
 # Prompt for filename
-ExpID = "Orca18_Distractor"
+ExpID = "Orca19_Distractor_Baseline_"
 DEG_SYM = unichr(176).encode("latin-1")
 pname = viz.input('Participant code: ')
 
@@ -33,8 +33,11 @@ pname = viz.input('Participant code: ')
 #SP CHANGE HERE
 
 PRACTICE = False #if practice, they only do one of each.
+DISTRACTOR_TYPE = "Middle" #(2 targets)# "Hard" #"Easy" (1 target) or "Hard" (3 targets). 
+
+#Will change here
 BLOCK = 2 #1 or 2. #switch to not save over previous file.
-DISTRACTOR_TYPE = "Hard" #"Easy" (1 target) or "Hard" (3 targets). 
+
 
 #### ORDER TRIALS #####
 
@@ -49,6 +52,8 @@ if PRACTICE:
 	ExpID = ExpID + '_' + 'PRAC' #file name	
 	if DISTRACTOR_TYPE == "Easy":
 		FACTOR_targetnumber = [1] #number of targets to keep count of.
+	elif DISTRACTOR_TYPE == "Middle":
+		FACTOR_targetnumber = [2] #number of targets to keep count of.
 	elif DISTRACTOR_TYPE == "Hard":
 		FACTOR_targetnumber = [3] #number of targets to keep count of.
 	else:
@@ -56,7 +61,8 @@ if PRACTICE:
 else:
 	TrialsPerCondition = 3 #for the isolated task, do three trials each. 
 	ExpID = ExpID + '_' + str(BLOCK)
-	FACTOR_targetnumber = [1, 3] #number of targets to keep count of.
+	#FACTOR_targetnumber = [1, 3] #number of targets to keep count of.
+	FACTOR_targetnumber = [2] #number of targets to keep count of.
 
 FACTOR_targetoccurence_prob = [.4] #probability of response frequency
 
