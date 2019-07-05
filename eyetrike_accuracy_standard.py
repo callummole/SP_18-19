@@ -140,6 +140,46 @@ def initialise_display():
 	#	print 'onExit event...closing comms'
 	#	comms.close_all()
 
+def MakeGrid(Nrows, Ncolumns, BoxSize = [.6, .3], lowerleft = [.2, .2]):
+	"""Returns a list of grid points of Nrows and NColumns"""
+
+	xstart = lowerleft[0]
+	ystart = lowerleft[1]
+	
+	xsize = BoxSize[0]
+	ysize = BoxSize[1]
+
+	xshift = xsize / (Ncolumns - 1)
+	yshift = ysize / (Nrows - 1)
+	
+	Nmarkers = Nrows * Ncolumns
+
+	Grid = []
+
+	#Populate markers, starting from the bottom left and working upwards.
+	for row in range(Nrows):
+		#for each row, loop through columns
+		for col in range(Ncolumns):
+			xpt = xstart + (xshift * col)
+			ypt = ystart + (yshift * row)
+			point = [xpt, ypt]
+			Grid.append(point)	
+
+	# Grid = [[xstart,lowerleft[1]+boxsize[1]], #TL
+	# [xstart+(boxsize[0]*1)/3,lowerleft[1]+boxsize[1]], #TCL
+	# [xstart+(boxsize[0]*2)/3,lowerleft[1]+boxsize[1]], #TCR
+	# [xstart+boxsize[0],lowerleft[1]+boxsize[1]], #TR
+	# [xstart,lowerleft[1]+(boxsize[1]/2)], #ML
+	# [xstart+(boxsize[0]*1)/3,lowerleft[1]+(boxsize[1]/2)], #MCL
+	# [xstart+(boxsize[0]*2)/3,lowerleft[1]+(boxsize[1]/2)], #MCR
+	# [xstart+boxsize[0],lowerleft[1]+(boxsize[1]/2)], #MR
+	# [xstart,lowerleft[1]],	#BL	
+	# [xstart+(boxsize[0]*1)/3,lowerleft[1]],	#BCL
+	# [xstart+(boxsize[0]*2)/3,lowerleft[1]],	#BCR	
+	# [xstart+boxsize[0],lowerleft[1]]]	#BR	
+
+	return Grid
+
 def save_calibration(calib_data, fname, write_args = 'a'):
 	"""save calibration data
 
@@ -186,36 +226,19 @@ def run_accuracy(comms, fname):
 #	groundplane.texture(groundtexture)
 #	groundplane.visible(1)
 
-	markers = Markers() #add markers. 
+	#markers = Markers() #add markers. 
 
 	#run through calibration programme
 	#throw two 9 point fleixble grid. Can simple keep going until satisfied.
 	#Needs a separate save function than the original to be completely self-sufficient.
-	boxsize = [.6,.3] #xy box size
-	lowerleft = [.2,.2] #starting corner
+	boxsize = [.9,.8] #xy box size
+	lowerleft = [.05,.1] #starting corner
 	#start from top right
-	#TL
+	nrow = 5
+	ncol = 7
+	Grid = MakeGrid(nrow, ncol, boxsize, lowerleft)	
+	nmarkers = nrow * ncol
 	
-	#TML
-	
-	#TMR
-	
-	#TR
-	[lowerleft[0],lowerleft[1]+boxsize[1],0]
-	
-	Grid = [[lowerleft[0],lowerleft[1]+boxsize[1]], #TL
-	[lowerleft[0]+(boxsize[0]*1)/3,lowerleft[1]+boxsize[1]], #TCL
-	[lowerleft[0]+(boxsize[0]*2)/3,lowerleft[1]+boxsize[1]], #TCR
-	[lowerleft[0]+boxsize[0],lowerleft[1]+boxsize[1]], #TR
-	[lowerleft[0],lowerleft[1]+(boxsize[1]/2)], #ML
-	[lowerleft[0]+(boxsize[0]*1)/3,lowerleft[1]+(boxsize[1]/2)], #MCL
-	[lowerleft[0]+(boxsize[0]*2)/3,lowerleft[1]+(boxsize[1]/2)], #MCR
-	[lowerleft[0]+boxsize[0],lowerleft[1]+(boxsize[1]/2)], #MR
-	[lowerleft[0],lowerleft[1]],	#BL	
-	[lowerleft[0]+(boxsize[0]*1)/3,lowerleft[1]],	#BCL
-	[lowerleft[0]+(boxsize[0]*2)/3,lowerleft[1]],	#BCR	
-	[lowerleft[0]+boxsize[0],lowerleft[1]]]	#BR	
-
 	imagepath = 'C:/VENLAB data/shared_modules/textures/'
 	#fn = imagepath + 'calibmarker.png'
 	#fn = imagepath + 'calibmarker_black.png' #pupil-labs has issues. Stops due to not collecting enough data. Might be to tell it to stop? 
@@ -253,7 +276,7 @@ def run_accuracy(comms, fname):
 	#	(0.485, 0.39) #Point 8
 	#	(0.6, 0.39) #Point 9
 			
-	viz.message('\t\t\tACCURACY TEST \n\nPlease look at the centre of the accuracy target. Try and move your head as little as possible')
+	viz.message('\t\t\tACCURACY TEST \n\nPlease look at the white dot in the very centre of the accuracy target. Try and move your head as little as possible')
 		
 	calib_flag = 0 
 	record_flag = 0
@@ -262,10 +285,10 @@ def run_accuracy(comms, fname):
 	
 	#normalise markers on surface
 	print (Grid)
-	calibpositions_normed = normaliseToSurface(Grid, markers.boxsize, markers.lowerleft)
+	#calibpositions_normed = normaliseToSurface(Grid, markers.boxsize, markers.lowerleft)
 	
-	print (calibpositions_normed)
-	comms.send_marker_positions(calibpositions_normed)
+	#print (calibpositions_normed)
+	#comms.send_marker_positions(calibpositions_normed)
 
 	comms.send_msg('P') #start accuracy test
 
@@ -289,7 +312,7 @@ def run_accuracy(comms, fname):
 
 			i = i+1
 		
-			if i > 11: #clamp i
+			if i > nmarkers-1: #clamp i
 				comms.send_msg('p')
 								
 				while True:

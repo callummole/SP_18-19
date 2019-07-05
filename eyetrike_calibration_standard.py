@@ -87,6 +87,28 @@ class Markers:
 		self.hm7.setPosition([lowerleft[0]+(boxsize[0]*1)/3,lowerleft[1]+boxsize[1],0])
 		self.hm7.scale(sc_v,sc_h,sc)
 
+	def remove_markers(self):
+		"""removes visible unique eyetracking markers"""
+
+		self.hm1.remove()
+		self.hm2.remove()
+		self.hm3.remove()
+		self.hm4.remove()
+		#self.hm5.remove()
+		self.hm6.remove()
+		self.hm7.remove()
+
+	def markers_visibility(self, vis = 1):
+		"""removes visible unique eyetracking markers"""
+
+		self.hm1.visible(vis)
+		self.hm2.visible(vis)
+		self.hm3.visible(vis)
+		self.hm4.visible(vis)
+		#self.hm5.remove()
+		self.hm6.visible(vis)
+		self.hm7.visible(vis)
+
 
 def initialise_display():
 	
@@ -224,14 +246,17 @@ def run_calibration(comms, fname):
 	
 	#addGroundPlane()
 	
-	markers = Markers() #add markers.
+	#markers = Markers() #add markers.
 	#run through calibration programme
 	#throw two 9 point fleixble grid. Can simple keep going until satisfied.
 	#Needs a separate save function than the original to be completely self-sufficient.
-	boxsize = [.6,.3] #xy box size
-	lowerleft = [.2,.2] #starting corner
+	boxsize = [.9,.8] #xy box size
+	lowerleft = [.05,.1] #starting corner
 	#start from top right
-	Grid = MakeGrid(3, 4, boxsize, lowerleft)	
+	nrow = 5
+	ncol = 7
+	Grid = MakeGrid(nrow, ncol, boxsize, lowerleft)	
+	nmarkers = nrow * ncol
 
 	imagepath = 'C:/VENLAB data/shared_modules/textures/'
 	#fn = imagepath + 'calibmarker.png'
@@ -275,7 +300,7 @@ def run_calibration(comms, fname):
 
 	
 			
-	viz.message('\t\t\t CALIBRATION \n\nPlease look at the centre of the calibration target. Try and move your head as little as possible')
+	viz.message('\t\t\t CALIBRATION \n\nPlease look at the white dot in the very centre of the calibration target. Try and move your head as little as possible')
 		
 	calib_flag = 0 
 	record_flag = 0
@@ -302,7 +327,7 @@ def run_calibration(comms, fname):
 			
 			i = i+1
 		
-			if i > 11: #clamp i
+			if i > nmarkers-1: #clamp i
 				comms.send_msg('c')
 								
 				while True:
@@ -311,7 +336,7 @@ def run_calibration(comms, fname):
 					if True in ['calibration' in j for j in msg_rcv]:			
 						
 						out = [j for j in msg_rcv if 'calibration' in j][0]
-						out = out[12:]
+						out = out[12:] 
 						print (out)
 						calib_accuracy = out.split('//')[0]
 						calib_precision = out.split('//')[1]
