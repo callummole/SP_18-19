@@ -536,12 +536,13 @@ class myExperiment(viz.EventClass):
 			self.comms.start_trial(fname = et_file, timestamp = viz.tick())
 
 		if self.EYETRACKING:
-			#viz.MainScene.visible(viz.OFF,viz.WORLD)	
-
+			#viz.MainScene.visible(viz.OFF,viz.WORLD)
+			
 			#remove straight
 			self.Straight.ToggleVisibility(0)	
 			filename = str(self.EXP_ID) + "_Calibration_" + str(self.PP_id) #+ str(demographics[0]) + "_" + str(demographics[2]) #add experimental block to filename
 			print (filename)
+			
 			# Start logging the pupil data
 			pupilfile = gzip.open(
 				os.path.join("Data", filename + ".pupil.jsons.gz"),
@@ -555,7 +556,7 @@ class myExperiment(viz.EventClass):
 
 			
 			yield run_calibration(self.comms, filename)			
-			yield run_accuracy(self.comms, filename)	
+			yield run_accuracy(self.comms, filename)
 			
 
 			#put straight visible
@@ -567,7 +568,7 @@ class myExperiment(viz.EventClass):
 			#set up distractor task
 		if self.DISTRACTOR_TYPE is not None:
 			distractorfilename = str(self.EXP_ID) + '_' + str(self.PP_id) + '_distractor_'
-			Distractor = Count_Adjustable.Distractor(distractorfilename, self.targetnumber, ppid = 1, startscreentime = self.StartScreenTime, triallength = 15, ntrials = len(self.TRIALSEQ_df.index))
+			Distractor = Count_Adjustable.Distractor(distractorfilename, self.targetnumber, ppid = 1, startscreentime = self.StartScreenTime, triallength = np.inf, ntrials = len(self.TRIALSEQ_df.index))
 		else:
 			Distractor = None
 
@@ -623,7 +624,6 @@ class myExperiment(viz.EventClass):
 				self.Wheel.control_on()
 
 			if self.DISTRACTOR_TYPE is not None:
-
 				if i == 0: #the first trial.			
 					
 					#annotate eyetracking
@@ -832,7 +832,7 @@ class myExperiment(viz.EventClass):
 			
 			self.UPDATELOOP = False
 			
-			self.Trial_BendObject.ToggleVisibility(viz.OFF)	
+			self.Trial_BendObject.ToggleVisibility(viz.OFF)
 
 			##reset trial. Also need to annotate each eyetracking trial.											
 			viz.director(self.SaveData, self.OutputFile, self.Trial_SaveName)			
@@ -850,9 +850,20 @@ class myExperiment(viz.EventClass):
 					self.Wheel.control_off()
 
 				#switch text off 
-				self.ToggleTextVisibility(viz.OFF)				
+				self.ToggleTextVisibility(viz.OFF)
 
 				Distractor.EndofTrial() #throw up the screen to record counts.
+				
+				# Pause before the query screen to avoid
+				# spurious presses carrying over from the
+				# task.
+				# Hack the screen to be blank
+				Distractor.EoTScreen.visible(viz.ON)
+				Distractor.Question.visible(viz.OFF)
+				Distractor.lblscore.visible(viz.OFF)
+				yield viztask.waitTime(1.0)
+				Distractor.EoTScreen_Visibility(viz.ON)
+				
 				###interface with End of Trial Screen		
 				pressed = 0
 				while pressed < self.targetnumber:
@@ -875,7 +886,7 @@ class myExperiment(viz.EventClass):
 
 			#annotate eyetracking
 			if self.EYETRACKING:
-				self.comms.annotate('End_' + self.Trial_SaveName)	
+				self.comms.annotate('End_' + self.Trial_SaveName)
 	
 		#Trial loop has finished.
 		if self.EYETRACKING:
@@ -883,7 +894,6 @@ class myExperiment(viz.EventClass):
 			self.Straight.ToggleVisibility(0)
 			accuracy_filename = filename + '_end'
 			yield run_accuracy(self.comms, accuracy_filename)
-
 		self.CloseConnections()
 		#viz.quit() 
 
@@ -1117,7 +1127,7 @@ if __name__ == '__main__':
 	DEBUG_PLOT = False #flag for the debugger plot. only active if Debug == True.
 
 	#SP CHANGE HERE
-	EYETRACKING = True
+	EYETRACKING = False
 	
 	#distractor_type takes 'None', 'Easy' (1 target, 40% probability), and 'Hard' (3 targets, 40% probability)
 	#DISTRACTOR_TYPE = "Hard" #Case sensitive
