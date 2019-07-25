@@ -151,7 +151,7 @@ class Distractor(viz.EventClass):
 		trialinfo_columns = ['ppid', 'targetoccurence','targetnumber','trialn']
 
 		EoTcolumns = trialinfo_columns
-		WithinTrialcolumns = trialinfo_columns + ['CurrentAudio','RT','ResponseCategory']
+		WithinTrialcolumns = trialinfo_columns + ['timestamp_exp','item_delay','currentaudio_type','CurrentAudio','RT','ResponseCategory']
 		for i in range(1,maxtargetnumber +1):
 
 			EoTcolumn = 'EoTScore' + str(i)
@@ -235,7 +235,7 @@ class Distractor(viz.EventClass):
 					self.StartFlag = True #flag for experiment class.
 					self.StartScreen_Visibility(viz.OFF)
 					self.ON = 1
-				else:
+				else:					
 					self.StartScreen_Timer += self.interval #increment StartScreenTimer by Timer interval
 
 	
@@ -411,7 +411,7 @@ class Distractor(viz.EventClass):
 				
 		#the row size will change depending on target number.
 		trialinfo = [self.ppid, self.Trial_targetoccurence_prob, self.Trial_targetnumber, self.Trial_N]		
-		currentresponse = [self.currentaudio, RT, ResponseCategory] 
+		currentresponse = [viz.tick(), self.delay, self.currentaudio_type,self.currentaudio, RT, ResponseCategory] 
 
 		Trial_targets_outputlist = list(self.Trial_targets)
 		while len(Trial_targets_outputlist) < self.MaxTargetNumber:
