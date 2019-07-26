@@ -77,7 +77,7 @@ class Distractor(viz.EventClass):
 		#self.Trial_Index = 0 #count for number of Trails, to index Trial dataframe. Isn't needed as Trial_N gets passed on StartTrial. 
 		
 		# PARAMETERS THAT VARY WITHIN TRIALS
-		self.ON = 0 #flag denoting whether to record data
+		self.ON = 0 #flag denoting whether to enter the loop that records data
 		self.targetDelay = [] #randomly varies between 1-1.5s
 		self.currentaudio = None # currently heard stimuli
 		self.currentaudio_type = None # currently heard stimuli
@@ -99,8 +99,8 @@ class Distractor(viz.EventClass):
 		
 		self.ppresp = 0 #flag to say that participant has responded.
 		
-		self.EoTFlag = False #set to 1 when it is the EoT screen. 
-		self.StartFlag = False #set to true when start screen time elapses
+		self.EoTFlag = False #set to True when it is the EoT screen. 
+		self.PlaySoundFlag = False #set to true when start screen time elapses. #Flag that is called by the main experiment to know when to stop pausing.
 		self.EoT_NumberofResponses = 0 #count to say how many counts have been inputted.
 						
 		### END OF TRIALS SCREEN ###
@@ -205,38 +205,49 @@ class Distractor(viz.EventClass):
 		self.Stimuli_Timer = 0 #reset inter-presentation timer
 		self.Trial_Timer = 0 #reset trial length to zero 		
 		self.Trial_Stimuli_Index = 0
+
+		self.ON = 1
 		
 	def onTimer(self,num):							
 								
 		if self.ON == 1:
 		#print "self.Stimuli_Timer: " + str(self.Stimuli_Timer)
-		#need to only play files sequentially.
-			if self.Stimuli_Timer > self.delay:
-				
-				#change random choice
-				choice = np.random.randint(0,2)
-				if choice == 1:	
-					if self.Trial_Stimuli_Index < 1: 
-						self.SetNewStimuli()
-					else:
-						self.DetectAudioResponse() #function that sets target, with delay parameters		
-				
-			self.Stimuli_Timer = self.Stimuli_Timer+self.interval	
-			
-			self.Trial_Timer = self.Trial_Timer + self.interval #timer to keep track of overall trial length
-			
-			if self.Trial_Timer > self.Trial_length:
-				#here start end of trial screens. 
-				self.EndofTrial() 						
-		else:
-			if not self.EoTFlag:
-				if self.StartScreen_Timer > self.StartScreen_DisplayTime:
-					#remove startscreen and start recording.
-					self.StartFlag = True #flag for experiment class.
-					self.StartScreen_Visibility(viz.OFF)
-					self.ON = 1
-				else:					
-					self.StartScreen_Timer += self.interval #increment StartScreenTimer by Timer interval
+		#need to only play files sequentially.			
+			#self.ON gets switched on at StartTrial().
+
+			#If it's the end of trial screen do nothing
+			if self.EoTFlag:
+				pass
+			else:
+				#check if we want to play a sound. If not, the start screen will be on.
+				if self.PlaySoundFlag:
+
+					if self.Stimuli_Timer > self.delay:
+						
+						#change random choice
+						choice = np.random.randint(0,2)
+						if choice == 1:	
+							if self.Trial_Stimuli_Index < 1: 
+								self.SetNewStimuli()
+							else:
+								self.DetectAudioResponse() #function that sets target, with delay parameters		
+						
+					self.Stimuli_Timer = self.Stimuli_Timer+self.interval	
+					
+					self.Trial_Timer = self.Trial_Timer + self.interval #timer to keep track of overall trial length
+					
+					if self.Trial_Timer > self.Trial_length:
+						#here start end of trial screens. 
+						self.EndofTrial() 						
+				else:
+
+					# if the start screen is active, don't play a sound but increment the startscreen timer
+					if self.StartScreen_Timer > self.StartScreen_DisplayTime:
+						#remove startscreen and start recording.
+						self.PlaySoundFlag = True #flag for experiment class.
+						self.StartScreen_Visibility(viz.OFF)
+					else:					
+						self.StartScreen_Timer += self.interval #increment StartScreenTimer by Timer interval				
 
 	
 	def getFlag(self):
@@ -244,10 +255,10 @@ class Distractor(viz.EventClass):
 		"called get flag"
 		return(self.EoTFlag)
 
-	def getStartFlag(self):
+	def getPlaySoundFlag(self):
 		#return whether end of trial screen is on.
 		"called start flag"
-		return(self.StartFlag)
+		return(self.PlaySoundFlag)
 	
 	def getEoT_NumberofResponses(self):
 		#return whether ppresponded.
@@ -286,8 +297,8 @@ class Distractor(viz.EventClass):
 		
 		#tell class it is end of trial. 
 		self.EoTFlag = True	
-		self.ON = 0
-		self.StartFlag = False
+		#self.ON = 0 #don't actually need to set this here because the EoTFlag does the same function.
+		self.PlaySoundFlag = False
 
 	def EoTScreen_Visibility(self, visible = viz.ON):
 
@@ -330,7 +341,7 @@ class Distractor(viz.EventClass):
 
 		self.EoTScreen_Visibility(viz.OFF)
 		
-		#tell class it is end of trial. 
+		#tell class that the end of trial screen has finished
 		self.EoTFlag = False
 		
 		print ("recorded counts")			

@@ -335,6 +335,8 @@ def run_calibration(comms, fname):
 				while True:
 					msg_rcv = comms.poll_msg()		
 					
+					"""FIXME: calibration hangs here if there isn't any eye data"""
+
 					if True in ['calibration' in j for j in msg_rcv]:			
 						
 						out = [j for j in msg_rcv if 'calibration' in j][0]
