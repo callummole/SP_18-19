@@ -1,5 +1,6 @@
 import sys
-rootpath = 'C:\\VENLAB data\\TrackMaker\\'
+#rootpath = 'C:\\VENLAB data\\TrackMaker\\'
+rootpath = 'C:\\git_repos\\TrackMaker\\'
 sys.path.append(rootpath)
 
 import numpy as np
@@ -194,9 +195,9 @@ if __name__ == '__main__':
     Course_RoadStart = myStraight.RoadStart
     Course_midline = np.vstack((myStraight.midline, myBend.midline))
     Course_OutsideLine = np.vstack(
-        (myStraight.OutsideLine, myBend.OutsideLine)
+        (myStraight.LeftLine, myBend.OutsideLine)
         )
-    Course_InsideLine = np.vstack((myStraight.InsideLine, myBend.InsideLine))
+    Course_InsideLine = np.vstack((myStraight.RightLine, myBend.InsideLine))
     Course_CurveOrigin = myBend.CurveOrigin
     
     #Plot Bend
@@ -321,12 +322,12 @@ if __name__ == '__main__':
                 #print(t)
         print ("SAB: ", sab, "Onset: ", onset, "Time til Crossing: ", t)
 
-    plt.savefig('sample_participant.png', dpi=800)
+  #  plt.savefig('sample_participant.png', dpi=800)
     #plt.show()
     
     #np.savetxt("SimResults_OnsetTimes_"+str(myrads)+".csv", simResults, delimiter=",")
 
-    np.savetxt("SimResults_samplesobol_onsettimes.csv", simResults, delimiter=",")
+   # np.savetxt("SimResults_samplesobol_onsettimes.csv", simResults, delimiter=",")
 
     #***** plot against distribution of onset_times ******
 
@@ -369,7 +370,7 @@ if __name__ == '__main__':
     plt.axhline(y = 9)
     plt.ylim([0, 20])
     plt.plot(sab_rng, approx_ttlc)
-    plt.savefig('sample_sobol.png', dpi = 300)
+    #plt.savefig('sample_sobol.png', dpi = 300)
     plt.show()
 
 
