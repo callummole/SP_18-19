@@ -12,5 +12,6 @@ The module that coordinates the distractor task is Count_Adjustable.py.
 
 The experiment used eyetracking, which relies on a custom fork of pupil-labs, branch in venlab_udp_thread:  https://github.com/OscartGiles/pupil/tree/venlab_udp_thread
 
+For wheel automation the experiment relies on scripts in repo https://github.com/callummole/LogiWheel_Automation
 
 
