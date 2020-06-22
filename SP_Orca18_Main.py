@@ -537,7 +537,7 @@ class myExperiment(viz.EventClass):
 
 		if self.EYETRACKING:
 			#viz.MainScene.visible(viz.OFF,viz.WORLD)
-			
+						
 			#remove straight
 			self.Straight.ToggleVisibility(0)	
 			filename = str(self.EXP_ID) + "_Calibration_" + str(self.PP_id) #+ str(demographics[0]) + "_" + str(demographics[2]) #add experimental block to filename
@@ -547,14 +547,14 @@ class myExperiment(viz.EventClass):
 			pupilfile = gzip.open(
 				os.path.join("Data", filename + ".pupil.jsons.gz"),
 				'a')
+					
 			closer = pupil_logger.start_logging(pupilfile, timestamper=viz.tick)
-
+			
 			def stop_pupil_logging():
 				closer()
 				pupilfile.close()
 			EXIT_CALLBACKS.insert(0, stop_pupil_logging)
-
-			
+						
 			yield run_calibration(self.comms, filename)			
 			yield run_accuracy(self.comms, filename)
 			
@@ -636,7 +636,7 @@ class myExperiment(viz.EventClass):
 					self.ToggleTextVisibility(viz.OFF)
 
 					Distractor.StartTrial(self.targetoccurence_prob, self.targetnumber, trialn = i, displayscreen=True)	#starts trial								
-					yield viztask.waitTrue(Distractor.getStartFlag)
+					yield viztask.waitTrue(Distractor.getPlaySoundFlag)
 
 					self.ToggleTextVisibility(viz.ON)
 
@@ -1127,7 +1127,7 @@ if __name__ == '__main__':
 	DEBUG_PLOT = False #flag for the debugger plot. only active if Debug == True.
 
 	#SP CHANGE HERE
-	EYETRACKING = False
+	EYETRACKING = True
 	
 	#distractor_type takes 'None', 'Easy' (1 target, 40% probability), and 'Hard' (3 targets, 40% probability)
 	#DISTRACTOR_TYPE = "Hard" #Case sensitive
@@ -1137,6 +1137,7 @@ if __name__ == '__main__':
 	#BLOCK = 1 #SP. change to one or two.
 
 	#determine amount of trials
+	
 	
 	#if DISTRACTOR_TYPE is None:
 #		trials = 3
