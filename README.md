@@ -1,4 +1,4 @@
-Experiment Repository for preprint: Mole et al., 2020, Predicting Takeover Response to silent automated failures. 
+Experiment Repository for preprint: Mole et al., 2020, Predicting Takeover Response to silent automated failures (https://psyarxiv.com/bv2pt/).
 
 The experiment was ran in the following order.
 
